@@ -127,10 +127,10 @@ We provoke this through increasing level difficulty, timing-based obstacles, and
 - **Level 1: Orcs in Forest**
   - Mood: Gritty, tense
   - Obstacles: Barrels, ladders, slow-moving orcs
-- **Level 2: Wolves in Ruins**
+- **Level 2: Wolves and Orcs in Haunted Palace **
   - Mood: Faster-paced
-  - Obstacles: Faster enemies, crumbling platforms
-- **Level 3: Mage Towers**
+  - Obstacles: Faster enemies
+- **Level 3: Mage Towers in a Volcano**
   - Mood: Magical, chaotic
   - Obstacles: Mage spells, staggered ladders
 
@@ -177,7 +177,7 @@ We provoke this through increasing level difficulty, timing-based obstacles, and
 - `BarrelSpawner` — Mage sends barrels periodically
 - `EnemyBehavior`
   - `OrcAI`: Walk left/right
-  - `WolfAI`: Chase player if close
+  - `WolfAI`: Walk left/right very quick
   - `MageAI`: Casts spells
 
 ---
@@ -239,7 +239,6 @@ We provoke this through increasing level difficulty, timing-based obstacles, and
 
 - Jump
 - Fireball Cast
-- Barrel Roll
 - Enemy Hit
 - Mage Teleport
 - Health Regen Pickup
