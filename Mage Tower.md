@@ -6,6 +6,10 @@
 
 ##### **Copyright notice / author information / boring legal stuff nobody likes**
 
+Paolo Zesati
+Efren
+Juan Pablo Narchi
+
 ##
 ## _Index_
 
