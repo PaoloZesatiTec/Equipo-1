@@ -100,8 +100,8 @@ We provoke this through increasing level difficulty, timing-based obstacles, and
 
 ### **Controls**
 
-- `←` / `→` — Move
-- `↑` / `↓` — Climb ladder
+- `a` / `d` — Move
+- `w` / `s` — Climb ladder
 - `Space` — Jump
 - `F` — Cast Fireball (10s cooldown)
 - `Enter` — Confirm / Interact
