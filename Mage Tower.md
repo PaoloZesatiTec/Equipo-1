@@ -54,17 +54,28 @@ Each run earns the player experience based on progress, which can be spent in th
 ## **Gameplay**
 
 - **Objective:** Climb each level to reach the Dark Mage while dodging barrels and defeating enemies. Reach the mage three times to enter the final boss room and defeat him with 3 fireball hits.
-- **Fireball Mechanic:** The player can cast a fireball every 10 seconds to defeat enemies.
-- **Enemies by Level:**
-  - **Level 1:** Orcs
-  - **Level 2:** Wolves
-  - **Level 3:** Tier 2 Mages
+- **Player:** The player will have the fireball ability, he needs to jump over the barrells and avoiding or defeating enemies. The player's run will end when he gets hit once.
+- **Fireball Mechanic:** The player can cast a fireball every 10 seconds, the fireball will bounce and will destroy barrells or defeat enemies, but it can´t destroy spells.
+- **Level description:**
+  - **Level 1:** This first level wont have enemies, this level is for the player to understand the mechanics while only having to avoid the barrels.
+  - **Level 2:** The second level will have the barrel speed increased, adding an enemy: The wolves, their movement is going to be between two barrels, forcing the player on this level to manage their fireball, and avoiding the wolves or killing them.
+  - **Level 3:** The third level will be the last before the final boss chamber, in this one you will have low level mages, who cast spells, that kill on contact, the spells will be moving between each barrel above, the mages will be at the end of the line, so you cant kill them only until you reach to them, so the challenge on this level is to time your jumps so you can jump between two barrells and avoiding the spell.
+  - **Final Boss Chamber:** This is the last challenge before to completing the game, defeating the final boss, a high-level mage who will have 3 different atacks, that can't be destroyed:
+      - **Attack 1:** The first one will cast big spells, which will fall from the ceilling, just giving a gap to the player to pass between them.
+      - **Attack 2:** The second atack, will be inspired by usual Bowser boss fights, where the mage will cast spells, that will go around the mage, and will go in ascending order.
+      - **Attack 3:** The third attack will a stun from the mage, that will inmobilize the player for 2 seconds.
+  - The way to deffeat the final boss will be by getting hit by the fireball 3 times.
 - **Obstacles:** Rolling barrels summoned by the Dark Mage.
 - **Tools:** Ladders to ascend, fireballs to attack, jump to avoid barrels.
-- **Power-Ups:**
-  - Health regeneration
-  - Fireball cooldown reset
+- **Power-Ups:** The power ups will divide in two: in game (They will be only active for a time in the run, or only for that run) and permanent (the power-up will be permanent, available for all the runs after obtaining it).
+  - **In game:**
+      - **Time slow:** A power up that you can find in the level, that will make the speed of the barrels and enemies slower, giving you more opportunity to manouver and avoid obstacles or enemies.
+      - **Fire cooldown reset:** The countdown time of the next fireball will be zero.
+  - **Permanent:**
+      - **Extra life:** The power up that can be unlocked that will make you resist one more hit before dying, the limit of this power up will be having two extra lifes.
+      - **Upgraded firepower:** This power up will lower the cooldown time by .5 seconds before the user can throw another fireball, the limit of this power up is the cooldown getting to 5s to mantain certain difficulty.
 
+- 
 If the player dies, they are returned to the **Main Menu**. Progress is lost, but experience is kept for upgrades.
 
 ---
@@ -110,8 +121,8 @@ We provoke this through increasing level difficulty, timing-based obstacles, and
 ### **Mechanics**
 
 - **Fireball System:** Simple cooldown timer using internal clock.
-- **Barrel Spawner:** Periodic obstacle spawner with random lane selection.
-- **Enemy AI:** Basic patrol or chase behavior per level.
+- **Barrel Spawner:** The barrels will spawn at the top of the level and will fall.
+- **Enemy Behavior:** The behavior of the enemy will be as .
 - **Rogue-like Reset:** Triggers on death, resets all progress except EXP.
 - **EXP System:** Tracks progress and enables upgrades between runs.
 
@@ -123,15 +134,18 @@ We provoke this through increasing level difficulty, timing-based obstacles, and
 
 ### **Themes**
 
-- **Level 1: Orcs in Forest**
+- **Level 1: Forest**
   - Mood: Gritty, tense
-  - Obstacles: Barrels, ladders, slow-moving orcs
+  - Objectives: making the player understand the mechanics of the fireball and jump.
+  - Obstacles: Barrels and ladders
 - **Level 2: Wolves and Orcs in Haunted Palace **
-  - Mood: Faster-paced
-  - Obstacles: Faster enemies
+  - Mood: Gritty, tense
+  - Objectives: Introducing the player to the wolf, the first of two enemies
+  - Obstacles: Wolves, barrels and the ladders
 - **Level 3: Mage Towers in a Volcano**
   - Mood: Magical, chaotic
-  - Obstacles: Mage spells, staggered ladders
+  - Objectives: Teaching the player to not rush the level, as the jumps between barrells will be more difficult
+  - Obstacles: Mage, barrels and staggered ladders
 
 ### **Game Flow**
 
