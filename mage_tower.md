@@ -1,235 +1,235 @@
-# **Game Name Here**
+# **Nombre del Juego**
 
-## _Game Design Document_
+## _Documento de Diseño del Juego_
 
 ---
 
-##### **Copyright notice / author information / boring legal stuff nobody likes**
+##### **Aviso de derechos de autor / información del autor / cosas legales aburridas que a nadie le gustan_
 
 Paolo Zesati
 Efren
 Juan Pablo Narchi
 
 ##
-## _Index_
+## _Índice_
 
 ---
 
-1. [Index](#index)
-2. [Game Design](#game-design)
-    1. [Summary](#summary)
-    2. [Gameplay](#gameplay)
-    3. [Mindset](#mindset)
-3. [Technical](#technical)
-    1. [Screens](#screens)
-    2. [Controls](#controls)
-    3. [Mechanics](#mechanics)
-4. [Level Design](#level-design)
-    1. [Themes](#themes)
-    2. [Game Flow](#game-flow)
-5. [Development](#development)
-    1. [Abstract Classes](#abstract-classes--components)
-    2. [Derived Classes](#derived-classes--component-compositions)
-6. [Graphics](#graphics)
-    1. [Style Attributes](#style-attributes)
-    2. [Graphics Needed](#graphics-needed)
-7. [Sounds/Music](#soundsmusic)
-    1. [Style Attributes](#style-attributes-1)
-    2. [Sounds Needed](#sounds-needed)
-    3. [Music Needed](#music-needed)
-8. [Schedule](#schedule)
+1. [Índice](#índice)
+2. [Diseño del Juego](#diseño-del-juego)
+    1. [Resumen](#resumen)
+    2. [Jugabilidad](#jugabilidad)
+    3. [Mentalidad](#mentalidad)
+3. [Técnico](#técnico)
+    1. [Pantallas](#pantallas)
+    2. [Controles](#controles)
+    3. [Mecánicas](#mecánicas)
+4. [Diseño de Niveles](#diseño-de-niveles)
+    1. [Temas](#temas)
+    2. [Flujo del Juego](#flujo-del-juego)
+5. [Desarrollo](#desarrollo)
+    1. [Clases Abstractas](#clases-abstractas--componentes)
+    2. [Clases Derivadas](#clases-derivadas--composiciones-de-componentes)
+6. [Gráficos](#gráficos)
+    1. [Atributos de Estilo](#atributos-de-estilo)
+    2. [Gráficos Necesarios](#gráficos-necesarios)
+7. [Sonidos/Música](#sonidosmúsica)
+    1. [Atributos de Estilo](#atributos-de-estilo-1)
+    2. [Sonidos Necesarios](#sonidos-necesarios)
+    3. [Música Necesaria](#música-necesaria)
+8. [Calendario](#calendario)
 
-# _Game Design_
-
----
-
-## **Summary**
-
-This is a rogue-like 2D arcade platformer inspired by the original *Donkey Kong*. The player controls a regular guy climbing platforms to rescue a princess from the evil Dark Mage. The game features three levels, each with unique enemies and obstacles, culminating in a final boss fight.
-
-Each run earns the player experience based on progress, which can be spent in the main menu to upgrade **lives (from 2 to 3)** or **movement speed**. Players must jump over rolling barrels, defeat enemies using a fireball (with a cooldown), and climb ladders to chase the mage across levels.
+# _Diseño del Juego_
 
 ---
 
-## **Gameplay**
+## **Resumen**
 
-- **Objective:** Climb each level to reach the Dark Mage while dodging barrels and defeating enemies. Reach the mage three times to enter the final boss room and defeat him with 3 fireball hits.
-- **Player:** The player will have the fireball ability, he needs to jump over the barrells and avoiding or defeating enemies. The player's run will end when he gets hit once.
-- **Fireball Mechanic:** The player can cast a fireball every 10 seconds, the fireball will bounce and will destroy barrells or defeat enemies, but it can´t destroy spells.
-- **Level description:**
-  - **Level 1:** This first level wont have enemies, this level is for the player to understand the mechanics while only having to avoid the barrels.
-  - **Level 2:** The second level will have the barrel speed increased, adding an enemy: The wolves, their movement is going to be between two barrels, forcing the player on this level to manage their fireball, and avoiding the wolves or killing them.
-  - **Level 3:** The third level will be the last before the final boss chamber, in this one you will have low level mages, who cast spells, that kill on contact, the spells will be moving between each barrel above, the mages will be at the end of the line, so you cant kill them only until you reach to them, so the challenge on this level is to time your jumps so you can jump between two barrells and avoiding the spell.
-  - **Final Boss Chamber:** This is the last challenge before to completing the game, defeating the final boss, a high-level mage who will have 3 different atacks, that can't be destroyed:
-      - **Attack 1:** The first one will cast big spells, which will fall from the ceilling, just giving a gap to the player to pass between them.
-      - **Attack 2:** The second atack, will be inspired by usual Bowser boss fights, where the mage will cast spells, that will go around the mage, and will go in ascending order.
-      - **Attack 3:** The third attack will a stun from the mage, that will inmobilize the player for 2 seconds.
-  - The way to deffeat the final boss will be by getting hit by the fireball 3 times.
-- **Obstacles:** Rolling barrels summoned by the Dark Mage.
-- **Tools:** Ladders to ascend, fireballs to attack, jump to avoid barrels.
-- **Power-Ups:** The power ups will divide in two: in game (They will be only active for a time in the run, or only for that run) and permanent (the power-up will be permanent, available for all the runs after obtaining it).
-  - **In game:**
-      - **Time slow:** A power up that you can find in the level, that will make the speed of the barrels and enemies slower, giving you more opportunity to manouver and avoid obstacles or enemies.
-      - **Fire cooldown reset:** The countdown time of the next fireball will be zero.
-  - **Permanent:**
-      - **Extra life:** The power up that can be unlocked that will make you resist one more hit before dying, the limit of this power up will be having two extra lifes.
-      - **Upgraded firepower:** This power up will lower the cooldown time by .5 seconds before the user can throw another fireball, the limit of this power up is the cooldown getting to 5s to mantain certain difficulty.
+Este es un juego de plataformas arcade 2D tipo roguelike inspirado en el original *Donkey Kong*. El jugador controla a un personaje común que debe escalar plataformas para rescatar a una princesa del malvado Mago Oscuro. El juego cuenta con tres niveles, cada uno con enemigos y obstáculos únicos, culminando en una batalla final contra el jefe.
+
+Cada partida otorga al jugador experiencia basada en su progreso, que puede gastarse en el menú principal para mejorar **vidas (de 2 a 3)** o **velocidad de movimiento**. Los jugadores deben saltar sobre barriles rodantes, derrotar enemigos usando una bola de fuego (con tiempo de espera), y escalar escaleras para perseguir al mago a través de los niveles.
+
+---
+
+## **Jugabilidad**
+
+- **Objetivo:** Escalar cada nivel para alcanzar al Mago Oscuro mientras esquivas barriles y derrotas enemigos. Alcanza al mago tres veces para entrar a la sala del jefe final y derrotarlo con 3 golpes de bola de fuego.
+- **Jugador:** El jugador tendrá la habilidad de bola de fuego, necesita saltar sobre los barriles y evitar o derrotar enemigos. La partida del jugador terminará cuando reciba un golpe.
+- **Mecánica de Bola de Fuego:** El jugador puede lanzar una bola de fuego cada 10 segundos, la bola rebotará y destruirá barriles o derrotará enemigos, pero no podrá destruir hechizos.
+- **Descripción de niveles:**
+  - **Nivel 1:** Este primer nivel no tendrá enemigos, este nivel es para que el jugador entienda las mecánicas mientras solo tiene que evitar los barriles.
+  - **Nivel 2:** El segundo nivel tendrá la velocidad de los barriles aumentada, añadiendo un enemigo: Los lobos, su movimiento será entre dos barriles, forzando al jugador en este nivel a gestionar su bola de fuego, y evitar o matar a los lobos.
+  - **Nivel 3:** El tercer nivel será el último antes de la cámara del jefe final, en este tendrás magos de bajo nivel, que lanzan hechizos que matan al contacto, los hechizos se moverán entre cada barril arriba, los magos estarán al final de la línea, así que no podrás matarlos hasta que llegues a ellos, así que el desafío en este nivel es cronometrar tus saltos para poder saltar entre dos barriles y evitar el hechizo.
+  - **Cámara del Jefe Final:** Este es el último desafío antes de completar el juego, derrotar al jefe final, un mago de alto nivel que tendrá 3 ataques diferentes, que no se pueden destruir:
+      - **Ataque 1:** El primero lanzará hechizos grandes, que caerán del techo, dejando solo un espacio para que el jugador pase entre ellos.
+      - **Ataque 2:** El segundo ataque, estará inspirado en las usuales batallas contra Bowser, donde el mago lanzará hechizos, que girarán alrededor del mago, y irán en orden ascendente.
+      - **Ataque 3:** El tercer ataque será un aturdimiento del mago, que inmovilizará al jugador por 2 segundos.
+  - La forma de derrotar al jefe final será golpeándolo con la bola de fuego 3 veces.
+- **Obstáculos:** Barriles rodantes invocados por el Mago Oscuro.
+- **Herramientas:** Escaleras para ascender, bolas de fuego para atacar, salto para evitar barriles.
+- **Mejoras de Poder:** Las mejoras de poder se dividirán en dos: en juego (Solo estarán activas por un tiempo en la partida, o solo para esa partida) y permanentes (la mejora será permanente, disponible para todas las partidas después de obtenerla).
+  - **En juego:**
+      - **Ralentización del tiempo:** Una mejora que puedes encontrar en el nivel, que hará que la velocidad de los barriles y enemigos sea más lenta, dándote más oportunidad para maniobrar y evitar obstáculos o enemigos.
+      - **Reinicio de enfriamiento de fuego:** El tiempo de cuenta regresiva para la próxima bola de fuego será cero.
+  - **Permanentes:**
+      - **Vida extra:** La mejora que se puede desbloquear que te hará resistir un golpe más antes de morir, el límite de esta mejora será tener dos vidas extra.
+      - **Poder de fuego mejorado:** Esta mejora reducirá el tiempo de enfriamiento en 0.5 segundos antes de que el usuario pueda lanzar otra bola de fuego, el límite de esta mejora es que el enfriamiento llegue a 5s para mantener cierta dificultad.
 
 - 
-If the player dies, they are returned to the **Main Menu**. Progress is lost, but experience is kept for upgrades.
+Si el jugador muere, regresa al **Menú Principal**. Se pierde el progreso, pero se mantiene la experiencia para las mejoras.
 
 ---
 
-## **Mindset**
+## **Mentalidad**
 
-Players should feel:
-- **Challenged** — rogue-like resets raise tension and reward precision.
-- **Determined** — reaching the mage means progress.
-- **Empowered** — upgrades let players improve and try again.
+Los jugadores deberían sentir:
+- **Desafiados** — los reinicios tipo roguelike aumentan la tensión y recompensan la precisión.
+- **Determinados** — alcanzar al mago significa progreso.
+- **Empoderados** — las mejoras permiten a los jugadores mejorar e intentar de nuevo.
 
-We provoke this through increasing level difficulty, timing-based obstacles, and rewarding progress with permanent stat upgrades.
-
----
-
-## _Technical_
+Provocamos esto a través de la creciente dificultad de los niveles, obstáculos basados en tiempo, y recompensando el progreso con mejoras permanentes de estadísticas.
 
 ---
 
-### **Screens**
-
-1. **Main Menu**
-   - Upgrade Lives
-   - Upgrade Speed
-   - Start Game
-2. **Level Screens (1–3)**
-3. **Final Boss Room**
-4. **Game Over / Retry**
-5. **End Credits**
+## _Técnico_
 
 ---
 
-### **Controls**
+### **Pantallas**
 
-- `a` / `d` — Move
-- `w` / `s` — Climb ladder
-- `Space` — Jump
-- `F` — Cast Fireball (10s cooldown)
-- `Enter` — Confirm / Interact
-
----
-
-### **Mechanics**
-
-- **Fireball System:** Simple cooldown timer using internal clock.
-- **Barrel Spawner:** The barrels will spawn at the top of the level and will fall.
-- **Enemy Behavior:** The behavior of the enemy will be as .
-- **Rogue-like Reset:** Triggers on death, resets all progress except EXP.
-- **EXP System:** Tracks progress and enables upgrades between runs.
+1. **Menú Principal**
+   - Mejorar Vidas
+   - Mejorar Velocidad
+   - Iniciar Juego
+2. **Pantallas de Nivel (1–3)**
+3. **Sala del Jefe Final**
+4. **Game Over / Reintentar**
+5. **Créditos Finales**
 
 ---
 
-## _Level Design_
+### **Controles**
+
+- `a` / `d` — Moverse
+- `w` / `s` — Subir/Bajar escalera
+- `Espacio` — Saltar
+- `F` — Lanzar Bola de Fuego (10s de enfriamiento)
+- `Enter` — Confirmar / Interactuar
 
 ---
 
-### **Themes**
+### **Mecánicas**
 
-- **Level 1: Forest**
-  - Mood: Gritty, tense
-  - Objectives: making the player understand the mechanics of the fireball and jump.
-  - Obstacles: Barrels and ladders
-- **Level 2: Wolves and Orcs in Haunted Palace **
-  - Mood: Gritty, tense
-  - Objectives: Introducing the player to the wolf, the first of two enemies
-  - Obstacles: Wolves, barrels and the ladders
-- **Level 3: Mage Towers in a Volcano**
-  - Mood: Magical, chaotic
-  - Objectives: Teaching the player to not rush the level, as the jumps between barrells will be more difficult
-  - Obstacles: Mage, barrels and staggered ladders
-
-### **Game Flow**
-
-1. Main menu: Spend EXP, start run
-2. Level 1: Dodge barrels, climb ladders, defeat orcs
-3. Reach Mage → Teleports away
-4. Level 2: Repeat with wolves, faster barrels
-5. Level 3: Mages, added verticality
-6. Final Room: Mage fight — hit with fireball 3 times
-7. Victory → Princess rescued → End screen
+- **Sistema de Bola de Fuego:** Temporizador simple de enfriamiento usando reloj interno.
+- **Generador de Barriles:** Los barriles se generarán en la parte superior del nivel y caerán.
+- **Comportamiento de Enemigos:** El comportamiento del enemigo será como se describe en cada nivel.
+- **Reinicio Tipo Roguelike:** Se activa al morir, reinicia todo el progreso excepto la EXP.
+- **Sistema de EXP:** Rastrea el progreso y permite mejoras entre partidas.
 
 ---
 
-## _Development_
+## _Diseño de Niveles_
 
 ---
 
-### **Abstract Classes / Components**
+### **Temas**
 
-- `BaseEntity`
-  - `Player`
-  - `Enemy`
-  - `Projectile`
-- `BaseEnemy`
-  - `Orc`
-  - `Wolf`
-  - `Mage`
-- `BaseObject`
-  - `Barrel`
-  - `Ladder`
-  - `PowerUp`
-- `BaseGameState`
-  - `MainMenu`
-  - `Level`
+- **Nivel 1: Bosque**
+  - Ambiente: Áspero, tenso
+  - Objetivos: hacer que el jugador entienda las mecánicas de la bola de fuego y el salto.
+  - Obstáculos: Barriles y escaleras
+- **Nivel 2: Lobos y Orcos en Palacio Embrujado**
+  - Ambiente: Áspero, tenso
+  - Objetivos: Introducir al jugador al lobo, el primero de dos enemigos
+  - Obstáculos: Lobos, barriles y escaleras
+- **Nivel 3: Torres de Mago en un Volcán**
+  - Ambiente: Mágico, caótico
+  - Objetivos: Enseñar al jugador a no apresurarse en el nivel, ya que los saltos entre barriles serán más difíciles
+  - Obstáculos: Mago, barriles y escaleras escalonadas
+
+### **Flujo del Juego**
+
+1. Menú principal: Gastar EXP, iniciar partida
+2. Nivel 1: Esquivar barriles, escalar escaleras, derrotar orcos
+3. Alcanzar al Mago → Se teletransporta
+4. Nivel 2: Repetir con lobos, barriles más rápidos
+5. Nivel 3: Magos, verticalidad añadida
+6. Sala Final: Batalla contra el mago — golpear con bola de fuego 3 veces
+7. Victoria → Princesa rescatada → Pantalla final
+
+---
+
+## _Desarrollo_
+
+---
+
+### **Clases Abstractas / Componentes**
+
+- `EntidadBase`
+  - `Jugador`
+  - `Enemigo`
+  - `Proyectil`
+- `EnemigoBase`
+  - `Orco`
+  - `Lobo`
+  - `Mago`
+- `ObjetoBase`
+  - `Barril`
+  - `Escalera`
+  - `MejoraDePoder`
+- `EstadoJuegoBase`
+  - `MenúPrincipal`
+  - `Nivel`
   - `GameOver`
-  - `FinalBoss`
+  - `JefeFinal`
 
-### **Derived Classes / Behaviors**
+### **Clases Derivadas / Comportamientos**
 
-- `FireballProjectile` — 10s cooldown
-- `EXPSystem` — Tracks run distance and awards XP
-- `BarrelSpawner` — Mage sends barrels periodically
-- `EnemyBehavior`
-  - `OrcAI`: Walk left/right
-  - `WolfAI`: Walk left/right very quick
-  - `MageAI`: Casts spells
-
----
-
-## _Graphics_
+- `ProyectilBolaFuego` — 10s de enfriamiento
+- `SistemaEXP` — Rastrea la distancia recorrida y otorga XP
+- `GeneradorBarriles` — El mago envía barriles periódicamente
+- `ComportamientoEnemigo`
+  - `IAOrco`: Caminar izquierda/derecha
+  - `IALobo`: Caminar izquierda/derecha muy rápido
+  - `IAMago`: Lanza hechizos
 
 ---
 
-### **Style Attributes**
-
-- Pixel art with retro aesthetics
-- Limited color palette for each level
-- Heavy outlines with bold contrasts
-- Visual feedback:
-  - Flash on damage
-  - Glow on interactables
-  - Cooldown circle for fireball
+## _Gráficos_
 
 ---
 
-### **Graphics Needed**
+### **Atributos de Estilo**
 
-- **Player**
-  - Idle, Walk, Jump, Cast
-- **Enemies**
-  - Orc, Wolf, Mage (Idle, Walk, Attack)
-- **Mage Boss**
-  - Idle, Cast, Teleport, Defeat
-- **Objects**
-  - Barrel (rolling)
-  - Ladder (static)
-  - Fireball (animated)
-  - Power-ups (glowing orb)
-- **UI**
-  - XP bar, fireball cooldown indicator, health
+- Arte pixelado con estética retro
+- Paleta de colores limitada para cada nivel
+- Contornos gruesos con contrastes audaces
+- Retroalimentación visual:
+  - Destello al recibir daño
+  - Brillo en objetos interactuables
+  - Círculo de enfriamiento para bola de fuego
 
-### **Available Sprites**
+---
 
-Here are the sprites currently available for the game:
+### **Gráficos Necesarios**
+
+- **Jugador**
+  - Inactivo, Caminar, Saltar, Lanzar
+- **Enemigos**
+  - Orco, Lobo, Mago (Inactivo, Caminar, Atacar)
+- **Jefe Mago**
+  - Inactivo, Lanzar, Teletransportar, Derrota
+- **Objetos**
+  - Barril (rodando)
+  - Escalera (estática)
+  - Bola de fuego (animada)
+  - Mejoras de poder (orbe brillante)
+- **Interfaz**
+  - Barra de XP, indicador de enfriamiento de bola de fuego, salud
+
+### **Sprites Disponibles**
+
+Aquí están los sprites actualmente disponibles para el juego:
 
 # Sprites del Juego
 
@@ -271,64 +271,64 @@ Here are the sprites currently available for the game:
 
 ---
 
-## _Sounds/Music_
+## _Sonidos/Música_
 
 ---
 
-### **Style Attributes**
+### **Atributos de Estilo**
 
-- Chiptune music
-  - Looped, fast-paced during levels
-  - Tense, dark theme for boss
-  - Upbeat for main menu and victory
-- Sound Effects
-  - Jump (retro-style boing)
-  - Fireball cast (woosh/pop)
-  - Barrel rolling (rumble)
-  - Enemy hit (impact sound)
-  - Power-up collect (chime)
-
----
-
-### **Sounds Needed**
-
-- Jump
-- Fireball Cast
-- Enemy Hit
-- Mage Teleport
-- Health Regen Pickup
-- Menu Navigation
+- Música tipo chiptune
+  - En bucle, ritmo rápido durante los niveles
+  - Tema oscuro y tenso para el jefe
+  - Optimista para el menú principal y la victoria
+- Efectos de Sonido
+  - Salto (estilo retro boing)
+  - Lanzamiento de bola de fuego (woosh/pop)
+  - Barril rodando (retumbar)
+  - Golpe a enemigo (sonido de impacto)
+  - Recoger mejora (campana)
 
 ---
 
-### **Music Needed**
+### **Sonidos Necesarios**
 
-1. Main Menu Theme (retro, hopeful)
-2. Level Theme 1 (tense forest)
-3. Level Theme 2 (faster tempo)
-4. Level Theme 3 (chaotic/magical)
-5. Final Boss Theme
-6. Victory Theme
-
----
-
-## _Schedule_
+- Salto
+- Lanzamiento de Bola de Fuego
+- Golpe a Enemigo
+- Teletransporte del Mago
+- Recoger Regeneración de Salud
+- Navegación del Menú
 
 ---
 
-1. **Week 1–2:** 
-   - Base mechanics: movement, jump, ladders, fireball
-2. **Week 3:**
-   - Barrel spawning, cooldown system, rogue-like reset
-3. **Week 4:**
-   - Enemy AI (Orc/Wolf/Mage), level switching
-4. **Week 5:**
-   - Boss fight logic, health, damage
-5. **Week 6:**
-   - Main menu, EXP system, upgrades
-6. **Week 7:**
-   - Graphics, animations, sound integration
-7. **Week 8:**
-   - Polish, bug fixing, balancing
+### **Música Necesaria**
 
-_(example)_
+1. Tema del Menú Principal (retro, esperanzador)
+2. Tema del Nivel 1 (bosque tenso)
+3. Tema del Nivel 2 (tempo más rápido)
+4. Tema del Nivel 3 (caótico/mágico)
+5. Tema del Jefe Final
+6. Tema de Victoria
+
+---
+
+## _Calendario_
+
+---
+
+1. **Semana 1–2:** 
+   - Mecánicas base: movimiento, salto, escaleras, bola de fuego
+2. **Semana 3:**
+   - Generación de barriles, sistema de enfriamiento, reinicio tipo roguelike
+3. **Semana 4:**
+   - IA de enemigos (Orco/Lobo/Mago), cambio de niveles
+4. **Semana 5:**
+   - Lógica de batalla contra jefe, salud, daño
+5. **Semana 6:**
+   - Menú principal, sistema de EXP, mejoras
+6. **Semana 7:**
+   - Gráficos, animaciones, integración de sonido
+7. **Semana 8:**
+   - Pulido, corrección de errores, balance
+
+_(ejemplo)_
