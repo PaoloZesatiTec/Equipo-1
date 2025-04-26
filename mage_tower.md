@@ -227,6 +227,21 @@ We provoke this through increasing level difficulty, timing-based obstacles, and
 - **UI**
   - XP bar, fireball cooldown indicator, health
 
+### **Available Sprites**
+
+Here are the sprites currently available for the game:
+
+![Sprite 1](Sprites/sprite_1.png)
+![Sprite 2](Sprites/sprite_2.png)
+![Sprite 3](Sprites/sprite_3.png)
+![Sprite 4](Sprites/sprite_4.png)
+![Sprite 5](Sprites/sprite_5.png)
+![Sprite 6](Sprites/sprite_6.png)
+![Sprite 7](Sprites/sprite_7.png)
+![Sprite 8](Sprites/sprite_8.png)
+![Sprite 9](Sprites/sprite_9.avif)
+![Sprite 10](Sprites/sprite_10.webp)
+
 ---
 
 ## _Sounds/Music_
