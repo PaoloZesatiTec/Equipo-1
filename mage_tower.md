@@ -231,16 +231,43 @@ We provoke this through increasing level difficulty, timing-based obstacles, and
 
 Here are the sprites currently available for the game:
 
-![Sprite 1](Sprites/sprite_1.png)
-![Sprite 2](Sprites/sprite_2.png)
-![Sprite 3](Sprites/sprite_3.png)
-![Sprite 4](Sprites/sprite_4.png)
-![Sprite 5](Sprites/sprite_5.png)
-![Sprite 6](Sprites/sprite_6.png)
-![Sprite 7](Sprites/sprite_7.png)
-![Sprite 8](Sprites/sprite_8.png)
-![Sprite 9](Sprites/sprite_9.avif)
-![Sprite 10](Sprites/sprite_10.webp)
+# Sprites del Juego
+
+## Fondos de Niveles
+
+### Fondo del Nivel 1 (Bosque)
+<img src="Sprites/sprite_1.png" alt="Fondo del Nivel 1" width="400"/>
+
+### Fondo del Nivel 2 (Palacio Embrujado)
+<img src="Sprites/sprite_10.webp" alt="Fondo del Nivel 2" width="400"/>
+
+### Fondo del Nivel 3 (Torre del Mago)
+<img src="Sprites/sprite_2.png" alt="Fondo del Nivel 3" width="400"/>
+
+### Fondo del Jefe Final
+<img src="Sprites/sprite_11.jpg" alt="Fondo del Jefe Final" width="400"/>
+
+## Personajes Jugables
+
+### Personaje Principal - Estilo 1
+<img src="Sprites/sprite_4.png" alt="Personaje Principal 1" width="400"/>
+
+### Personaje Principal - Estilo 2
+<img src="Sprites/sprite_5.png" alt="Personaje Principal 2" width="400"/>
+
+### Personaje Principal - Estilo 3
+<img src="Sprites/sprite_6.png" alt="Personaje Principal 3" width="400"/>
+
+## Enemigos y Obstáculos
+
+### Barriles (Obstáculos)
+<img src="Sprites/sprite_3.png" alt="Barriles" width="400"/>
+
+### Villanos de Niveles 1-3
+<img src="Sprites/sprite_9.avif" alt="Villanos" width="400"/>
+
+### Jefe Final
+<img src="Sprites/sprite_8.png" alt="Jefe Final" width="400"/>
 
 ---
 
