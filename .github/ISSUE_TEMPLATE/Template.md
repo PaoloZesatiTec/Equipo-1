@@ -31,4 +31,4 @@ assignees:
 - [ ] Team review
 
 ## 📎 Related Resources
-<!-- Links
+<!-- Links to related issues, PRs, documentation, or external resources -->
