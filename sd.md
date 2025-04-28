@@ -5,27 +5,22 @@
 ### 7.1 Diagrama General del Sistema (Videojuego completo)
 
 ```mermaid
-usecaseDiagram
-title Casos de Uso Generales - Videojuego
-actor "Jugador" as J
-actor "Sistema" as S
+flowchart TD
+  J(Jugador) --> A[Moverse izquierda/derecha]
+  J --> B[Saltar obstáculos]
+  J --> C[Lanzar bola de fuego]
+  J --> D[Subir/bajar escaleras]
+  J --> E[Ganar experiencia]
+  J --> F[Mejorar habilidades en el menú]
+  J --> G[Iniciar partida desde menú]
+  J --> H[Reintentar tras Game Over]
+  J --> I[Escuchar música y efectos]
 
-J --> (Moverse izquierda/derecha)
-J --> (Saltar obstáculos)
-J --> (Lanzar bola de fuego)
-J --> (Subir/bajar escaleras)
-J --> (Ganar experiencia)
-J --> (Mejorar habilidades en el menú)
-J --> (Iniciar partida desde menú)
-J --> (Reintentar tras Game Over)
-J --> (Escuchar música y efectos)
-
-S --> (Generar barriles como obstáculos)
-S --> (Generar enemigos con IA)
-S --> (Cambiar de nivel automáticamente)
-S --> (Iniciar batalla contra jefe final)
-S --> (Mostrar indicadores en pantalla)
-S --> (Guardar experiencia entre partidas)
-S --> (Aplicar mejoras al jugador)
-S --> (Almacenar progreso localmente)
-
+  S(Sistema) --> J1[Generar barriles como obstáculos]
+  S --> J2[Generar enemigos con IA]
+  S --> J3[Cambiar de nivel automáticamente]
+  S --> J4[Iniciar batalla contra jefe final]
+  S --> J5[Mostrar indicadores en pantalla]
+  S --> J6[Guardar experiencia entre partidas]
+  S --> J7[Aplicar mejoras al jugador]
+  S --> J8[Almacenar progreso localmente]
