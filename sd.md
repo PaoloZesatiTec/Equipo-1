@@ -24,3 +24,12 @@ flowchart TD
   S --> J6[Guardar experiencia entre partidas]
   S --> J7[Aplicar mejoras al jugador]
   S --> J8[Almacenar progreso localmente]
+
+flowchart TD
+  SG(Sistema de Juego) --> K1[Guardar experiencia de jugador]
+  SG --> K2[Recuperar experiencia al iniciar]
+  SG --> K3[Actualizar mejoras desbloqueadas]
+  SG --> K4[Registrar progreso en partida]
+
+  BD(Base de Datos Local) --> L1[Almacenar datos de experiencia]
+  BD --> L2[Leer datos de progreso]
