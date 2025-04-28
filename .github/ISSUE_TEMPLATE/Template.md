@@ -1,5 +1,6 @@
 ---
 ## 🚀 New Task / Issue
+name: "New Task / Issue"
 about: Structured issue description for GitHub Projects
 title: "[TITLE] Brief description of the problem or task"
 assignees: 
