@@ -3,8 +3,8 @@
 ## 7. Diagramas de Casos de Uso (UML)
 
 ### 7.1 Diagrama General del Sistema (Videojuego completo)
+
 ```mermaid
-%%{ init: { 'theme':'neutral' } }%%
 usecaseDiagram
 title Casos de Uso Generales - Videojuego
 actor "Jugador" as J
@@ -29,15 +29,3 @@ S --> (Guardar experiencia entre partidas)
 S --> (Aplicar mejoras al jugador)
 S --> (Almacenar progreso localmente)
 
-usecaseDiagram
-title Casos de Uso - Sistema y Base de Datos
-actor "Sistema de Juego" as SG
-actor "Base de Datos Local" as BD
-
-SG --> (Guardar experiencia de jugador)
-SG --> (Recuperar experiencia al iniciar)
-SG --> (Actualizar mejoras desbloqueadas)
-SG --> (Registrar progreso en partida)
-
-BD --> (Almacenar datos de experiencia)
-BD --> (Leer datos de progreso)
