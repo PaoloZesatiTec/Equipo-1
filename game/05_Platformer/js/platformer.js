@@ -8,8 +8,8 @@
 "use strict";
 
 // Global variables
-let canvasWidth = 800;
-let canvasHeight = 600;
+const canvasWidth = 800;
+const canvasHeight = 600;
 
 // Context for the display canvas
 let ctx;
@@ -372,21 +372,21 @@ const levelChars = {
     // Rect defined as offset from the first tile, and size of the tiles
     ".": {objClass: GameObject,
           label: "floor",
-          sprite: '../../assets/sprites/ProjectUtumno_full.png',
+          sprite: '../05_Platformer/assets/sprites/ProjectUtumno_full.png',
           rectParams: [12, 17, 32, 32]},
     "#": {objClass: GameObject,
           label: "wall",
-          sprite: '../../assets/sprites/ProjectUtumno_full.png',
+          sprite: '../05_Platformer/assets/sprites/ProjectUtumno_full.png',
           rectParams: [1, 6, 32, 32]},
     "@": {objClass: Player,
           label: "player",
-          sprite: '../../assets/sprites/hero/redpants_left_right.png',
+          sprite: '../05_Platformer/assets/sprites/hero/redpants_left_right.png',
           rectParams: [0, 0, 46, 50],
           sheetCols: 8,
           startFrame: [0, 0]},
     "$": {objClass: Coin,
           label: "collectible",
-          sprite: '../../assets/sprites/coin_gold.png',
+          sprite: '../05_Platformer/assets/sprites/coin_gold.png',
           rectParams: [0, 0, 32, 32],
           sheetCols: 8,
           startFrame: [0, 7]},
@@ -406,14 +406,10 @@ function init() {
         return;
     }
     
-    // Obtener el tamaño del contenedor
+    // Obtener el tamaño de la ventana
     const container = canvas.parentElement;
     canvas.width = container.clientWidth;
     canvas.height = container.clientHeight;
-    
-    // Actualizar las variables globales de tamaño
-    canvasWidth = canvas.width;
-    canvasHeight = canvas.height;
     
     // Obtener el contexto 2D
     ctx = canvas.getContext('2d');
@@ -426,8 +422,6 @@ function init() {
     window.addEventListener('resize', () => {
         canvas.width = container.clientWidth;
         canvas.height = container.clientHeight;
-        canvasWidth = canvas.width;
-        canvasHeight = canvas.height;
     });
 
     gameStart();
