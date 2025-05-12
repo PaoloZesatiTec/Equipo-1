@@ -7,23 +7,6 @@
         <link rel="stylesheet" href="../css/style.css">
         <link rel="icon" href="../images/logopantallainicio.png" type="image/x-icon">
         <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-        
-        <!-- Game Scripts -->
-        <script src="../js/game_classes.js"></script>
-        <script src="../js/classes/player.js"></script>
-        <script src="../js/classes/bullet.js"></script>
-        <script src="../js/classes/Enemies/enemy.js"></script>
-        <script src="../js/classes/Enemies/robot.js"></script>
-        <script src="../js/classes/Enemies/dron.js"></script>
-        <script src="../js/classes/Enemies/boss.js"></script>
-        <script src="../js/classes/level.js"></script>
-        <script src="../js/classes/weapons.js"></script>
-        <script src="../js/classes/door.js"></script>
-        <script src="../js/classes/puzzle.js"></script>
-        <script src="../js/classes/cable.js"></script>
-        <script src="../js/levels.js"></script>
-        <script src="../js/topDown.js"></script>
-        <script src="../../js/funciones.js"></script>
     </head>
 
     <body>
@@ -44,18 +27,18 @@
                     <img src="../assets/logo.svg" alt="Donkey Kong Logo" class="game-logo">
                 </div>
                 <section id="instrucciones">
-                    <h2 class="panel-title" style="font-size: 20px;">Controles</h2>
+                    <h2 class="panel-title">Controles</h2>
                     <div class="controls-container">
                         <img id="teclasmovimiento" 
                              src="../assets/teclasmovimiento.png" 
-                             alt="Teclas de movimiento: Flechas direccionales" 
+                             alt="Teclas de movimiento: A y D" 
                              class="tecladoInfo">
                         <img id="teclasataque" 
                              src="../images/teclasataque.png" 
                              alt="Teclas de ataque: Espacio" 
                              class="tecladoInfo">
                         <img src="../images/teclainteractuar.png" 
-                             alt="Tecla de interacción: E" 
+                             alt="Tecla de interacción: S" 
                              class="tecladoInfo">
                     </div>
                 </section>
@@ -90,5 +73,22 @@
         </footer>
 
         <script src="../../js/menu.js"></script>
+        <script>
+            // Asegurarnos de que el juego se inicie cuando el DOM esté listo
+            document.addEventListener('DOMContentLoaded', function() {
+                // Inicializar el canvas
+                const canvas = document.getElementById('canvas');
+                canvas.width = 800;
+                canvas.height = 600;
+                
+                // Iniciar el juego
+                main();
+            });
+        </script>
+
+        <!-- Game Scripts -->
+        <script src="../js/game/game_classes.js"></script>
+        <script src="../js/game/levels.js"></script>
+        <script src="../js/game/platformer.js"></script>
     </body>
 </html>
