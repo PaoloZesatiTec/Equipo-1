@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Donkey Kongs</title>
+        <link rel="stylesheet" href="../css/style.css">
+        <link rel="icon" href="../images/logopantallainicio.png" type="image/x-icon">
+        <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+        
+        <!-- Game Scripts -->
+        <script src="../js/game_classes.js"></script>
+        <script src="../js/classes/player.js"></script>
+        <script src="../js/classes/bullet.js"></script>
+        <script src="../js/classes/Enemies/enemy.js"></script>
+        <script src="../js/classes/Enemies/robot.js"></script>
+        <script src="../js/classes/Enemies/dron.js"></script>
+        <script src="../js/classes/Enemies/boss.js"></script>
+        <script src="../js/classes/level.js"></script>
+        <script src="../js/classes/weapons.js"></script>
+        <script src="../js/classes/door.js"></script>
+        <script src="../js/classes/puzzle.js"></script>
+        <script src="../js/classes/cable.js"></script>
+        <script src="../js/levels.js"></script>
+        <script src="../js/topDown.js"></script>
+        <script src="../../js/funciones.js"></script>
+    </head>
+
+    <body>
+        <header>
+            <nav id="menu">
+                <div id="dropdownMenu">
+                    <a href="/">Inicio</a>
+                    <a href="../html/creditos.html">Creditos</a>
+                    <a href="../html/estadisticas.html">Estadísticas</a>
+                    <a href="../html/Info.html">Acerca de</a>
+                </div>
+            </nav>
+        </header>
+
+        <main class="game-layout">
+            <aside class="left-panel">
+                <div class="logo-container">
+                    <img src="../assets/logo.svg" alt="Donkey Kong Logo" class="game-logo">
+                </div>
+                <section id="instrucciones">
+                    <h2 class="panel-title" style="font-size: 20px;">Controles</h2>
+                    <div class="controls-container">
+                        <img id="teclasmovimiento" 
+                             src="../assets/teclasmovimiento.png" 
+                             alt="Teclas de movimiento: Flechas direccionales" 
+                             class="tecladoInfo">
+                        <img id="teclasataque" 
+                             src="../images/teclasataque.png" 
+                             alt="Teclas de ataque: Espacio" 
+                             class="tecladoInfo">
+                        <img src="../images/teclainteractuar.png" 
+                             alt="Tecla de interacción: E" 
+                             class="tecladoInfo">
+                    </div>
+                </section>
+            </aside>
+
+            <section id="gameContainer">
+                <div class="canvas-wrapper">
+                    <canvas id="canvas"></canvas>
+                </div>
+            </section>
+
+            <aside class="right-panel">
+                <section id="imagenes">
+                    <h2 class="panel-title">Power-ups</h2>
+                    <div class="powerups-container">
+                        <img src="../images/powerupspalabra.png" 
+                             alt="Lista de Power-ups" 
+                             class="imagenDerecha">
+                        <img src="../images/powerups copy.png" 
+                             alt="Iconos de Power-ups" 
+                             class="imagenDerecha">
+                        <img src="../images/cyphermostrando.png" 
+                             alt="Habilidades especiales" 
+                             class="imagenDerecha">
+                    </div>
+                </section>
+            </aside>
+        </main>
+
+        <footer>
+            <p>© 2025 Donkey Kong | Todos los derechos reservados</p>
+        </footer>
+
+        <script src="../../js/menu.js"></script>
+    </body>
+</html>
