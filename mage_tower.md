@@ -1,4 +1,4 @@
-# **Nombre del Juego**
+# **Mago Obscuro**
 
 ## _Documento de Diseño del Juego_
 
