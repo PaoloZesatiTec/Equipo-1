@@ -62,25 +62,6 @@ function initMenu() {
         animation: buttonGlow 2s infinite;
     `;
 
-        // Crear botón de inicio
-        helpButton = document.createElement('button');
-        helpButton.id = 'helpButton';
-        helpButton.textContent = 'Ayuda';
-        helpButton.style.cssText = `
-            padding: 20px 30px;
-            font-size: 24px;
-            margin-top: 40px;
-            font-family: 'Press Start 2P', cursive;
-            background-color: #ffd700;
-            color: #000;
-            border: 4px solid #ff8c00;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            animation: buttonGlow 2s infinite;
-        `;
-
-
     // Agregar estilos para las animaciones
     const style = document.createElement('style');
     style.textContent = `
@@ -120,7 +101,6 @@ function initMenu() {
     // Agregar elementos al DOM
     menuContainer.appendChild(logoImg);
     menuContainer.appendChild(startButton);
-    menuContainer.appendChild(helpButton);
     canvasWrapper.appendChild(menuContainer);
 }
 
