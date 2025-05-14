@@ -26,7 +26,7 @@ class Player extends AnimatedObject {
         this.isFacingRight = true;
         this.isJumping = false;
         this.isCrouching = false;
-        this.lastFireTime = 0;
+        this.lastFireTime = -Infinity;
         this.fireCooldown = 10000; // 10 seconds in milliseconds
 
 
