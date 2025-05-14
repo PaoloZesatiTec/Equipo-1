@@ -21,7 +21,7 @@ class Player extends AnimatedObject {
     constructor(_color, width, height, x, y, _type) {
         super("green", width, height, x, y, "player");
         this.velocity = new Vec(0.0, 0.0);
-        this.money = 0;
+        this.gems = 0;
 
         this.isFacingRight = true;
         this.isJumping = false;
@@ -182,9 +182,9 @@ class Player extends AnimatedObject {
 }
 
 
-class Coin extends AnimatedObject {
+class Gem extends AnimatedObject {
     constructor(_color, width, height, x, y, _type) {
-        super("yellow", width, height, x, y, "coin");
+        super("green", width, height, x, y, "gem");
     }
 
     update(_level, deltaTime) {
@@ -209,7 +209,7 @@ const levelChars = {
            rectParams: [0, 0, 46, 50],
            sheetCols: 8,
            startFrame: [0, 0] },
-    "$": { objClass: Coin,
+    "$": { objClass: Gem,
        label: "collectible",
        sprite: '../assets/assets_platform/sprites/coin_gold.png',
        rectParams: [0, 0, 32, 32], // 
@@ -277,7 +277,7 @@ class Level {
                     actor.setAnimation(...item.startFrame, false, 100);
                     this.player = actor;
                     cellType = "empty";
-                } else if (actor.type == "coin") {
+                } else if (actor.type == "gem") {
                     // Also instantiate a floor tile below the player
                     this.addBackgroundFloor(x, y);
 
@@ -365,7 +365,7 @@ class Game {
         this.player = level.player;
         this.actors = [...level.actors];
 
-        this.labelMoney = new TextLabel(20, 30, "30px Ubuntu Mono", "white");
+        this.labelGems = new TextLabel(20, 30, "30px Ubuntu Mono", "white");
         this.labelDebug = new TextLabel(canvasWidth / 2, 60, "20px Ubuntu Mono", "black");
 
         console.log("############ LEVEL START ###################");
@@ -382,7 +382,7 @@ class Game {
         for (let actor of currentActors) {
             if (actor.type != 'floor' && overlapRectangles(this.player, actor)) {
                 if (actor.type == 'coin') {
-                    this.player.money += 1;
+                    this.player.gems += 1;
                     this.actors = this.actors.filter(item => item !== actor);
                 }
             }
@@ -405,9 +405,7 @@ class Game {
 
         ctx.restore();
 
-        this.labelMoney.draw(ctx, `Money: ${this.player.money}`);
-        this.labelDebug.draw(ctx, `Velocity: (${this.player.velocity.x.toFixed(3)}, ${this.player.velocity.y.toFixed(3)})`);
-
+        this.labelGems.draw(ctx, `Gems: ${this.player.gems}`);
     }
 }
 
