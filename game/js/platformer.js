@@ -1,36 +1,21 @@
-/*
- * Simple top down adventure game
- *
- * Gilberto Echeverria
- * 2025-02-05
- */
+/* Updated platformer.js to support vertical scrolling camera */
 
 "use strict";
 
-// Global variables
 let canvasWidth = 800;
-let canvasHeight = 200;
-
-// Context for the display canvas
+let canvasHeight = 600; // Taller canvas for vertical platformer
 let ctx;
-
-// The time at the previous frame
 let frameStart;
-
 let game;
 let player;
 let level;
 
-// Scale of the whole world, to be applied to all objects
-// Each unit in the level file will be drawn as these many square pixels
-const scale = 29;
-
-// The project works only with very small values for velocities and acceleration
+let scale = 29;
 const walkSpeed = 0.005;
 const initialJumpSpeed = -0.03;
 const gravity = 0.0000981;
 
-let debugJump = false;
+let cameraY = 0; // New variable for vertical camera scrolling
 
 class Player extends AnimatedObject {
     constructor(_color, width, height, x, y, _type) {
@@ -194,6 +179,32 @@ class Coin extends AnimatedObject {
     }
 }
 
+const levelChars = {
+    ".": { objClass: GameObject,
+           label: "floor",
+           sprite: '../assets/assets_platform/sprites/ProjectUtumno_full.png',
+           rectParams: [12, 17, 32, 32] },
+   "#": {
+        objClass: GameObject,
+        label: "wall",
+        sprite: '../assets/assets_platform/sprites/ProjectUtumno_full.png',
+        rectParams: [1, 6, 32, 32] 
+                                    },
+    "@": { objClass: Player,
+           label: "player",
+           sprite: '../assets/assets_platform/sprites/hero/redpants_left_right.png',
+           rectParams: [0, 0, 46, 50],
+           sheetCols: 8,
+           startFrame: [0, 0] },
+    "$": { objClass: Coin,
+       label: "collectible",
+       sprite: '../assets/assets_platform/sprites/coin_gold.png',
+       rectParams: [0, 0, 32, 32], // 
+       sheetCols: 8,
+       startFrame: [0, 7]
+}
+}
+
 
 class Level {
     constructor(plan) {
@@ -319,13 +330,10 @@ class Game {
         this.player = level.player;
         this.actors = level.actors;
 
-        this.labelMoney = new TextLabel(20, canvasHeight - 30,
-                                        "30px Ubuntu Mono", "white");
+        this.labelMoney = new TextLabel(20, 30, "30px Ubuntu Mono", "white");
+        this.labelDebug = new TextLabel(canvasWidth / 2, 60, "20px Ubuntu Mono", "black");
 
-        this.labelDebug = new TextLabel(canvasWidth / 2, canvasHeight - 80,
-                                        "20px Ubuntu Mono", "black");
-
-        console.log(`############ LEVEL ${level} START ###################`);
+        console.log("############ LEVEL START ###################");
     }
 
     update(deltaTime) {
@@ -335,67 +343,40 @@ class Game {
             actor.update(this.level, deltaTime);
         }
 
-        // A copy of the full list to iterate over all of them
-        // DOES THIS WORK?
         let currentActors = this.actors;
-        // Detect collisions
         for (let actor of currentActors) {
             if (actor.type != 'floor' && overlapRectangles(this.player, actor)) {
-                //console.log(`Collision of ${this.player.type} with ${actor.type}`);
-                if (actor.type == 'wall') {
-                    //console.log("Hit a wall");
-
-                } else if (actor.type == 'coin') {
+                if (actor.type == 'coin') {
                     this.player.money += 1;
                     this.actors = this.actors.filter(item => item !== actor);
                 }
             }
         }
+
+        // Update cameraY to follow player upward onlyad
+        const targetY = this.player.position.y * scale - canvasHeight / 2;
+        cameraY += (targetY - cameraY) * 0.1; // smooth follow
+        
     }
 
     draw(ctx, scale) {
+        ctx.save();
+        ctx.translate(0, -cameraY); // Apply vertical camera offset
+
         for (let actor of this.actors) {
             actor.draw(ctx, scale);
         }
         this.player.draw(ctx, scale);
 
-        this.labelMoney.draw(ctx, `Money: ${this.player.money}`);
+        ctx.restore();
 
-        this.labelDebug.draw(ctx, `Velocity: ( ${this.player.velocity.x.toFixed(3)}, ${this.player.velocity.y.toFixed(3)} )`);
+        this.labelMoney.draw(ctx, `Money: ${this.player.money}`);
+        this.labelDebug.draw(ctx, `Velocity: (${this.player.velocity.x.toFixed(3)}, ${this.player.velocity.y.toFixed(3)})`);
+
     }
 }
 
-
-// Object with the characters that appear in the level description strings
-// and their corresponding objects
-const levelChars = {
-    // Rect defined as offset from the first tile, and size of the tiles
-    ".": {objClass: GameObject,
-          label: "floor",
-          sprite: '../assets/assets_platform/sprites/ProjectUtumno_full.png',
-          rectParams: [12, 17, 32, 32]},
-    "#": {objClass: GameObject,
-          label: "wall",
-          sprite: '../assets/assets_platform/sprites/ProjectUtumno_full.png',
-          rectParams: [1, 6, 32, 32]},
-    "@": {objClass: Player,
-          label: "player",
-          sprite: '../assets/assets_platform/sprites/hero/redpants_left_right.png',
-          rectParams: [0, 0, 46, 50],
-          sheetCols: 8,
-          startFrame: [0, 0]},
-    "$": {objClass: Coin,
-          label: "collectible",
-          sprite: '../assets/assets_platform/sprites/coin_gold.png',
-          rectParams: [0, 0, 32, 32],
-          sheetCols: 8,
-          startFrame: [0, 7]},
-};
-
-
 function main() {
-    // Set a callback for when the page is loaded,
-    // so that the canvas can be found
     window.onload = init;
 }
 
@@ -405,41 +386,39 @@ function init() {
         console.error('No se encontró el elemento canvas');
         return;
     }
-    
-    // Obtener el tamaño del contenedor
+
     const container = canvas.parentElement;
     canvas.width = container.clientWidth;
     canvas.height = container.clientHeight;
-    
-    // Actualizar las variables globales de tamaño
+
     canvasWidth = canvas.width;
     canvasHeight = canvas.height;
-    
-    // Obtener el contexto 2D
+
+    // ⬇️ Set scale dynamically based on canvas height
+    scale = canvasHeight / 20; // 20 tiles high view — change to 18 or 15 to adjust zoom
+
     ctx = canvas.getContext('2d');
     if (!ctx) {
         console.error('No se pudo obtener el contexto 2D del canvas');
         return;
     }
 
-    // Ajustar el tamaño del canvas cuando cambie el tamaño de la ventana
+    // Resize handler: re-fit scale when window changes
     window.addEventListener('resize', () => {
         canvas.width = container.clientWidth;
         canvas.height = container.clientHeight;
         canvasWidth = canvas.width;
         canvasHeight = canvas.height;
+        scale = canvasHeight / 20; // Update scale again
     });
 
     gameStart();
 }
 
+
 function gameStart() {
-    // Register the game object, which creates all other objects
-    game = new Game('playing', new Level(GAME_LEVELS[1]));
-
+    game = new Game('playing', new Level(GAME_LEVELS[0]));
     setEventListeners();
-
-    // Call the first frame with the current time
     updateCanvas(document.timeline.currentTime);
 }
 
@@ -472,22 +451,20 @@ function setEventListeners() {
     });
 }
 
-// Function that will be called for the game loop
 function updateCanvas(frameTime) {
     if (frameStart === undefined) {
         frameStart = frameTime;
     }
     let deltaTime = frameTime - frameStart;
-    //console.log(`Delta Time: ${deltaTime}`);
 
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
     game.update(deltaTime);
     game.draw(ctx, scale);
 
-    // Update time for the next frame
     frameStart = frameTime;
     requestAnimationFrame(updateCanvas);
 }
 
-// Call the start function to initiate the game
 main();
+
+
