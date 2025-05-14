@@ -26,6 +26,9 @@ class Player extends AnimatedObject {
         this.isFacingRight = true;
         this.isJumping = false;
         this.isCrouching = false;
+        this.lastFireTime = 0;
+        this.fireCooldown = 10000; // 10 seconds in milliseconds
+
 
         // Movement variables to define directions and animations
         this.movement = {
@@ -166,6 +169,16 @@ class Player extends AnimatedObject {
             }
         }
     }
+    fireFireball() {
+        const now = performance.now();
+        if (now - this.lastFireTime >= this.fireCooldown) {
+            const fireX = this.position.x + (this.isFacingRight ? this.size.x : -0.5);
+            const direction = this.isFacingRight ? 1 : -1;
+            const fireball = new Fireball(fireX, this.position.y + this.size.y / 2, direction);
+            game.actors.push(fireball);
+            this.lastFireTime = now;
+        }
+    }
 }
 
 
@@ -203,6 +216,28 @@ const levelChars = {
        sheetCols: 8,
        startFrame: [0, 7]
 }
+}
+
+class Fireball extends GameObject {
+    constructor(x, y, direction) {
+        super("red", 0.5, 0.5, x, y, "fireball");
+        this.velocity = new Vec(direction * 0.02, 0); 
+    }
+
+    update(level, deltaTime) {
+        let newPos = this.position.plus(this.velocity.times(deltaTime));
+        if (!level.contact(newPos, this.size, 'wall')) {
+            this.position = newPos;
+        } else {
+            // Remove fireball if it hits a wall
+            game.actors = game.actors.filter(actor => actor !== this);
+        }
+    }
+
+    draw(ctx, scale) {
+        ctx.fillStyle = "red";
+        ctx.fillRect(this.position.x * scale, this.position.y * scale, this.size.x * scale, this.size.y * scale);
+    }
 }
 
 
@@ -328,7 +363,7 @@ class Game {
         this.state = state;
         this.level = level;
         this.player = level.player;
-        this.actors = level.actors;
+        this.actors = [...level.actors];
 
         this.labelMoney = new TextLabel(20, 30, "30px Ubuntu Mono", "white");
         this.labelDebug = new TextLabel(canvasWidth / 2, 60, "20px Ubuntu Mono", "black");
@@ -435,6 +470,9 @@ function setEventListeners() {
         }
         if (event.key == 's') {
             game.player.crouch();
+        }
+        if (event.key === 'e') {
+            game.player.fireFireball();
         }
     });
 
