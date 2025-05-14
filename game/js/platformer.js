@@ -354,7 +354,7 @@ class Game {
         }
 
         // Update cameraY to follow player upward onlyad
-        const targetY = this.player.position.y * scale - canvasHeight / 2;
+        const targetY = this.player.position.y * scale - canvasHeight * (2 / 3);
         cameraY += (targetY - cameraY) * 0.1; // smooth follow
         
     }
