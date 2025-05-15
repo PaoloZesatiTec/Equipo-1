@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | Mage Tower</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: url('../assets/backgrounds/main_background.jpg') no-repeat center center fixed;
+            background-size: cover;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .login-flex-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 2.5rem;
+        }
+        .attack-animation {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 180px;
+            min-height: 260px;
+            /* background: rgba(0,0,0,0.5);
+            border-radius: 16px;
+            border: 2px solid #ffd700; */
+            /* box-shadow: 0 0 20px #ffae0088; */
+            padding: 1.5rem 1rem;
+        }
+        .attack-animation img {
+            width: 620px;
+            height: 720px;
+            margin-top: 150px;
+            object-fit: contain;
+            image-rendering: pixelated;
+            filter: drop-shadow(0 0 10px #ffd700cc);
+            animation: logoPulse 2.5s infinite;
+        }
+        .login-container {
+            border-radius: 18px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-right: 150px;
+            min-width: 540px;   /* antes 340px */
+            width: 580px;       /* ancho fijo sugerido */
+            max-width: 98vw;    /* más ancho en pantallas grandes */
+            position: relative;
+            animation: borderGlow 2s infinite;
+        }
+        .login-logo {
+            width: 360px;
+            animation: logoPulse 2.5s infinite;
+            margin-top: -75px;
+            filter: drop-shadow(0 0 20px #ffd70088);
+        }
+        .login-title {
+            color: #ffd700;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            letter-spacing: 2px;
+            text-shadow: 0 2px 8px #ffae00, 0 0 2px #fff700;
+        }
+        .login-form {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .login-input {
+            padding: 1rem;
+            font-size: 1rem;
+            font-family: 'Press Start 2P', monospace;
+            border: 2px solid #ffd700;
+            border-radius: 8px;
+            background: rgba(30,30,30,0.95);
+            color: #fff;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .login-input:focus {
+            border-color: #ff8c00;
+        }
+        .login-btn {
+            padding: 18px 40px;
+            font-size: 1.1rem;
+            font-family: 'Press Start 2P', cursive;
+            background: linear-gradient(90deg, #ff2d00 0%, #ff9900 50%, #fff700 100%);
+            color: #fff;
+            border: 4px solid #ff8c00;
+            border-radius: 12px;
+            cursor: pointer;
+            letter-spacing: 2px;
+            text-shadow: 0 2px 8px #ffae00, 0 0 2px #fff700;
+            box-shadow: 0 0 30px 10px #ffae00cc, 0 0 10px 2px #ff2d00cc;
+            animation: fireGlow 1.2s infinite alternate;
+            transition: all 0.2s cubic-bezier(.4,2,.6,1);
+        }
+        .login-btn:hover {
+            background: linear-gradient(90deg, #ff9900 0%, #ff2d00 50%, #fff700 100%);
+            border-color: #fff700;
+            color: #fff;
+            box-shadow: 0 0 80px 30px #ffae00, 0 0 40px 10px #ff2d00;
+            filter: brightness(1.2) hue-rotate(-20deg);
+            transform: scale(1.08) rotate(-2deg);
+        }
+        .register-link {
+            color: #ffd700;
+            text-decoration: underline;
+            font-size: 0.9rem;
+            margin-top: 1.2rem;
+            display: block;
+            text-align: center;
+            transition: color 0.2s;
+        }
+        .login-footer {
+            margin-top: 2rem;
+            color: #fff;
+            font-size: 0.8rem;
+            text-align: center;
+            opacity: 0.7;
+        }
+        @media (max-width: 900px) {
+            .login-flex-container {
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+            .attack-animation {
+                min-width: 120px;
+                min-height: 180px;
+                padding: 1rem 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-flex-container">
+        <div class="attack-animation">
+            <img id="mage-attack" src="../assets/figure/Mage/Attack/attack1.png" alt="Mage Attack Animation">
+        </div>
+        <div class="login-container">
+            <img src="../assets/logo.svg" alt="Logo Mage Tower" class="login-logo">
+            <div class="login-title">Inicia sesión</div>
+            <form class="login-form">
+                <input type="text" class="login-input" placeholder="Usuario" required autocomplete="username">
+                <input type="password" class="login-input" placeholder="Contraseña" required autocomplete="current-password">
+                <button type="submit" class="login-btn" href="index.html">Entrar</button>
+            </form>
+            <a href="register.html" class="register-link">¿No tienes cuenta? Registrate</a>
+            <div class="login-footer">© 2025 Mage Tower | Todos los derechos reservados</div>
+        </div>
+    </div>
+    <script>
+        // Animación de ataque del mago
+        const mageAttack = document.getElementById('mage-attack');
+        const attackFrames = [
+            '../assets/figure/Mage/Attack/attack1.png',
+            '../assets/figure/Mage/Attack/attack2.png',
+            '../assets/figure/Mage/Attack/attack3.png',
+            '../assets/figure/Mage/Attack/attack4.png',
+            '../assets/figure/Mage/Attack/attack5.png',
+            '../assets/figure/Mage/Attack/attack6.png',
+            '../assets/figure/Mage/Attack/attack7.png'
+        ];
+        let currentFrame = 0;
+        setInterval(() => {
+            currentFrame = (currentFrame + 1) % attackFrames.length;
+            mageAttack.src = attackFrames[currentFrame];
+        }, 150);
+    </script>
+</body>
+</html>

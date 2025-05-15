@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro | Mage Tower</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: url('../assets/backgrounds/main_background.jpg') no-repeat center center fixed;
+            background-size: cover;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .register-container {
+            /* background: rgba(0,0,0,0.92); */
+            /* border: 4px solid #ffd700; */
+            border-radius: 18px;
+            /* box-shadow: 0 0 30px #ffae00cc, 0 0 10px #ff2d00cc; */
+            padding: 3rem 2.5rem 2.5rem 2.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 340px;
+            max-width: 90vw;
+            position: relative;
+            animation: borderGlow 2s infinite;
+        }
+        .register-logo {
+            width: 260px;
+            margin-top: -5px;
+            /* margin-bottom: 2rem; */
+            margin-bottom:0px;
+            animation: logoPulse 2.5s infinite;
+            filter: drop-shadow(0 0 20px #ffd70088);
+        }
+        .register-title {
+            color: #ffd700;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            letter-spacing: 2px;
+            text-shadow: 0 2px 8px #ffae00, 0 0 2px #fff700;
+        }
+        .register-form {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .register-input {
+            padding: 1rem;
+            font-size: 1rem;
+            font-family: 'Press Start 2P', monospace;
+            border: 2px solid #ffd700;
+            border-radius: 8px;
+            background: rgba(30,30,30,0.95);
+            color: #fff;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .register-input:focus {
+            border-color: #ff8c00;
+        }
+        .register-btn {
+            padding: 18px 40px;
+            font-size: 1.1rem;
+            font-family: 'Press Start 2P', cursive;
+            background: linear-gradient(90deg, #ff2d00 0%, #ff9900 50%, #fff700 100%);
+            color: #fff;
+            border: 4px solid #ff8c00;
+            border-radius: 12px;
+            cursor: pointer;
+            letter-spacing: 2px;
+            text-shadow: 0 2px 8px #ffae00, 0 0 2px #fff700;
+            box-shadow: 0 0 30px 10px #ffae00cc, 0 0 10px 2px #ff2d00cc;
+            animation: fireGlow 1.2s infinite alternate;
+            transition: all 0.2s cubic-bezier(.4,2,.6,1);
+        }
+        .register-btn:hover {
+            background: linear-gradient(90deg, #ff9900 0%, #ff2d00 50%, #fff700 100%);
+            border-color: #fff700;
+            color: #fff;
+            box-shadow: 0 0 80px 30px #ffae00, 0 0 40px 10px #ff2d00;
+            filter: brightness(1.2) hue-rotate(-20deg);
+            transform: scale(1.08) rotate(-2deg);
+        }
+        .register-footer {
+            margin-top: 2rem;
+            color: #fff;
+            font-size: 0.8rem;
+            text-align: center;
+            opacity: 0.7;
+        }
+        .register-link {
+            color: #ffd700;
+            text-decoration: underline;
+            font-size: 0.9rem;
+            margin-top: 1.2rem;
+            display: block;
+            text-align: center;
+            transition: color 0.2s;
+        }
+        .register-link:hover {
+            color: #ff8c00;
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <img src="../assets/logo.svg" alt="Logo Mage Tower" class="register-logo">
+        <div class="register-title">Crea tu cuenta</div>
+        <form class="register-form">
+            <input type="text" class="register-input" placeholder="Usuario" required autocomplete="username">
+            <input type="email" class="register-input" placeholder="Correo electrónico" required autocomplete="email">
+            <input type="password" class="register-input" placeholder="Contraseña" required autocomplete="new-password">
+            <input type="password" class="register-input" placeholder="Repite la contraseña" required autocomplete="new-password">
+            <button type="submit" class="register-btn">Registrarse</button>
+        </form>
+        <a href="login.html" class="register-link">¿Ya tienes cuenta? Inicia sesión</a>
+        <div class="register-footer">© 2025 Mage Tower | Todos los derechos reservados</div>
+    </div>
+</body>
+</html> 
