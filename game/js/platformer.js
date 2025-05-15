@@ -179,6 +179,21 @@ class Player extends AnimatedObject {
             this.lastFireTime = now;
         }
     }
+
+    draw(ctx, scale) {
+        super.draw(ctx, scale);
+        // Draw default hitbox for debugging
+        ctx.save();
+        ctx.strokeStyle = 'red';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(
+            this.position.x * scale,
+            this.position.y * scale,
+            this.size.x * scale,
+            this.size.y * scale
+        );
+        ctx.restore();
+    }
 }
 
 
@@ -189,6 +204,20 @@ class Coin extends AnimatedObject {
 
     update(_level, deltaTime) {
         this.updateFrame(deltaTime);
+    }
+    draw(ctx, scale) {
+        super.draw(ctx, scale);
+        // Draw default hitbox for debugging
+        ctx.save();
+        ctx.strokeStyle = 'red';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(
+            this.position.x * scale,
+            this.position.y * scale,
+            this.size.x * scale,
+            this.size.y * scale
+        );
+        ctx.restore();
     }
 }
 
