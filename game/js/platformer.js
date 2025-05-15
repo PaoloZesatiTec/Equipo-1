@@ -218,8 +218,8 @@ class Gem extends AnimatedObject {
 }
 
 class Ladder extends GameObject {
-    constructor(color, width, height, x, y, type) {
-        super(color, width, height, x, y, type || "ladder");
+    constructor(_color, width, height, x, y, _type) {
+        super("brown", width, height, x, y, _type || "ladder");
     }
 
     draw(ctx, scale) {
@@ -232,10 +232,11 @@ class Ladder extends GameObject {
         );
     }
 
-    update(_level, _deltaTime) {
-        // Ladders don't need to update — they're static
+    update() {
+        // No behavior needed for static ladders
     }
 }
+
 
 const levelChars = {
     ".": { objClass: GameObject,
@@ -311,7 +312,9 @@ class Level {
                 let objClass = item.objClass;
                 let cellType = item.label;
                 // Create a new instance of the type specified
-                let actor = new objClass("skyblue", 1, 1, x, y, item.label);
+                let color = item.label === "ladder" ? "brown" : "skyblue";
+                let actor = new objClass(color, 1, 1, x, y, item.label);
+
                 // Configurations for each type of cell
                 // TODO: Simplify this code, sinde most of it is repeated
                 if (actor.type == "player") {
