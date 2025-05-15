@@ -365,8 +365,7 @@ class Game {
         this.player = level.player;
         this.actors = [...level.actors];
 
-        this.labelGems = new TextLabel(20, 30, "30px Ubuntu Mono", "white");
-        this.labelDebug = new TextLabel(canvasWidth / 2, 60, "20px Ubuntu Mono", "black");
+        this.labelGems = new TextLabel(20, 30, "30px Arial", "black");
 
         console.log("############ LEVEL START ###################");
     }
