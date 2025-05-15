@@ -48,9 +48,60 @@ function initMenu() {
     // Crear botón de inicio
     startButton = document.createElement('button');
     startButton.id = 'startButton';
-    startButton.textContent = '¡JUGAR MAGE TOWER!';
+    startButton.textContent = '¡JUGAR AHORA MAGE TOWER!';
     startButton.style.cssText = `
+        padding: 22px 48px;
+        font-size: 28px;
+        font-family: 'Press Start 2P', cursive;
+        background: linear-gradient(90deg, #ff2d00 0%, #ff9900 50%, #fff700 100%);
+        color: #fff;
+        border: 5px solid #ff8c00;
+        border-radius: 16px;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(.4,2,.6,1);
+        box-shadow: 0 0 30px 10px #ffae00cc, 0 0 10px 2px #ff2d00cc;
+        letter-spacing: 2px;
+        text-shadow: 0 2px 8px #ffae00, 0 0 2px #fff700;
+        animation: fireGlow 1.2s infinite alternate;
+        position: relative;
+        z-index: 1;
+    `;
+
+    // Crear contenedor para los botones secundarios
+    const secondaryButtons = document.createElement('div');
+    secondaryButtons.style.cssText = `
+        display: flex;
+        flex-direction: row;
+        gap: 2rem;
+        margin-top: 10px;
+        justify-content: center;
+        align-items: center;
+    `;
+
+    // Crear botón de Tienda
+    shop = document.createElement('button');
+    shop.id = 'shop';
+    shop.textContent = 'Tienda';
+    shop.style.cssText = `
         padding: 20px 40px;
+        margin-top: 40px;
+        font-size: 24px;
+        font-family: 'Press Start 2P', cursive;
+        background-color: #ffd700;
+        color: #000;
+        border: 4px solid #ff8c00;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        animation: buttonGlow 2s infinite;
+    `;
+    // Crear botón de inicio
+    helpButton = document.createElement('button');
+    helpButton.id = 'helpButton';
+    helpButton.textContent = 'Ayuda';
+    helpButton.style.cssText = `
+        padding: 20px 40px;
+        margin-top: 40px;
         font-size: 24px;
         font-family: 'Press Start 2P', cursive;
         background-color: #ffd700;
@@ -71,6 +122,21 @@ function initMenu() {
             100% { box-shadow: 0 0 10px #ffd700; }
         }
 
+        @keyframes fireGlow {
+            0% {
+                box-shadow: 0 0 30px 10px #ffae00cc, 0 0 10px 2px #ff2d00cc;
+                filter: brightness(1) hue-rotate(0deg);
+            }
+            50% {
+                box-shadow: 0 0 60px 20px #ffae00ee, 0 0 30px 8px #ff2d00ee;
+                filter: brightness(1.15) hue-rotate(-10deg);
+            }
+            100% {
+                box-shadow: 0 0 30px 10px #ffae00cc, 0 0 10px 2px #ff2d00cc;
+                filter: brightness(1) hue-rotate(0deg);
+            }
+        }
+
         @keyframes borderGlow {
             0% { border-color: #ff8c00; }
             50% { border-color: #ffd700; }
@@ -84,9 +150,12 @@ function initMenu() {
         }
 
         #startButton:hover {
-            transform: scale(1.1);
-            background-color: #ff8c00;
-            border-color: #ffd700;
+            background: linear-gradient(90deg, #ff9900 0%, #ff2d00 50%, #fff700 100%);
+            border-color: #fff700;
+            color: #fff;
+            box-shadow: 0 0 80px 30px #ffae00, 0 0 40px 10px #ff2d00;
+            filter: brightness(1.2) hue-rotate(-20deg);
+            transform: scale(1.08) rotate(-2deg);
         }
 
         .canvas-wrapper {
@@ -99,8 +168,12 @@ function initMenu() {
     startButton.addEventListener('click', startGame);
 
     // Agregar elementos al DOM
+    secondaryButtons.appendChild(shop);
+    secondaryButtons.appendChild(helpButton);
     menuContainer.appendChild(logoImg);
     menuContainer.appendChild(startButton);
+    menuContainer.appendChild(secondaryButtons);
+
     canvasWrapper.appendChild(menuContainer);
 }
 
