@@ -11,7 +11,7 @@ let player;
 let level;
 
 let scale = 29;
-const walkSpeed = 0.005;
+const walkSpeed = 0.004;
 const initialJumpSpeed = -0.02;
 const gravity = 0.0000981;
 
@@ -252,15 +252,22 @@ class Player extends AnimatedObject {
 
     draw(ctx, scale) {
         super.draw(ctx, scale);
-        // Draw default hitbox for debugging (red)
+        // Draw smaller hitbox for debugging
         ctx.save();
         ctx.strokeStyle = 'red';
         ctx.lineWidth = 2;
+        
+        // Make hitbox 80% of the sprite size and center it
+        const hitboxWidth = this.size.x * 0.6;
+        const hitboxHeight = this.size.y * 0.8;
+        const xOffset = (this.size.x - hitboxWidth) / 2;
+        const yOffset = (this.size.y - hitboxHeight) / 2;
+        
         ctx.strokeRect(
-            this.position.x * scale,
-            this.position.y * scale,
-            this.size.x * scale,
-            this.size.y * scale
+            (this.position.x + xOffset) * scale,
+            (this.position.y + yOffset) * scale,
+            hitboxWidth * scale,
+            hitboxHeight * scale
         );
         // Draw horizontal hitbox for debugging (blue) if defined
         if (this.horizontalHitbox) {
@@ -304,17 +311,31 @@ class Gem extends AnimatedObject {
 
 class Ladder extends GameObject {
     constructor(_color, width, height, x, y, _type) {
-        super("brown", width, height, x, y, _type || "ladder");
+        super("#8B4513", width, height, x, y, _type || "ladder");
     }
 
     draw(ctx, scale) {
-        ctx.fillStyle = "#a0522d"; // Brown color
+        // Fill with brown color
+        ctx.fillStyle = "#8B4513"; // Darker brown
         ctx.fillRect(
             this.position.x * scale,
             this.position.y * scale,
             this.size.x * scale,
             this.size.y * scale
         );
+
+        // Add some ladder rungs for visual effect
+        ctx.fillStyle = "#A0522D"; // Lighter brown for rungs
+        const rungs = 3;
+        const rungHeight = (this.size.y * scale) / (rungs + 1);
+        for (let i = 1; i <= rungs; i++) {
+            ctx.fillRect(
+                this.position.x * scale,
+                this.position.y * scale + (i * rungHeight),
+                this.size.x * scale,
+                5 // rung thickness
+            );
+        }
     }
 
     update() {
@@ -323,9 +344,73 @@ class Ladder extends GameObject {
 }
 
 
+class Enemy extends GameObject {
+    constructor(color, width, height, x, y, type) {
+        super(color || "blue", width, height, x, y, type || "enemy");
+        this.velocity = new Vec(0.003, 0); // Reduced velocity for smoother movement
+        this.moveDistance = 3;
+        this.startX = x;
+        this.direction = 1; // 1 for right, -1 for left
+    }
+
+    update(level, deltaTime) {
+        // Calculate next position
+        let nextX = this.position.x + this.velocity.x * deltaTime;
+        
+        // Check if next position would be within bounds
+        if (nextX < 0 || nextX > level.width - this.size.x) {
+            this.velocity.x *= -1;
+            this.direction *= -1;
+            return;
+        }
+
+        let newPos = new Vec(nextX, this.position.y);
+
+        // Check for wall collision
+        let wallHit = level.contact(newPos, this.size, "wall");
+
+        // Check for floor
+        let footX = this.position.x + (this.direction > 0 ? this.size.x : 0);
+        let footY = this.position.y + this.size.y + 0.1;
+        let noFloor = !level.contact(new Vec(footX, footY), new Vec(0.1, 0.1), "wall");
+
+        if (wallHit || noFloor) {
+            this.velocity.x *= -1;
+            this.direction *= -1;
+        } else {
+            this.position = newPos;
+        }
+    }
+
+    draw(ctx, scale) {
+        // Draw enemy body
+        ctx.fillStyle = "blue";
+        ctx.fillRect(
+            this.position.x * scale,
+            this.position.y * scale,
+            this.size.x * scale,
+            this.size.y * scale
+        );
+
+        // Draw hitbox for debugging
+        ctx.save();
+        ctx.strokeStyle = 'red';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(
+            this.position.x * scale,
+            this.position.y * scale,
+            this.size.x * scale,
+            this.size.y * scale
+        );
+        ctx.restore();
+    }
+}
+
+
+
 const levelChars = {
     ".": { objClass: GameObject,
-           label: "floor",
+           label: "empty",
            sprite: '../assets/assets_platform/sprites/ProjectUtumno_full.png',
            rectParams: [12, 17, 32, 32] },
    "#": {
@@ -352,6 +437,11 @@ const levelChars = {
         label: "ladder",
         sprite: null, 
         rectParams: [0, 0, 32, 32]  
+},
+    "E": {
+    objClass: Enemy,
+    label: "enemy",
+    sprite: null 
 }
 }
 
@@ -442,69 +532,75 @@ class Barrel extends GameObject {
 
 class Level {
     constructor(plan) {
-        // Split the plan string into a matrix of strings
         let rows = plan.trim().split('\n').map(l => [...l]);
         this.height = rows.length;
         this.width = rows[0].length;
         this.actors = [];
 
-        // Variable to randomize environments
         let rnd = Math.random();
 
-        // Fill the rows array with a label for the type of element in the cell
-        // Most cells are 'empty', except for the 'wall'
         this.rows = rows.map((row, y) => {
             return row.map((ch, x) => {
                 let item = levelChars[ch];
-                let objClass = item.objClass;
+                if (!item) return "empty";
+
                 let cellType = item.label;
-                // Create a new instance of the type specified
-                let color = item.label === "ladder" ? "brown" : "skyblue";
-                let actor = new objClass(color, 1, 1, x, y, item.label);
 
-                // Configurations for each type of cell
-                // TODO: Simplify this code, sinde most of it is repeated
-                if (actor.type == "player") {
-                    // Also instantiate a floor tile below the player
+                if (item.label === "ladder") {
+                    let ladder = new Ladder("#8B4513", 1, 1, x, y, "ladder");
+                    this.actors.push(ladder);
+                    return "ladder";
+                }
+
+                let color = item.label === "ladder" ? "#8B4513" : "skyblue";
+
+                if (item.label === "enemy") {
+                    this.actors.push(new Enemy("blue", 1, 1, x, y, "enemy"));
+                    return "empty";
+                }
+
+                let actor = new item.objClass(color, 1, 1, x, y, item.label);
+
+                if (actor.type === "player") {
                     this.addBackgroundFloor(x, y);
-
-                    // Make the player larger (visual size)
                     actor.position = actor.position.plus(new Vec(0, -3));
                     actor.size = new Vec(3, 3);
-
-                    // Define horizontal hitbox for horizontal wall collisions (blue rectangle)
-                    // This hitbox is narrower than the main size (red rectangle)
-                    actor.horizontalHitbox = {
-                        offset: new Vec(0.75, 0.1), // Reverted horizontal offset
-                        size: new Vec(actor.size.x - 1.5, actor.size.y - 0.2) // Reverted width
-                    };
-
                     let instanceRect = new Rect(...item.rectParams);
                     actor.setSprite(item.sprite, instanceRect);
                     actor.sheetCols = item.sheetCols;
                     actor.setAnimation(...item.startFrame, false, 100);
                     this.player = actor;
                     cellType = "empty";
-                } else if (actor.type == "gem") {
-                    // Also instantiate a floor tile below the player
+                } else if (actor.type === "gem") {
                     this.addBackgroundFloor(x, y);
-
-                    // Need to create a new instance of Rect for each item
                     let instanceRect = new Rect(...item.rectParams);
                     actor.setSprite(item.sprite, instanceRect);
                     actor.sheetCols = item.sheetCols;
                     actor.setAnimation(...item.startFrame, true, 100);
                     this.actors.push(actor);
                     cellType = "empty";
-                } else if (actor.type == "wall") {
-                    // Randomize sprites for each wall tile
+                } else if (actor.type === "wall") {
                     let instanceRect = this.randomEvironment(rnd);
                     actor.setSprite(item.sprite, instanceRect);
+                    const originalDraw = actor.draw;
+                    actor.draw = function(ctx, scale) {
+                        originalDraw.call(this, ctx, scale);
+                        
+                        // Add hitbox
+                        ctx.save();
+                        ctx.strokeStyle = 'red';
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(
+                            this.position.x * scale,
+                            this.position.y * scale,
+                            this.size.x * scale,
+                            this.size.y * scale
+                        );
+                        ctx.restore();
+                    };
                     this.actors.push(actor);
                     cellType = "wall";
-                } else if (actor.type == "floor") {
-                    //let instanceRect = new Rect(item.rectParams);
-                    //actor.setSprite(item.sprite, item.rect);
+                } else if (actor.type === "empty") {
                     this.actors.push(actor);
                     cellType = "floor";
                 }
@@ -521,7 +617,6 @@ class Level {
         this.actors.push(floorActor);
     }
 
-    // Randomize sprites for each wall tile
     randomTile(xStart, xRange, y) {
         let tile = Math.floor(Math.random() * xRange + xStart);
         return new Rect(tile, y, 32, 32);
@@ -581,33 +676,55 @@ class Game {
     update(deltaTime) {
         this.player.update(this.level, deltaTime);
 
+        // Update all actors
         for (let actor of this.actors) {
             actor.update(this.level, deltaTime);
         }
 
-        let currentActors = this.actors;
-        for (let actor of currentActors) {
-            if (actor.type != 'floor' && overlapRectangles(this.player, actor)) {
-                if (actor.type == 'coin') {
+        // Handle collisions
+        for (let actor of this.actors) {
+            if (actor.type !== 'empty' && this.checkCollision(this.player, actor)) {
+                if (actor.type === 'coin' || actor.type === 'gem') {
                     this.player.gems += 1;
                     this.actors = this.actors.filter(item => item !== actor);
+                } else if (actor.type === 'enemy') {
+                    console.log("Player hit by enemy!");
+                    // Handle enemy collision here
                 }
             }
         }
 
-        // Update cameraY to follow player upward onlyad
+        // Update camera to follow player upward only
         const targetY = this.player.position.y * scale - canvasHeight * (2 / 3);
         cameraY += (targetY - cameraY) * 0.1; // smooth follow
-        
+    }
+
+    // Add collision detection method
+    checkCollision(obj1, obj2) {
+        return obj1.position.x < obj2.position.x + obj2.size.x &&
+               obj1.position.x + obj1.size.x > obj2.position.x &&
+               obj1.position.y < obj2.position.y + obj2.size.y &&
+               obj1.position.y + obj1.size.y > obj2.position.y;
     }
 
     draw(ctx, scale) {
         ctx.save();
         ctx.translate(0, -cameraY); // Apply vertical camera offset
 
+        // First draw background and non-interactive elements
         for (let actor of this.actors) {
-            actor.draw(ctx, scale);
+            if (actor.type === 'empty' || actor.type === 'wall' || actor.type === 'ladder') {
+                actor.draw(ctx, scale);
+            }
         }
+
+        // Then draw interactive elements and enemies
+        for (let actor of this.actors) {
+            if (actor.type !== 'empty' && actor.type !== 'wall' && actor.type !== 'ladder') {
+                actor.draw(ctx, scale);
+            }
+        }
+
         this.player.draw(ctx, scale);
 
         ctx.restore();
@@ -693,7 +810,8 @@ function updateCanvas(frameTime) {
     }
     let deltaTime = frameTime - frameStart;
 
-    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+    ctx.fillStyle = "#87CEEB"; // Sky blue or any background color you prefer
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
     game.update(deltaTime);
     game.draw(ctx, scale);
 
