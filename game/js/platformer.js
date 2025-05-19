@@ -23,6 +23,9 @@ class Player extends AnimatedObject {
         super("green", width, height, x, y, "player");
         this.velocity = new Vec(0.0, 0.0);
         this.gems = 0;
+        this.lives = 2; // Player starts with 2 lives
+        this.invulnerable = false; // Add invulnerability flag
+        this.invulnerableTimer = 0;
 
         this.isFacingRight = true;
         this.isJumping = false;
@@ -64,6 +67,14 @@ class Player extends AnimatedObject {
     }
 
     update(level, deltaTime) {
+        // Update invulnerability
+        if (this.invulnerable) {
+            this.invulnerableTimer -= deltaTime;
+            if (this.invulnerableTimer <= 0) {
+                this.invulnerable = false;
+            }
+        }
+
         // Check if the player is on a ladder
         if (this.exitingLadder) {
             // Delay ladder re-attachment for 200ms
@@ -226,30 +237,98 @@ class Player extends AnimatedObject {
         );
         ctx.restore();
     }
+
+    // Add method to handle losing a life
+    loseLife() {
+        if (!this.invulnerable) {
+            this.lives--;
+            this.invulnerable = true;
+            this.invulnerableTimer = 1500; // 1.5 seconds of invulnerability
+            
+            if (this.lives <= 0) {
+                // Game over - reset player
+                this.lives = 2;
+                this.gems = 0;
+                // Could add more reset logic here
+            }
+        }
+    }
 }
 
 
 class Gem extends AnimatedObject {
-    constructor(_color, width, height, x, y, _type) {
-        super("green", width, height, x, y, "gem");
+    constructor(x, y) {
+        // Use a smaller hitbox (1x1) but render larger
+        super("yellow", 1, 1, x, y, "gem");
+        
+        // Load the animated gem sprite
+        this.sprite = new Image();
+        this.sprite.src = '../assets/Items/Gems/Gem Animations/gem_animation.png';
+        
+        // Set up correct animation properties
+        this.frameCount = 4;  // Assuming 4 frames in the animation
+        this.frameWidth = 16; // Typical frame width for these sprites
+        this.frameHeight = 16; // Typical frame height
+        this.animationSpeed = 200; // Milliseconds per frame
+        
+        // Initialize animation
+        this.currentFrame = 0;
+        this.animationTimer = 0;
+        this.setAnimation(0, this.frameCount - 1, true, this.animationSpeed);
     }
-
-    update(_level, deltaTime) {
-        this.updateFrame(deltaTime);
+    
+    update(level, deltaTime) {
+        super.update(deltaTime);
+        
+        // Update animation frame
+        this.animationTimer += deltaTime;
+        if (this.animationTimer >= this.animationSpeed) {
+            this.currentFrame = (this.currentFrame + 1) % this.frameCount;
+            this.animationTimer = 0;
+        }
     }
+    
     draw(ctx, scale) {
-        super.draw(ctx, scale);
-        // Draw default hitbox for debugging
-        ctx.save();
-        ctx.strokeStyle = 'red';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(
-            this.position.x * scale,
-            this.position.y * scale,
-            this.size.x * scale,
-            this.size.y * scale
-        );
-        ctx.restore();
+        if (this.sprite && this.sprite.complete) {
+            // Visual size multiplier for bigger gems (2x bigger)
+            const visualSizeMultiplier = 1.0;
+            
+            // Calculate the offset to center the visual larger gem on the hitbox
+            const xOffset = (this.size.x * (visualSizeMultiplier - 1)) / 2;
+            const yOffset = (this.size.y * (visualSizeMultiplier - 1)) / 2;
+            
+            // Draw the current animation frame with increased size
+            ctx.drawImage(
+                this.sprite,
+                this.currentFrame * this.frameWidth, 0, // Source position
+                this.frameWidth, this.frameHeight,      // Source dimensions
+                (this.position.x - xOffset) * scale,    // Destination position x (centered)
+                (this.position.y - yOffset) * scale,    // Destination position y (centered)
+                this.size.x * scale * visualSizeMultiplier,   // Destination width (bigger)
+                this.size.y * scale * visualSizeMultiplier    // Destination height (bigger)
+            );
+            
+            // Debug hitbox visualization (uncomment to see hitbox)
+            ctx.save();
+            ctx.strokeStyle = 'red';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(
+                this.position.x * scale,
+                this.position.y * scale,
+                this.size.x * scale,
+                this.size.y * scale
+            );
+            ctx.restore();
+        } else {
+            // Fallback to a simple colored square if image isn't loaded
+            ctx.fillStyle = "gold";
+            ctx.fillRect(
+                this.position.x * scale,
+                this.position.y * scale,
+                this.size.x * scale,
+                this.size.y * scale
+            );
+        }
     }
 }
 
@@ -371,10 +450,10 @@ const levelChars = {
            startFrame: [0, 0] },
     "$": { objClass: Gem,
        label: "collectible",
-       sprite: '../assets/assets_platform/sprites/coin_gold.png',
+       sprite: '../assets/Items/Gems/Gem Animations/gem_animation.png',
        rectParams: [0, 0, 32, 32], // 
-       sheetCols: 8,
-       startFrame: [0, 7]
+       sheetCols: 4,
+       startFrame: [0, 3]
                             },
     "L": { 
         objClass: Ladder,
@@ -455,11 +534,8 @@ class Level {
                     cellType = "empty";
                 } else if (actor.type === "gem") {
                     this.addBackgroundFloor(x, y);
-                    let instanceRect = new Rect(...item.rectParams);
-                    actor.setSprite(item.sprite, instanceRect);
-                    actor.sheetCols = item.sheetCols;
-                    actor.setAnimation(...item.startFrame, true, 100);
-                    this.actors.push(actor);
+                    let gemActor = new Gem(x, y);
+                    this.actors.push(gemActor);
                     cellType = "empty";
                 } else if (actor.type === "wall") {
                     let instanceRect = this.randomEvironment(rnd);
@@ -550,7 +626,15 @@ class Game {
         this.player = level.player;
         this.actors = [...level.actors];
 
-        this.labelGems = new TextLabel(20, 30, "30px Arial", "black");
+        // Load UI sprites
+        this.heartSprite = new Image();
+        this.heartSprite.src = '../assets/Items/Heart/heart.png';
+        
+        // Add gem UI sprite
+        this.gemUISprite = new Image();
+        this.gemUISprite.src = '../assets/Items/Gems/Gem_UI/gem.png';
+        
+        this.labelGems = new TextLabel(80, 30, "30px Arial", "black");
 
         console.log("############ LEVEL START ###################");
     }
@@ -570,8 +654,10 @@ class Game {
                     this.player.gems += 1;
                     this.actors = this.actors.filter(item => item !== actor);
                 } else if (actor.type === 'enemy') {
-                    console.log("Player hit by enemy!");
-                    // Handle enemy collision here
+                    this.player.loseLife();
+                    // Optional: push player away from enemy
+                    const pushDirection = this.player.position.x < actor.position.x ? -1 : 1;
+                    this.player.position = this.player.position.plus(new Vec(pushDirection * 0.5, -0.5));
                 }
             }
         }
@@ -607,11 +693,59 @@ class Game {
             }
         }
 
-        this.player.draw(ctx, scale);
+        // Draw player (flashing when invulnerable)
+        if (!this.player.invulnerable || Math.floor(Date.now() / 100) % 2) {
+            this.player.draw(ctx, scale);
+        }
 
         ctx.restore();
 
-        this.labelGems.draw(ctx, `Gems: ${this.player.gems}`);
+        // Draw UI elements with improved styling
+        // ======================================
+        
+        // Draw gem icon
+        if (this.gemUISprite && this.gemUISprite.complete) {
+            ctx.drawImage(
+                this.gemUISprite, 
+                20,         // X position
+                20,         // Y position
+                40,         // Width
+                40          // Height
+            );
+        }
+        
+        // Draw gem counter with improved styling
+        ctx.font = "bold 28px 'Arial Rounded MT Bold', 'Arial Black', sans-serif";
+        ctx.fillStyle = "#FFD700"; // Gold color
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        
+        // Add text shadow for better visibility
+        ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+        ctx.shadowBlur = 4;
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 2;
+        
+        // Position text centered vertically with the gem icon
+        ctx.fillText(
+            `${this.player.gems}`, 
+            75,  // X position (adjusted to be closer to gem)
+            40   // Y position (centered with the gem icon)
+        );
+        
+        // Reset shadow for other elements
+        ctx.shadowColor = "transparent";
+        
+        // Draw hearts based on player's lives
+        for (let i = 0; i < this.player.lives; i++) {
+            ctx.drawImage(
+                this.heartSprite, 
+                20 + i * 50, // X position (hearts are 50px apart)
+                80,         // Y position (moved down a bit to separate from gems)
+                40,         // Width
+                40          // Height
+            );
+        }
     }
 
 }
