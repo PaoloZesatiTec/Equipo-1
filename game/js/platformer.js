@@ -16,16 +16,21 @@ const initialJumpSpeed = -0.03;
 const gravity = 0.0000981;
 
 let cameraY = 0; // New variable for vertical camera scrolling
+let keyState = {}; // For climbing
 
 class Player extends AnimatedObject {
     constructor(_color, width, height, x, y, _type) {
         super("green", width, height, x, y, "player");
         this.velocity = new Vec(0.0, 0.0);
-        this.money = 0;
+        this.gems = 0;
 
         this.isFacingRight = true;
         this.isJumping = false;
         this.isCrouching = false;
+        this.lastFireTime = -Infinity;
+        this.fireCooldown = 10000; // 10 seconds in milliseconds
+        this.exitingLadder = false;
+
 
         // Movement variables to define directions and animations
         this.movement = {
@@ -59,33 +64,50 @@ class Player extends AnimatedObject {
     }
 
     update(level, deltaTime) {
-        //console.log("Pos: (%5.2f, %5.2f) | Vel: (%5.2f, %5.2f) | isJumping: %d",
-        //            this.position.x, this.position.y, this.velocity.x, this.velocity.y, this.isJumping);
-
-        // Make the character fall constantly because of gravity
-        this.velocity.y = this.velocity.y + gravity * deltaTime;
-
+        // Check if the player is on a ladder
+        if (this.exitingLadder) {
+            // Delay ladder re-attachment for 200ms
+            this.ladderCooldownTime = performance.now();
+            this.exitingLadder = false;
+            this.isOnLadder = false;
+        } else if (!this.ladderCooldownTime || performance.now() - this.ladderCooldownTime > 200) {
+            this.isOnLadder = level.contact(this.position, this.size, "ladder");
+        }
+        
+    
+        // Gravity only if not on ladder
+        if (!this.isOnLadder) {
+            this.velocity.y += gravity * deltaTime;
+        } else {
+            // On ladder: stay in place unless moving
+            this.velocity.y = 0;
+            if (keyState["w"]) {
+                this.velocity.y = -0.01;
+            } else if (keyState["s"]) {
+                this.velocity.y = 0.01;
+            }
+        }
+    
         let velX = this.velocity.x;
         let velY = this.velocity.y;
-
-        // Find out where the player should end if it moves
+    
+        // Horizontal movement
         let newXPosition = this.position.plus(new Vec(velX * deltaTime, 0));
-        // Move only if the player does not move inside a wall
         if (!level.contact(newXPosition, this.size, 'wall')) {
             this.position = newXPosition;
         }
-
-        // Find out where the player should end if it moves
+    
+        // Vertical movement
         let newYPosition = this.position.plus(new Vec(0, velY * deltaTime));
-        // Move only if the player does not move inside a wall
         if (!level.contact(newYPosition, this.size, 'wall')) {
             this.position = newYPosition;
         } else {
             this.land();
         }
-
+    
         this.updateFrame(deltaTime);
     }
+    
 
     startMovement(direction) {
         const dirData = this.movement[direction];
@@ -126,19 +148,25 @@ class Player extends AnimatedObject {
     }
 
     jump() {
-        if (!this.isJumping) {
-            // Give a velocity so that the player starts moving up
+        if (!this.isJumping || this.isOnLadder) {
             this.velocity.y = initialJumpSpeed;
             this.isJumping = true;
+    
+            if (this.isOnLadder) {
+                this.exitingLadder = true;   // Signal we're jumping *off* the ladder
+                this.isOnLadder = false;
+            }
+    
             const jumpData = this.movement.jump;
             if (this.isFacingRight) {
                 this.setAnimation(...jumpData.right, jumpData.repeat, jumpData.duration);
             } else {
                 this.setAnimation(...jumpData.left, jumpData.repeat, jumpData.duration);
             }
-            //debugJump = true;
         }
     }
+    
+    
 
     land() {
         // If the character is touching the ground,
@@ -166,18 +194,78 @@ class Player extends AnimatedObject {
             }
         }
     }
+    fireFireball() {
+        const now = performance.now();
+        if (now - this.lastFireTime >= this.fireCooldown) {
+            const fireX = this.position.x + (this.isFacingRight ? this.size.x : -0.5);
+            const direction = this.isFacingRight ? 1 : -1;
+            const fireball = new Fireball(fireX, this.position.y + this.size.y / 2, direction);
+            game.actors.push(fireball);
+            this.lastFireTime = now;
+        }
+    }
+
+    draw(ctx, scale) {
+        super.draw(ctx, scale);
+        // Draw default hitbox for debugging
+        ctx.save();
+        ctx.strokeStyle = 'red';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(
+            this.position.x * scale,
+            this.position.y * scale,
+            this.size.x * scale,
+            this.size.y * scale
+        );
+        ctx.restore();
+    }
 }
 
 
-class Coin extends AnimatedObject {
+class Gem extends AnimatedObject {
     constructor(_color, width, height, x, y, _type) {
-        super("yellow", width, height, x, y, "coin");
+        super("green", width, height, x, y, "gem");
     }
 
     update(_level, deltaTime) {
         this.updateFrame(deltaTime);
     }
+    draw(ctx, scale) {
+        super.draw(ctx, scale);
+        // Draw default hitbox for debugging
+        ctx.save();
+        ctx.strokeStyle = 'red';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(
+            this.position.x * scale,
+            this.position.y * scale,
+            this.size.x * scale,
+            this.size.y * scale
+        );
+        ctx.restore();
+    }
 }
+
+class Ladder extends GameObject {
+    constructor(_color, width, height, x, y, _type) {
+        super("brown", width, height, x, y, _type || "ladder");
+    }
+
+    draw(ctx, scale) {
+        ctx.fillStyle = "#a0522d"; // Brown color
+        ctx.fillRect(
+            this.position.x * scale,
+            this.position.y * scale,
+            this.size.x * scale,
+            this.size.y * scale
+        );
+    }
+
+    update() {
+        // No behavior needed for static ladders
+    }
+}
+
 
 const levelChars = {
     ".": { objClass: GameObject,
@@ -196,13 +284,41 @@ const levelChars = {
            rectParams: [0, 0, 46, 50],
            sheetCols: 8,
            startFrame: [0, 0] },
-    "$": { objClass: Coin,
+    "$": { objClass: Gem,
        label: "collectible",
        sprite: '../assets/assets_platform/sprites/coin_gold.png',
        rectParams: [0, 0, 32, 32], // 
        sheetCols: 8,
        startFrame: [0, 7]
+                            },
+    "L": { 
+        objClass: Ladder,
+        label: "ladder",
+        sprite: null, 
+        rectParams: [0, 0, 32, 32]  
 }
+}
+
+class Fireball extends GameObject {
+    constructor(x, y, direction) {
+        super("red", 0.5, 0.5, x, y, "fireball");
+        this.velocity = new Vec(direction * 0.02, 0); 
+    }
+
+    update(level, deltaTime) {
+        let newPos = this.position.plus(this.velocity.times(deltaTime));
+        if (!level.contact(newPos, this.size, 'wall')) {
+            this.position = newPos;
+        } else {
+            // Remove fireball if it hits a wall
+            game.actors = game.actors.filter(actor => actor !== this);
+        }
+    }
+
+    draw(ctx, scale) {
+        ctx.fillStyle = "red";
+        ctx.fillRect(this.position.x * scale, this.position.y * scale, this.size.x * scale, this.size.y * scale);
+    }
 }
 
 
@@ -225,7 +341,9 @@ class Level {
                 let objClass = item.objClass;
                 let cellType = item.label;
                 // Create a new instance of the type specified
-                let actor = new objClass("skyblue", 1, 1, x, y, item.label);
+                let color = item.label === "ladder" ? "brown" : "skyblue";
+                let actor = new objClass(color, 1, 1, x, y, item.label);
+
                 // Configurations for each type of cell
                 // TODO: Simplify this code, sinde most of it is repeated
                 if (actor.type == "player") {
@@ -242,7 +360,7 @@ class Level {
                     actor.setAnimation(...item.startFrame, false, 100);
                     this.player = actor;
                     cellType = "empty";
-                } else if (actor.type == "coin") {
+                } else if (actor.type == "gem") {
                     // Also instantiate a floor tile below the player
                     this.addBackgroundFloor(x, y);
 
@@ -328,10 +446,9 @@ class Game {
         this.state = state;
         this.level = level;
         this.player = level.player;
-        this.actors = level.actors;
+        this.actors = [...level.actors];
 
-        this.labelMoney = new TextLabel(20, 30, "30px Ubuntu Mono", "white");
-        this.labelDebug = new TextLabel(canvasWidth / 2, 60, "20px Ubuntu Mono", "black");
+        this.labelGems = new TextLabel(20, 30, "30px Arial", "black");
 
         console.log("############ LEVEL START ###################");
     }
@@ -347,7 +464,7 @@ class Game {
         for (let actor of currentActors) {
             if (actor.type != 'floor' && overlapRectangles(this.player, actor)) {
                 if (actor.type == 'coin') {
-                    this.player.money += 1;
+                    this.player.gems += 1;
                     this.actors = this.actors.filter(item => item !== actor);
                 }
             }
@@ -370,11 +487,11 @@ class Game {
 
         ctx.restore();
 
-        this.labelMoney.draw(ctx, `Money: ${this.player.money}`);
-        this.labelDebug.draw(ctx, `Velocity: (${this.player.velocity.x.toFixed(3)}, ${this.player.velocity.y.toFixed(3)})`);
-
+        this.labelGems.draw(ctx, `Gems: ${this.player.gems}`);
     }
+
 }
+
 
 function main() {
     window.onload = init;
@@ -424,32 +541,26 @@ function gameStart() {
 
 function setEventListeners() {
     window.addEventListener("keydown", event => {
-        if (event.code == 'Space') {
-            game.player.jump();
-        }
-        if (event.key == 'a') {
-            game.player.startMovement("left");
-        }
-        if (event.key == 'd') {
-            game.player.startMovement("right");
-        }
-        if (event.key == 's') {
-            game.player.crouch();
-        }
+        keyState[event.key] = true;
+    
+        if (event.code == 'Space') game.player.jump();
+        if (event.key == 'a') game.player.startMovement("left");
+        if (event.key == 'd') game.player.startMovement("right");
+        if (event.key == 's') game.player.crouch();
+        if (event.key == 'e') game.player.fireFireball();
+        // No need to handle 'w' here unless you want animation feedback
     });
-
+    
     window.addEventListener("keyup", event => {
-        if (event.key == 'a') {
-            game.player.stopMovement("left");
-        }
-        if (event.key == 'd') {
-            game.player.stopMovement("right");
-        }
-        if (event.key == 's') {
-            game.player.standUp();
-        }
+        keyState[event.key] = false;
+    
+        if (event.key == 'a') game.player.stopMovement("left");
+        if (event.key == 'd') game.player.stopMovement("right");
+        if (event.key == 's') game.player.standUp();
     });
 }
+
+
 
 function updateCanvas(frameTime) {
     if (frameStart === undefined) {
