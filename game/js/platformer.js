@@ -12,8 +12,8 @@ let level;
 
 let scale = 29;
 const walkSpeed = 0.004;
-const initialJumpSpeed = -0.02;
-const gravity = 0.0000981;
+const initialJumpSpeed = -0.014;
+const gravity = 0.000045;
 
 let cameraY = 0; // New variable for vertical camera scrolling
 let keyState = {}; // For climbing
