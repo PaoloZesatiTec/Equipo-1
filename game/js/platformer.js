@@ -12,7 +12,7 @@ let level;
 
 let scale = 29;
 const walkSpeed = 0.005;
-const initialJumpSpeed = -0.03;
+const initialJumpSpeed = -0.02;
 const gravity = 0.0000981;
 
 let cameraY = 0; // New variable for vertical camera scrolling
@@ -30,7 +30,10 @@ class Player extends AnimatedObject {
         this.lastFireTime = -Infinity;
         this.fireCooldown = 10000; // 10 seconds in milliseconds
         this.exitingLadder = false;
+        this.isOnLadder = false; // Initialize isOnLadder
 
+        // Horizontal hitbox: narrower than the player's main hitbox, defined in Level constructor
+        this.horizontalHitbox = null; // Initialize to null
 
         // Movement variables to define directions and animations
         this.movement = {
@@ -65,44 +68,86 @@ class Player extends AnimatedObject {
 
     update(level, deltaTime) {
         // Check if the player is on a ladder
-        if (this.exitingLadder) {
-            // Delay ladder re-attachment for 200ms
-            this.ladderCooldownTime = performance.now();
-            this.exitingLadder = false;
-            this.isOnLadder = false;
-        } else if (!this.ladderCooldownTime || performance.now() - this.ladderCooldownTime > 200) {
-            this.isOnLadder = level.contact(this.position, this.size, "ladder");
+        let wasOnLadder = this.isOnLadder;
+        let horizontalHitboxContactWithLadder = false;
+        if (this.horizontalHitbox) {
+            horizontalHitboxContactWithLadder = level.contact(this.position.plus(this.horizontalHitbox.offset), this.horizontalHitbox.size, "ladder");
+        } else {
+            horizontalHitboxContactWithLadder = level.contact(this.position, this.size, "ladder"); // Fallback
         }
-        
-    
+
+        // If not in contact with a ladder, but were just on one, start cooldown
+        if (wasOnLadder && !horizontalHitboxContactWithLadder) {
+             this.ladderCooldownTime = performance.now();
+             this.isOnLadder = false; // Set isOnLadder to false when leaving ladder contact
+        }
+
+        // Player is on ladder if horizontal hitbox is in contact AND not in cooldown
+        if (horizontalHitboxContactWithLadder && (!this.ladderCooldownTime || performance.now() - this.ladderCooldownTime > 200)) {
+             this.isOnLadder = true;
+        }
+
         // Gravity only if not on ladder
         if (!this.isOnLadder) {
             this.velocity.y += gravity * deltaTime;
         } else {
-            // On ladder: stay in place unless moving
+            // On ladder: vertical movement is controlled by keys
             this.velocity.y = 0;
             if (keyState["w"]) {
-                this.velocity.y = -0.01;
+                this.velocity.y = -0.015; // climb up faster
             } else if (keyState["s"]) {
-                this.velocity.y = 0.01;
+                this.velocity.y = 0.015; // climb down faster
             }
         }
     
         let velX = this.velocity.x;
         let velY = this.velocity.y;
     
-        // Horizontal movement
+        // --- Horizontal movement ---
         let newXPosition = this.position.plus(new Vec(velX * deltaTime, 0));
-        if (!level.contact(newXPosition, this.size, 'wall')) {
-            this.position = newXPosition;
+        // Only check for horizontal wall collision if not on a ladder
+        if (!this.isOnLadder) {
+            // Use horizontal hitbox for horizontal collision with walls
+            let horizontalCollision = false;
+            if (this.horizontalHitbox) {
+                 let hitboxX = newXPosition.plus(this.horizontalHitbox.offset);
+                 horizontalCollision = level.contact(hitboxX, this.horizontalHitbox.size, 'wall');
+            } else { // Fallback to main hitbox if horizontal hitbox is not defined
+                 horizontalCollision = level.contact(newXPosition, this.size, 'wall');
+            }
+
+            if (!horizontalCollision) {
+                this.position = new Vec(newXPosition.x, this.position.y);
+            }
+        } else {
+             // If on a ladder, allow horizontal movement without wall collision
+             this.position = new Vec(newXPosition.x, this.position.y);
         }
     
-        // Vertical movement
+        // --- Vertical movement ---
         let newYPosition = this.position.plus(new Vec(0, velY * deltaTime));
-        if (!level.contact(newYPosition, this.size, 'wall')) {
-            this.position = newYPosition;
+
+        // Only check for vertical wall collision if not on a ladder
+        if (!this.isOnLadder) {
+            // Check for vertical collision using the main hitbox
+            if (level.contact(newYPosition, this.size, 'wall')) {
+                // If collision, stop vertical movement
+                this.velocity.y = 0; // Stop vertical velocity
+
+                // If moving downwards and hit a wall, consider it landing
+                if (velY > 0) {
+                   this.land(); // Call land() to handle isJumping and animation, and snaps to grid
+                }
+                // If moving upwards and hit a wall, just stop vertical velocity
+
+            } else {
+                // No collision, update vertical position
+                this.position = new Vec(this.position.x, newYPosition.y);
+            }
         } else {
-            this.land();
+            // If on a ladder, vertical movement is handled by key presses (already implemented)
+            // and wall collisions are ignored.
+            this.position = new Vec(this.position.x, newYPosition.y);
         }
     
         this.updateFrame(deltaTime);
@@ -207,7 +252,7 @@ class Player extends AnimatedObject {
 
     draw(ctx, scale) {
         super.draw(ctx, scale);
-        // Draw default hitbox for debugging
+        // Draw default hitbox for debugging (red)
         ctx.save();
         ctx.strokeStyle = 'red';
         ctx.lineWidth = 2;
@@ -217,6 +262,17 @@ class Player extends AnimatedObject {
             this.size.x * scale,
             this.size.y * scale
         );
+        // Draw horizontal hitbox for debugging (blue) if defined
+        if (this.horizontalHitbox) {
+            ctx.strokeStyle = 'blue';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(
+                (this.position.x + this.horizontalHitbox.offset.x) * scale,
+                (this.position.y + this.horizontalHitbox.offset.y) * scale,
+                this.horizontalHitbox.size.x * scale,
+                this.horizontalHitbox.size.y * scale
+            );
+        }
         ctx.restore();
     }
 }
@@ -321,6 +377,68 @@ class Fireball extends GameObject {
     }
 }
 
+class Barrel extends GameObject {
+    constructor(x, y) {
+        super("brown", 1, 1, x, y, "barrel"); // Brown color, 1x1 unit size
+        this.velocity = new Vec(0.0, 0.0);
+        this.directionX = 1; // 1 for right, -1 for left
+        this.initialHorizontalSpeed = 0.005; // Adjust as needed
+        this.velocity.x = this.directionX * this.initialHorizontalSpeed;
+    }
+
+    update(level, deltaTime) {
+        // Apply gravity
+        this.velocity.y += gravity * deltaTime;
+
+        // Calculate next horizontal position
+        let newXPosition = this.position.plus(new Vec(this.velocity.x * deltaTime, 0));
+
+        // Check horizontal collision with walls or floors
+        // Use the barrel's size for collision
+        if (level.contact(newXPosition, this.size, 'wall') || level.contact(newXPosition, this.size, 'floor')) {
+            // Reverse horizontal direction on collision
+            this.directionX *= -1;
+            this.velocity.x = this.directionX * this.initialHorizontalSpeed;
+            // Nudge out of collision horizontally
+            // Calculate penetration depth and adjust position
+             let moveBack = new Vec(this.velocity.x * deltaTime, 0);
+             let attemptedPosition = this.position.plus(moveBack);
+             // This is a simplified nudge. In a real engine, you'd find the exact collision point.
+             this.position = this.position.minus(moveBack.times(1.1)); // Move back slightly more than moved
+        } else {
+             // Update horizontal position if no collision
+             this.position = new Vec(newXPosition.x, this.position.y);
+        }
+
+        // Calculate next vertical position
+        let newYPosition = this.position.plus(new Vec(0, this.velocity.y * deltaTime));
+
+        // Check vertical collision with walls or floors
+        // Use the barrel's size for collision
+        if (level.contact(newYPosition, this.size, 'wall') || level.contact(newYPosition, this.size, 'floor')) {
+            // Stop vertical movement
+            this.velocity.y = 0;
+            // Reverse horizontal direction on vertical collision (as requested)
+            this.directionX *= -1;
+            this.velocity.x = this.directionX * this.initialHorizontalSpeed;
+            // Nudge out of collision vertically
+            // For falling onto a floor, snap to the grid bottom edge of the barrel
+            if (velY > 0) { // Moving downwards
+                 this.position.y = Math.floor(this.position.y + this.size.y) - this.size.y; // Snap to grid top
+            }
+             // If moving upwards, maybe snap to grid top edge of the barrel
+             else if (velY < 0) { // Moving upwards
+                  this.position.y = Math.ceil(this.position.y); // Snap to grid bottom
+             }
+
+        } else {
+            // No vertical collision, update vertical position
+            this.position = new Vec(this.position.x, newYPosition.y);
+        }
+    }
+
+    // Barrels will use the default GameObject draw method (draws a colored rectangle)
+}
 
 class Level {
     constructor(plan) {
@@ -350,9 +468,16 @@ class Level {
                     // Also instantiate a floor tile below the player
                     this.addBackgroundFloor(x, y);
 
-                    // Make the player larger
+                    // Make the player larger (visual size)
                     actor.position = actor.position.plus(new Vec(0, -3));
                     actor.size = new Vec(3, 3);
+
+                    // Define horizontal hitbox for horizontal wall collisions (blue rectangle)
+                    // This hitbox is narrower than the main size (red rectangle)
+                    actor.horizontalHitbox = {
+                        offset: new Vec(0.75, 0.1), // Reverted horizontal offset
+                        size: new Vec(actor.size.x - 1.5, actor.size.y - 0.2) // Reverted width
+                    };
 
                     let instanceRect = new Rect(...item.rectParams);
                     actor.setSprite(item.sprite, instanceRect);
