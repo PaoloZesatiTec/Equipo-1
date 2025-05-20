@@ -649,7 +649,8 @@ class Level {
                 if (actor.type === "player") {
                     this.addBackgroundFloor(x, y);
                     actor.position = actor.position.plus(new Vec(0, -3));
-                    actor.size = new Vec(1.5, 3);
+                    actor.size = new Vec(0.8, 3);
+
                     let instanceRect = new Rect(...item.rectParams);
                     actor.setSprite(item.sprite, instanceRect);
                     actor.sheetCols = item.sheetCols;

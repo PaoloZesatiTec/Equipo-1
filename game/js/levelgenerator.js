@@ -1,0 +1,201 @@
+// Level Generator for Roguelike Platformer
+class LevelGenerator {
+    constructor(width = 26, height = 60) {
+        this.width = width;
+        this.height = height;
+        this.minPlatformLength = 5;
+        this.maxPlatformLength = 8;
+        this.jumpDistance = 2; // Maximum horizontal distance for a jump
+        this.minLayerHeight = 4; // Shorter distance between platforms
+        this.ladderFrequency = 0.7; // Not every platform needs a ladder
+        this.enemyChance = 0.3;
+        this.gemChance = 0.3;
+    }
+
+    generate() {
+        // Initialize empty grid with sky
+        this.grid = Array(this.height).fill().map(() => Array(this.width).fill('.'));
+        
+        // Always create right wall first to ensure it exists
+        this.createRightWall();
+        
+        // Create ground level
+        this.createGroundLevel();
+        
+        // Create platforms in a more complex pattern
+        this.createComplexPlatforms();
+        
+        // Add player starting position
+        this.addPlayer();
+        
+        // Add enemies
+        this.addEnemies();
+        
+        // Add collectibles (gems)
+        this.addCollectibles();
+        
+        // Convert grid to level string
+        return this.gridToString();
+    }
+
+    createRightWall() {
+        // Create right barrier - GUARANTEED
+        for (let y = 0; y < this.height; y++) {
+            this.grid[y][this.width - 1] = '#';
+        }
+    }
+
+    createGroundLevel() {
+        // Create ground platform
+        for (let x = 0; x < this.width; x++) {
+            this.grid[this.height - 1][x] = '#';
+        }
+    }
+
+    createComplexPlatforms() {
+        // Number of vertical layers
+        const numLayers = Math.floor(Math.random() * 3) + 4; // 4-6 layers
+        const layerSpacing = Math.floor((this.height - 5) / numLayers);
+        
+        // Create platforms layer by layer
+        for (let layer = 1; layer < numLayers; layer++) {
+            const y = this.height - 1 - (layer * layerSpacing);
+            if (y <= 0) continue; // Skip if too high
+            
+            // Decide if this will be a "jump layer" or "ladder layer"
+            const isJumpLayer = layer % 3 === 0; // Every third layer is for jumping platforms
+            
+            if (isJumpLayer) {
+                this.createJumpablePlatforms(y);
+            } else {
+                this.createConnectedPlatforms(y);
+            }
+        }
+    }
+    
+    createJumpablePlatforms(y) {
+        // Create platforms that can be reached by jumping
+        let x = 1;
+        while (x < this.width - 3) {
+            // Create a platform
+            const length = Math.floor(Math.random() * 
+                (this.maxPlatformLength - this.minPlatformLength + 1)) + this.minPlatformLength;
+            
+            const actualLength = Math.min(length, this.width - x - 2);
+            
+            for (let i = 0; i < actualLength; i++) {
+                this.grid[y][x + i] = '#';
+            }
+            
+            // Skip ahead by jump distance plus platform length
+            x += actualLength + this.jumpDistance;
+        }
+    }
+    
+    createConnectedPlatforms(y) {
+        let x = 1;
+        let platformCount = 0;
+        
+        while (x < this.width - 3 && platformCount < 3) {
+            const length = Math.floor(Math.random() * 
+                (this.maxPlatformLength - this.minPlatformLength + 1)) + this.minPlatformLength;
+            
+            const actualLength = Math.min(length, this.width - x - 2);
+            
+            // Create the platform
+            for (let i = 0; i < actualLength; i++) {
+                this.grid[y][x + i] = '#';
+            }
+            
+            // Add a ladder with probability
+            if (Math.random() < this.ladderFrequency) {
+                const ladderX = Math.floor(x + actualLength / 2);
+                
+                // Find the next platform or ground below
+                let nextPlatformY = -1;
+                for (let checkY = y + 1; checkY < this.height; checkY++) {
+                    if (this.grid[checkY][ladderX] === '#') {
+                        nextPlatformY = checkY;
+                        break;
+                    }
+                }
+                
+                if (nextPlatformY !== -1) {
+                    // Create ladder from this platform level to the next platform level
+                    for (let ladderY = y; ladderY < nextPlatformY; ladderY++) {
+                        this.grid[ladderY][ladderX] = 'L';
+                    }
+                }
+            }
+            
+            x += actualLength + Math.floor(Math.random() * 3) + 2;
+            platformCount++;
+        }
+    }
+
+    addPlayer() {
+        // Place player on the ground level
+        let playerX = 2; // Start near left edge
+        let playerY = this.height - 2; // Just above ground
+        
+        this.grid[playerY][playerX] = '@';
+    }
+
+    addEnemies() {
+        // Find all platforms
+        for (let y = 0; y < this.height - 2; y++) {
+            let platformStart = -1;
+            
+            for (let x = 0; x < this.width - 1; x++) {
+                // Find start of platform
+                if (platformStart === -1 && this.grid[y][x] === '#') {
+                    platformStart = x;
+                }
+                // Find end of platform
+                else if (platformStart !== -1 && this.grid[y][x] !== '#') {
+                    // Platform ended
+                    const platformLength = x - platformStart;
+                    
+                    // Only add enemies on larger platforms
+                    if (platformLength >= 5 && Math.random() < this.enemyChance) {
+                        const enemyX = platformStart + Math.floor(platformLength / 2);
+                        this.grid[y - 1][enemyX] = 'E';
+                    }
+                    
+                    platformStart = -1; // Reset for next platform
+                }
+            }
+        }
+    }
+
+    addCollectibles() {
+        // Add gems on platforms
+        for (let y = 0; y < this.height - 2; y++) {
+            for (let x = 1; x < this.width - 1; x++) {
+                // Place gems above platforms
+                if (this.grid[y][x] === '#' && this.grid[y-1][x] === '.' &&
+                    Math.random() < this.gemChance) {
+                    this.grid[y-1][x] = '$';
+                }
+            }
+        }
+    }
+
+    gridToString() {
+        return this.grid.map(row => row.join('')).join('\n');
+    }
+}
+
+// Generate levels
+const GAME_LEVELS = [
+    new LevelGenerator().generate(),
+    new LevelGenerator().generate(), // Add a second level
+];
+
+// If your game already has level loading code, modify it to use the generator
+// For example:
+// function gameStart() {
+//     game = new Game('playing', new Level(GAME_LEVELS[0]));
+//     setEventListeners();
+//     updateCanvas(document.timeline.currentTime);
+// } 
