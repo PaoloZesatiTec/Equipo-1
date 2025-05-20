@@ -19,12 +19,21 @@ let cameraY = 0; // New variable for vertical camera scrolling
 let keyState = {}; // For climbing
 
 class Player extends AnimatedObject {
-    constructor(_color, width, height, x, y, _type) {
-        super("green", width, height, x, y, "player");
+    constructor(color, width, height, x, y, type) {
+        // Make hitbox even smaller - reducing height and width further
+        super(color, 0.3, 1.3, x, y, type); // Even smaller hitbox (0.5 width, 1.3 height)
+        
+        // Store original position for proper centering
+        this.originalX = x;
+        this.originalY = y;
+        
+        // Center the hitbox on the player sprite
+        this.centerHitbox();
+        
         this.velocity = new Vec(0.0, 0.0);
         this.gems = 0;
-        this.lives = 2; // Player starts with 2 lives
-        this.invulnerable = false; // Add invulnerability flag
+        this.lives = 2;
+        this.invulnerable = false;
         this.invulnerableTimer = 0;
 
         this.isFacingRight = true;
@@ -69,6 +78,14 @@ class Player extends AnimatedObject {
         };
     }
 
+    // Method to center the hitbox
+    centerHitbox() {
+        // Center the smaller hitbox on the visual sprite
+        const xOffset = (1 - this.size.x) / 2;
+        const yOffset = (1 - this.size.y) / 2;
+        this.position = new Vec(this.originalX + xOffset, this.originalY + yOffset);
+    }
+
     update(level, deltaTime) {
         // Update invulnerability
         if (this.invulnerable) {
@@ -78,36 +95,38 @@ class Player extends AnimatedObject {
             }
         }
 
-        // Check if the player is on a ladder
+        // Check if the player is on a ladder using the entire player hitbox
         let wasOnLadder = this.isOnLadder;
-        let horizontalHitboxContactWithLadder = false;
-        if (this.horizontalHitbox) {
-            horizontalHitboxContactWithLadder = level.contact(this.position.plus(this.horizontalHitbox.offset), this.horizontalHitbox.size, "ladder");
-        } else {
-            horizontalHitboxContactWithLadder = level.contact(this.position, this.size, "ladder"); // Fallback
+        let ladderContact = level.contact(this.position, this.size, "ladder");
+
+        // Update ladder state
+        if (wasOnLadder && !ladderContact) {
+            this.ladderCooldownTime = performance.now();
+            this.isOnLadder = false;
         }
 
-        // If not in contact with a ladder, but were just on one, start cooldown
-        if (wasOnLadder && !horizontalHitboxContactWithLadder) {
-             this.ladderCooldownTime = performance.now();
-             this.isOnLadder = false; // Set isOnLadder to false when leaving ladder contact
+        if (ladderContact && (!this.ladderCooldownTime || performance.now() - this.ladderCooldownTime > 200)) {
+            this.isOnLadder = true;
         }
 
-        // Player is on ladder if horizontal hitbox is in contact AND not in cooldown
-        if (horizontalHitboxContactWithLadder && (!this.ladderCooldownTime || performance.now() - this.ladderCooldownTime > 200)) {
-             this.isOnLadder = true;
-        }
-
-        // Gravity only if not on ladder
+        // Apply gravity or ladder movement
         if (!this.isOnLadder) {
             this.velocity.y += gravity * deltaTime;
         } else {
             // On ladder: vertical movement is controlled by keys
             this.velocity.y = 0;
             if (keyState["w"]) {
-                this.velocity.y = -0.015; // climb up faster
+                // Check if there's a wall directly above before moving up
+                let upwardPosition = this.position.plus(new Vec(0, -0.1));
+                if (!level.contact(upwardPosition, this.size, 'wall')) {
+                    this.velocity.y = -0.008;
+                }
             } else if (keyState["s"]) {
-                this.velocity.y = 0.015; // climb down faster
+                // Check if there's a wall directly below before moving down
+                let downwardPosition = this.position.plus(new Vec(0, 0.1));
+                if (!level.contact(downwardPosition, this.size, 'wall')) {
+                    this.velocity.y = 0.008;
+                }
             }
         }
     
@@ -116,49 +135,42 @@ class Player extends AnimatedObject {
     
         // --- Horizontal movement ---
         let newXPosition = this.position.plus(new Vec(velX * deltaTime, 0));
-        // Only check for horizontal wall collision if not on a ladder
-        if (!this.isOnLadder) {
-            // Use horizontal hitbox for horizontal collision with walls
-            let horizontalCollision = false;
-            if (this.horizontalHitbox) {
-                 let hitboxX = newXPosition.plus(this.horizontalHitbox.offset);
-                 horizontalCollision = level.contact(hitboxX, this.horizontalHitbox.size, 'wall');
-            } else { // Fallback to main hitbox if horizontal hitbox is not defined
-                 horizontalCollision = level.contact(newXPosition, this.size, 'wall');
-            }
-
-            if (!horizontalCollision) {
-                this.position = new Vec(newXPosition.x, this.position.y);
-            }
+        
+        // Always check for horizontal wall collision, even on ladder
+        let horizontalCollision = false;
+        if (this.horizontalHitbox) {
+            let hitboxX = newXPosition.plus(this.horizontalHitbox.offset);
+            horizontalCollision = level.contact(hitboxX, this.horizontalHitbox.size, 'wall');
         } else {
-             // If on a ladder, allow horizontal movement without wall collision
-             this.position = new Vec(newXPosition.x, this.position.y);
+            horizontalCollision = level.contact(newXPosition, this.size, 'wall');
+        }
+
+        if (!horizontalCollision) {
+            this.position = newXPosition;
         }
     
         // --- Vertical movement ---
         let newYPosition = this.position.plus(new Vec(0, velY * deltaTime));
 
-        // Only check for vertical wall collision if not on a ladder
-        if (!this.isOnLadder) {
-            // Check for vertical collision using the main hitbox
-            if (level.contact(newYPosition, this.size, 'wall')) {
-                // If collision, stop vertical movement
-                this.velocity.y = 0; // Stop vertical velocity
-
-                // If moving downwards and hit a wall, consider it landing
-                if (velY > 0) {
-                   this.land(); // Call land() to handle isJumping and animation, and snaps to grid
-                }
-                // If moving upwards and hit a wall, just stop vertical velocity
-
+        // When on ladder, only check for ceiling/floor collisions, not walls
+        if (this.isOnLadder) {
+            // Check for ceiling/floor collisions using main hitbox
+            let verticalCollision = level.contact(newYPosition, this.size, 'wall');
+            if (!verticalCollision) {
+                this.position = newYPosition;
             } else {
-                // No collision, update vertical position
-                this.position = new Vec(this.position.x, newYPosition.y);
+                this.velocity.y = 0;
             }
         } else {
-            // If on a ladder, vertical movement is handled by key presses (already implemented)
-            // and wall collisions are ignored.
-            this.position = new Vec(this.position.x, newYPosition.y);
+            // Normal collision check when not on ladder
+            if (level.contact(newYPosition, this.size, 'wall')) {
+                this.velocity.y = 0;
+                if (velY > 0) {
+                    this.land();
+                }
+            } else {
+                this.position = newYPosition;
+            }
         }
     
         this.updateFrame(deltaTime);
@@ -262,36 +274,30 @@ class Player extends AnimatedObject {
     }
 
     draw(ctx, scale) {
+        // Draw the player sprite first
         super.draw(ctx, scale);
-        // Draw smaller hitbox for debugging
-        ctx.save();
+        
+        // Draw hitbox outline for debugging
         ctx.strokeStyle = 'red';
-        ctx.lineWidth = 2;
-        
-        // Make hitbox 80% of the sprite size and center it
-        const hitboxWidth = this.size.x * 0.6;
-        const hitboxHeight = this.size.y * 0.8;
-        const xOffset = (this.size.x - hitboxWidth) / 2;
-        const yOffset = (this.size.y - hitboxHeight) / 2;
-        
+        ctx.lineWidth = 3;
         ctx.strokeRect(
-            (this.position.x + xOffset) * scale,
-            (this.position.y + yOffset) * scale,
-            hitboxWidth * scale,
-            hitboxHeight * scale
+            this.position.x * scale,
+            this.position.y * scale,
+            this.size.x * scale,
+            this.size.y * scale
         );
-        // Draw horizontal hitbox for debugging (blue) if defined
-        if (this.horizontalHitbox) {
-            ctx.strokeStyle = 'blue';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(
-                (this.position.x + this.horizontalHitbox.offset.x) * scale,
-                (this.position.y + this.horizontalHitbox.offset.y) * scale,
-                this.horizontalHitbox.size.x * scale,
-                this.horizontalHitbox.size.y * scale
-            );
-        }
-        ctx.restore();
+        
+        // Add center cross marker
+        const centerX = (this.position.x + this.size.x/2) * scale;
+        const centerY = (this.position.y + this.size.y/2) * scale;
+        const crossSize = 10;
+        
+        ctx.beginPath();
+        ctx.moveTo(centerX - crossSize, centerY);
+        ctx.lineTo(centerX + crossSize, centerY);
+        ctx.moveTo(centerX, centerY - crossSize);
+        ctx.lineTo(centerX, centerY + crossSize);
+        ctx.stroke();
     }
 
     // Add method to handle losing a life
@@ -643,7 +649,7 @@ class Level {
                 if (actor.type === "player") {
                     this.addBackgroundFloor(x, y);
                     actor.position = actor.position.plus(new Vec(0, -3));
-                    actor.size = new Vec(3, 3);
+                    actor.size = new Vec(0.8, 3);
                     let instanceRect = new Rect(...item.rectParams);
                     actor.setSprite(item.sprite, instanceRect);
                     actor.sheetCols = item.sheetCols;
