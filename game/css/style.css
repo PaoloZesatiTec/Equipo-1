@@ -203,8 +203,8 @@ header {
 
 .canvas-wrapper {
     position: relative;
-    width: 100%;
-    height: 90vh;
+    width: 650px;
+    height: 900px;
     display: flex;
     justify-content: center;
     align-items: center;

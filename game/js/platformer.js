@@ -2,16 +2,16 @@
 
 "use strict";
 
-let canvasWidth = 800;
-let canvasHeight = 600; // Taller canvas for vertical platformer
+let canvasWidth = 700;
+let canvasHeight = 700; // Taller canvas for vertical platformer
 let ctx;
 let frameStart;
 let game;
 let player;
 let level;
 
-let scale = 29;
-const walkSpeed = 0.004;
+let scale = 25;
+const walkSpeed = 0.006;
 const initialJumpSpeed = -0.014;
 const gravity = 0.000045;
 
@@ -276,6 +276,7 @@ class Player extends AnimatedObject {
     draw(ctx, scale) {
         // Draw the player sprite first
         super.draw(ctx, scale);
+        console.log(scale, "scale");
         
         // Draw hitbox outline for debugging
         ctx.strokeStyle = 'red';
@@ -894,9 +895,6 @@ function init() {
     canvasWidth = canvas.width;
     canvasHeight = canvas.height;
 
-    // ⬇️ Set scale dynamically based on canvas height
-    scale = canvasHeight / 20; // 20 tiles high view — change to 18 or 15 to adjust zoom
-
     ctx = canvas.getContext('2d');
     if (!ctx) {
         console.error('No se pudo obtener el contexto 2D del canvas');
@@ -909,7 +907,7 @@ function init() {
         canvas.height = container.clientHeight;
         canvasWidth = canvas.width;
         canvasHeight = canvas.height;
-        scale = canvasHeight / 20; // Update scale again
+
     });
 
     gameStart();
