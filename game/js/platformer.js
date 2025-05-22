@@ -319,179 +319,6 @@ class Player extends AnimatedObject {
 }
 
 
-class Gem extends AnimatedObject {
-    constructor(x, y) {
-        // Use a smaller hitbox (1x1) but render larger
-        super("yellow", 1, 1, x, y, "gem");
-        
-        // Load the animated gem sprite
-        this.sprite = new Image();
-        this.sprite.src = '../assets/Items/Gems/Gem Animations/gem_animation.png';
-        
-        // Set up correct animation properties
-        this.frameCount = 4;  // Assuming 4 frames in the animation
-        this.frameWidth = 16; // Typical frame width for these sprites
-        this.frameHeight = 16; // Typical frame height
-        this.animationSpeed = 200; // Milliseconds per frame
-        
-        // Initialize animation
-        this.currentFrame = 0;
-        this.animationTimer = 0;
-        this.setAnimation(0, this.frameCount - 1, true, this.animationSpeed);
-    }
-    
-    update(level, deltaTime) {
-        super.update(deltaTime);
-        
-        // Update animation frame
-        this.animationTimer += deltaTime;
-        if (this.animationTimer >= this.animationSpeed) {
-            this.currentFrame = (this.currentFrame + 1) % this.frameCount;
-            this.animationTimer = 0;
-        }
-    }
-    
-    draw(ctx, scale) {
-        if (this.sprite && this.sprite.complete) {
-            // Visual size multiplier for bigger gems (2x bigger)
-            const visualSizeMultiplier = 1.0;
-            
-            // Calculate the offset to center the visual larger gem on the hitbox
-            const xOffset = (this.size.x * (visualSizeMultiplier - 1)) / 2;
-            const yOffset = (this.size.y * (visualSizeMultiplier - 1)) / 2;
-            
-            // Draw the current animation frame with increased size
-            ctx.drawImage(
-                this.sprite,
-                this.currentFrame * this.frameWidth, 0, // Source position
-                this.frameWidth, this.frameHeight,      // Source dimensions
-                (this.position.x - xOffset) * scale,    // Destination position x (centered)
-                (this.position.y - yOffset) * scale,    // Destination position y (centered)
-                this.size.x * scale * visualSizeMultiplier,   // Destination width (bigger)
-                this.size.y * scale * visualSizeMultiplier    // Destination height (bigger)
-            );
-            
-            // Debug hitbox visualization (uncomment to see hitbox)
-            ctx.save();
-            ctx.strokeStyle = 'red';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(
-                this.position.x * scale,
-                this.position.y * scale,
-                this.size.x * scale,
-                this.size.y * scale
-            );
-            ctx.restore();
-        } else {
-            // Fallback to a simple colored square if image isn't loaded
-            ctx.fillStyle = "gold";
-            ctx.fillRect(
-                this.position.x * scale,
-                this.position.y * scale,
-                this.size.x * scale,
-                this.size.y * scale
-            );
-        }
-    }
-}
-
-class Ladder extends GameObject {
-    constructor(_color, width, height, x, y, _type) {
-        super("#8B4513", width, height, x, y, _type || "ladder");
-    }
-
-    draw(ctx, scale) {
-        // Fill with brown color
-        ctx.fillStyle = "#8B4513"; // Darker brown
-        ctx.fillRect(
-            this.position.x * scale,
-            this.position.y * scale,
-            this.size.x * scale,
-            this.size.y * scale
-        );
-
-        // Add some ladder rungs for visual effect
-        ctx.fillStyle = "#A0522D"; // Lighter brown for rungs
-        const rungs = 3;
-        const rungHeight = (this.size.y * scale) / (rungs + 1);
-        for (let i = 1; i <= rungs; i++) {
-            ctx.fillRect(
-                this.position.x * scale,
-                this.position.y * scale + (i * rungHeight),
-                this.size.x * scale,
-                5 // rung thickness
-            );
-        }
-    }
-
-    update() {
-        // No behavior needed for static ladders
-    }
-}
-
-
-class Enemy extends GameObject {
-    constructor(color, width, height, x, y, type) {
-        super(color || "blue", width, height, x, y, type || "enemy");
-        this.velocity = new Vec(0.003, 0); // Reduced velocity for smoother movement
-        this.moveDistance = 3;
-        this.startX = x;
-        this.direction = 1; // 1 for right, -1 for left
-    }
-
-    update(level, deltaTime) {
-        // Calculate next position
-        let nextX = this.position.x + this.velocity.x * deltaTime;
-        
-        // Check if next position would be within bounds
-        if (nextX < 0 || nextX > level.width - this.size.x) {
-            this.velocity.x *= -1;
-            this.direction *= -1;
-            return;
-        }
-
-        let newPos = new Vec(nextX, this.position.y);
-
-        // Check for wall collision
-        let wallHit = level.contact(newPos, this.size, "wall");
-
-        // Check for floor
-        let footX = this.position.x + (this.direction > 0 ? this.size.x : 0);
-        let footY = this.position.y + this.size.y + 0.1;
-        let noFloor = !level.contact(new Vec(footX, footY), new Vec(0.1, 0.1), "wall");
-
-        if (wallHit || noFloor) {
-            this.velocity.x *= -1;
-            this.direction *= -1;
-        } else {
-            this.position = newPos;
-        }
-    }
-
-    draw(ctx, scale) {
-        // Draw enemy body
-        ctx.fillStyle = "blue";
-        ctx.fillRect(
-            this.position.x * scale,
-            this.position.y * scale,
-            this.size.x * scale,
-            this.size.y * scale
-        );
-
-        // Draw hitbox for debugging
-        ctx.save();
-        ctx.strokeStyle = 'red';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(
-            this.position.x * scale,
-            this.position.y * scale,
-            this.size.x * scale,
-            this.size.y * scale
-        );
-        ctx.restore();
-    }
-}
-
 
 
 const levelChars = {
@@ -532,30 +359,6 @@ const levelChars = {
     label: "barrel",
     sprite: null }
 }
-
-class Fireball extends GameObject {
-    constructor(x, y, direction) {
-        super("red", 0.5, 0.5, x, y, "fireball");
-        this.velocity = new Vec(direction * 0.02, 0); 
-    }
-
-    update(level, deltaTime) {
-        let newPos = this.position.plus(this.velocity.times(deltaTime));
-        if (!level.contact(newPos, this.size, 'wall')) {
-            this.position = newPos;
-        } else {
-            // Remove fireball if it hits a wall
-            game.actors = game.actors.filter(actor => actor !== this);
-        }
-    }
-
-    draw(ctx, scale) {
-        ctx.fillStyle = "red";
-        ctx.fillRect(this.position.x * scale, this.position.y * scale, this.size.x * scale, this.size.y * scale);
-    }
-}
-
-
 
 class Level {
     constructor(plan) {
@@ -725,7 +528,7 @@ class Game {
                 if (actor.type === 'coin' || actor.type === 'gem') {
                     this.player.gems += 1;
                     this.actors = this.actors.filter(item => item !== actor);
-                } else if (actor.type === 'enemy') {
+                } else if (actor.type === 'enemy' || actor.type === 'barrel') {
                     this.player.loseLife();
                     // Optional: push player away from enemy
                     const pushDirection = this.player.position.x < actor.position.x ? -1 : 1;
