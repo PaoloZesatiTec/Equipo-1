@@ -522,13 +522,15 @@ const levelChars = {
         objClass: Ladder,
         label: "ladder",
         sprite: null, 
-        rectParams: [0, 0, 32, 32]  
-},
+        rectParams: [0, 0, 32, 32]  },
     "E": {
     objClass: Enemy,
     label: "enemy",
-    sprite: null 
-}
+    sprite: null },
+    "B": {
+    objClass: Barrel,
+    label: "barrel",
+    sprite: null }
 }
 
 class Fireball extends GameObject {
@@ -553,68 +555,7 @@ class Fireball extends GameObject {
     }
 }
 
-class Barrel extends GameObject {
-    constructor(x, y) {
-        super("brown", 1, 1, x, y, "barrel"); // Brown color, 1x1 unit size
-        this.velocity = new Vec(0.0, 0.0);
-        this.directionX = 1; // 1 for right, -1 for left
-        this.initialHorizontalSpeed = 0.005; // Adjust as needed
-        this.velocity.x = this.directionX * this.initialHorizontalSpeed;
-    }
 
-    update(level, deltaTime) {
-        // Apply gravity
-        this.velocity.y += gravity * deltaTime;
-
-        // Calculate next horizontal position
-        let newXPosition = this.position.plus(new Vec(this.velocity.x * deltaTime, 0));
-
-        // Check horizontal collision with walls or floors
-        // Use the barrel's size for collision
-        if (level.contact(newXPosition, this.size, 'wall') || level.contact(newXPosition, this.size, 'floor')) {
-            // Reverse horizontal direction on collision
-            this.directionX *= -1;
-            this.velocity.x = this.directionX * this.initialHorizontalSpeed;
-            // Nudge out of collision horizontally
-            // Calculate penetration depth and adjust position
-             let moveBack = new Vec(this.velocity.x * deltaTime, 0);
-             let attemptedPosition = this.position.plus(moveBack);
-             // This is a simplified nudge. In a real engine, you'd find the exact collision point.
-             this.position = this.position.minus(moveBack.times(1.1)); // Move back slightly more than moved
-        } else {
-             // Update horizontal position if no collision
-             this.position = new Vec(newXPosition.x, this.position.y);
-        }
-
-        // Calculate next vertical position
-        let newYPosition = this.position.plus(new Vec(0, this.velocity.y * deltaTime));
-
-        // Check vertical collision with walls or floors
-        // Use the barrel's size for collision
-        if (level.contact(newYPosition, this.size, 'wall') || level.contact(newYPosition, this.size, 'floor')) {
-            // Stop vertical movement
-            this.velocity.y = 0;
-            // Reverse horizontal direction on vertical collision (as requested)
-            this.directionX *= -1;
-            this.velocity.x = this.directionX * this.initialHorizontalSpeed;
-            // Nudge out of collision vertically
-            // For falling onto a floor, snap to the grid bottom edge of the barrel
-            if (velY > 0) { // Moving downwards
-                 this.position.y = Math.floor(this.position.y + this.size.y) - this.size.y; // Snap to grid top
-            }
-             // If moving upwards, maybe snap to grid top edge of the barrel
-             else if (velY < 0) { // Moving upwards
-                  this.position.y = Math.ceil(this.position.y); // Snap to grid bottom
-             }
-
-        } else {
-            // No vertical collision, update vertical position
-            this.position = new Vec(this.position.x, newYPosition.y);
-        }
-    }
-
-    // Barrels will use the default GameObject draw method (draws a colored rectangle)
-}
 
 class Level {
     constructor(plan) {
@@ -643,6 +584,11 @@ class Level {
                 if (item.label === "enemy") {
                     this.actors.push(new Enemy("blue", 1, 1, x, y, "enemy"));
                     return "empty";
+                }
+
+                if (item.label === "barrel"){
+                    this.actors.push(new Barrel("brown", 1, 1, x, y, "barrel"));
+                    return "empty"
                 }
 
                 let actor = new item.objClass(color, 1, 1, x, y, item.label);
