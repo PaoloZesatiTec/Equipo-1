@@ -291,6 +291,7 @@ const GAME_LEVELS = [
     new LevelGenerator().generate(), // Add a second level
 ];
 
+<<<<<<< Updated upstream
 // Export GAME_LEVELS for use in other files
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { GAME_LEVELS };
@@ -336,6 +337,8 @@ let GAME_LEVELS = [`
       global.GAME_LEVELS = GAME_LEVELS;
     
 
+=======
+>>>>>>> Stashed changes
 
 /*
 let GAME_LEVELS = [`
