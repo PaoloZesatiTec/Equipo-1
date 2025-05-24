@@ -258,7 +258,12 @@ class LevelGenerator {
                     // Only add enemies on larger platforms
                     if (platformLength >= 5 && Math.random() < this.enemyChance) {
                         const enemyX = platformStart + Math.floor(platformLength / 2);
-                        this.grid[y - 1][enemyX] = 'B';
+                        // Add either a barrel or a spawner
+                        if (Math.random() < 0.3) { // 30% chance for spawner
+                            this.grid[y - 1][enemyX] = 'B';
+                        } else {
+                            this.grid[y - 1][enemyX] = 'E';
+                        }
                     }
                     
                     platformStart = -1; // Reset for next platform

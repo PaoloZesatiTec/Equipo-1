@@ -35,6 +35,7 @@ class Player extends AnimatedObject {
         this.lives = 2;
         this.invulnerable = false;
         this.invulnerableTimer = 0;
+        this.isDead = false;
 
         this.isFacingRight = true;
         this.isJumping = false;
@@ -87,6 +88,8 @@ class Player extends AnimatedObject {
     }
 
     update(level, deltaTime) {
+        if (this.isDead) return;
+
         // Update invulnerability
         if (this.invulnerable) {
             this.invulnerableTimer -= deltaTime;
@@ -303,18 +306,26 @@ class Player extends AnimatedObject {
 
     // Add method to handle losing a life
     loseLife() {
-        if (!this.invulnerable) {
+        if (!this.invulnerable && !this.isDead) {
             this.lives--;
             this.invulnerable = true;
             this.invulnerableTimer = 1500; // 1.5 seconds of invulnerability
             
             if (this.lives <= 0) {
-                // Game over - reset player
-                this.lives = 2;
-                this.gems = 0;
-                // Could add more reset logic here
+                this.die();
             }
         }
+    }
+
+    die() {
+        this.isDead = true;
+        this.velocity = new Vec(0, 0);
+        // Stop all movement
+        this.stopMovement("left");
+        this.stopMovement("right");
+        this.isJumping = false;
+        this.isCrouching = false;
+        this.isOnLadder = false;
     }
 }
 
@@ -351,13 +362,18 @@ const levelChars = {
         sprite: null, 
         rectParams: [0, 0, 32, 32]  },
     "E": {
-    objClass: Enemy,
-    label: "enemy",
-    sprite: null },
+        objClass: Enemy,
+        label: "enemy",
+        sprite: null },
     "B": {
-    objClass: Barrel,
-    label: "barrel",
-    sprite: null }
+        objClass: Barrel,
+        label: "barrel",
+        sprite: null },
+    "S": {
+        objClass: BarrelSpawner,
+        label: "spawner",
+        sprite: null
+    }
 }
 
 class Level {
@@ -500,6 +516,7 @@ class Game {
         this.level = level;
         this.player = level.player;
         this.actors = [...level.actors];
+        this.gameOver = false;
 
         // Load UI sprites
         this.heartSprite = new Image();
@@ -515,6 +532,8 @@ class Game {
     }
 
     update(deltaTime) {
+        if (this.gameOver) return;
+
         this.player.update(this.level, deltaTime);
 
         // Update all actors
@@ -533,6 +552,11 @@ class Game {
                     // Optional: push player away from enemy
                     const pushDirection = this.player.position.x < actor.position.x ? -1 : 1;
                     this.player.position = this.player.position.plus(new Vec(pushDirection * 0.5, -0.5));
+                    
+                    // Check for game over
+                    if (this.player.lives <= 0) {
+                        this.gameOver = true;
+                    }
                 }
             }
         }
@@ -621,6 +645,30 @@ class Game {
                 40          // Height
             );
         }
+
+        // Draw game over screen
+        if (this.gameOver) {
+            ctx.save();
+            // Semi-transparent black background
+            ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+            // Game over text
+            ctx.font = "bold 48px 'Arial Rounded MT Bold', 'Arial Black', sans-serif";
+            ctx.fillStyle = "white";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("GAME OVER", canvasWidth / 2, canvasHeight / 2 - 50);
+
+            // Score text
+            ctx.font = "bold 32px 'Arial Rounded MT Bold', 'Arial Black', sans-serif";
+            ctx.fillText(`Final Score: ${this.player.gems}`, canvasWidth / 2, canvasHeight / 2 + 20);
+
+            // Restart instruction
+            ctx.font = "24px Arial";
+            ctx.fillText("Press R to Restart", canvasWidth / 2, canvasHeight / 2 + 80);
+            ctx.restore();
+        }
     }
 
 }
@@ -678,7 +726,16 @@ function setEventListeners() {
         if (event.key == 'd') game.player.startMovement("right");
         if (event.key == 's') game.player.crouch();
         if (event.key == 'e') game.player.fireFireball();
-        // No need to handle 'w' here unless you want animation feedback
+        // Restart game when R is pressed and game is over
+        if (event.key == 'r' && game.gameOver) {
+            // Reset game state
+            frameStart = undefined;
+            cameraY = 0;
+            // Create new game instance
+            game = new Game('playing', new Level(GAME_LEVELS[0]));
+            // Ensure event listeners are set
+            setEventListeners();
+        }
     });
     
     window.addEventListener("keyup", event => {
@@ -700,8 +757,11 @@ function updateCanvas(frameTime) {
 
     ctx.fillStyle = "#87CEEB"; // Sky blue or any background color you prefer
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-    game.update(deltaTime);
-    game.draw(ctx, scale);
+    
+    if (game) {
+        game.update(deltaTime);
+        game.draw(ctx, scale);
+    }
 
     frameStart = frameTime;
     requestAnimationFrame(updateCanvas);
