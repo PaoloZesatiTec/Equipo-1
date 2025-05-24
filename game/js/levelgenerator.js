@@ -34,7 +34,12 @@ class LevelGenerator {
         
         // Add collectibles (gems)
         this.addCollectibles();
-        
+
+        this.addPortal();
+
+        //Ver nivel para debugear
+        console.log("Generated Level Grid:\n" + this.gridToString());
+
         // Convert grid to level string
         return this.gridToString();
     }
@@ -280,6 +285,18 @@ class LevelGenerator {
                 if (this.grid[y][x] === '#' && this.grid[y-1][x] === '.' &&
                     Math.random() < this.gemChance) {
                     this.grid[y-1][x] = '$';
+                }
+            }
+        }
+    }
+
+    addPortal() {
+        
+        for (let y = 0; y < this.height - 1; y++) { 
+            for (let x = 1; x < this.width - 1; x++) { 
+                if (this.grid[y][x] === '#' && this.grid[y - 1][x] === '.') {
+                    this.grid[y - 1][x] = 'P'; 
+                    return; 
                 }
             }
         }
