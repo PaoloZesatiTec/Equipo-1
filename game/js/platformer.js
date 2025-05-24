@@ -320,7 +320,6 @@ class Player extends AnimatedObject {
     die() {
         this.isDead = true;
         this.velocity = new Vec(0, 0);
-        // Stop all movement
         this.stopMovement("left");
         this.stopMovement("right");
         this.isJumping = false;
@@ -329,50 +328,23 @@ class Player extends AnimatedObject {
     }
 }
 
+class Portal extends GameObject {
+    constructor(x, y) {
+        super("purple", 1, 1, x, y, "portal");
+    }
 
+    update(level, deltaTime) {
+    }
 
-
-const levelChars = {
-    ".": { objClass: GameObject,
-           label: "empty",
-           sprite: '../assets/assets_platform/sprites/ProjectUtumno_full.png',
-           rectParams: [12, 17, 32, 32] },
-   "#": {
-        objClass: GameObject,
-        label: "wall",
-        sprite: '../assets/assets_platform/sprites/ProjectUtumno_full.png',
-        rectParams: [1, 6, 32, 32] 
-                                    },
-    "@": { objClass: Player,
-           label: "player",
-           sprite: '../assets/assets_platform/sprites/hero/redpants_left_right.png',
-           rectParams: [0, 0, 46, 50],
-           sheetCols: 8,
-           startFrame: [0, 0] },
-    "$": { objClass: Gem,
-       label: "collectible",
-       sprite: '../assets/Items/Gems/Gem Animations/gem_animation.png',
-       rectParams: [0, 0, 32, 32], // 
-       sheetCols: 4,
-       startFrame: [0, 3]
-                            },
-    "L": { 
-        objClass: Ladder,
-        label: "ladder",
-        sprite: null, 
-        rectParams: [0, 0, 32, 32]  },
-    "E": {
-        objClass: Enemy,
-        label: "enemy",
-        sprite: null },
-    "B": {
-        objClass: Barrel,
-        label: "barrel",
-        sprite: null },
-    "S": {
-        objClass: BarrelSpawner,
-        label: "spawner",
-        sprite: null
+    draw(ctx, scale) {
+        ctx.fillStyle = this.color; 
+        ctx.fillRect(
+            this.position.x * scale,
+            this.position.y * scale,
+            this.size.x * scale,
+            this.size.y * scale
+        );
+        
     }
 }
 
@@ -408,6 +380,12 @@ class Level {
                 if (item.label === "barrel"){
                     this.actors.push(new Barrel("brown", 1, 1, x, y, "barrel"));
                     return "empty"
+                }
+
+                if (item.label === "portal"){
+                    let portal = new Portal(x, y);
+                    this.actors.push(portal);
+                    return "empty"; 
                 }
 
                 let actor = new item.objClass(color, 1, 1, x, y, item.label);
@@ -453,6 +431,10 @@ class Level {
                     this.actors.push(actor);
                     cellType = "floor";
                 }
+                 // Ensure other object types (like Portal) are added if their objClass was created
+                else if (actor.type !== "player") {
+                     this.actors.push(actor);
+                 }
                 return cellType;
             });
         });
@@ -510,6 +492,59 @@ class Level {
 }
 
 
+
+const levelChars = {
+    ".": { objClass: GameObject,
+           label: "empty",
+           sprite: '../assets/assets_platform/sprites/ProjectUtumno_full.png',
+           rectParams: [12, 17, 32, 32] },
+   "#": {
+        objClass: GameObject,
+        label: "wall",
+        sprite: '../assets/assets_platform/sprites/ProjectUtumno_full.png',
+        rectParams: [1, 6, 32, 32] 
+                                    },
+    "@": { objClass: Player,
+           label: "player",
+           sprite: '../assets/assets_platform/sprites/hero/redpants_left_right.png',
+           rectParams: [0, 0, 46, 50],
+           sheetCols: 8,
+           startFrame: [0, 0] },
+    "$": { objClass: Gem,
+       label: "collectible",
+       sprite: '../assets/Items/Gems/Gem Animations/gem_animation.png',
+       rectParams: [0, 0, 32, 32], // 
+       sheetCols: 4,
+       startFrame: [0, 3]
+                            },
+    "L": { 
+        objClass: Ladder,
+        label: "ladder",
+        sprite: null, 
+        rectParams: [0, 0, 32, 32]  },
+    "E": {
+        objClass: Enemy,
+        label: "enemy",
+        sprite: null },
+    "B": {
+        objClass: Barrel,
+        label: "barrel",
+        sprite: null },
+    "S": {
+        objClass: BarrelSpawner,
+        label: "spawner",
+        sprite: null
+    },
+    "P": {
+        objClass: Portal,
+        label: "portal",
+        sprite: null
+    }
+}
+
+
+
+
 class Game {
     constructor(state, level) {
         this.state = state;
@@ -517,6 +552,7 @@ class Game {
         this.player = level.player;
         this.actors = [...level.actors];
         this.gameOver = false;
+        this.gameWon = false;
 
         // Load UI sprites
         this.heartSprite = new Image();
@@ -532,7 +568,7 @@ class Game {
     }
 
     update(deltaTime) {
-        if (this.gameOver) return;
+        if (this.gameOver || this.gameWon) return;
 
         this.player.update(this.level, deltaTime);
 
@@ -557,6 +593,8 @@ class Game {
                     if (this.player.lives <= 0) {
                         this.gameOver = true;
                     }
+                } else if (actor.type === 'portal') {
+                    this.gameWon = true;
                 }
             }
         }
@@ -667,6 +705,25 @@ class Game {
             // Restart instruction
             ctx.font = "24px Arial";
             ctx.fillText("Press R to Restart", canvasWidth / 2, canvasHeight / 2 + 80);
+            ctx.restore();
+        }
+
+        if (this.gameWon) {
+            ctx.save();
+            ctx.fillStyle = "rgba(128, 0, 128, 0.7)";
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+            ctx.font = "bold 48px 'Arial Rounded MT Bold', 'Arial Black', sans-serif";
+            ctx.fillStyle = "white";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("LEVEL COMPLETE!", canvasWidth / 2, canvasHeight / 2 - 50);
+
+            ctx.font = "bold 32px 'Arial Rounded MT Bold', 'Arial Black', sans-serif";
+            ctx.fillText(`Score: ${this.player.gems}`, canvasWidth / 2, canvasHeight / 2 + 20);
+
+            ctx.font = "24px Arial";
+            ctx.fillText("Press R to Continue", canvasWidth / 2, canvasHeight / 2 + 80);
             ctx.restore();
         }
     }

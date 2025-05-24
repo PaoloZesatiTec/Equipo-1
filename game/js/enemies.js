@@ -11,7 +11,7 @@ class Barrel extends GameObject {
 
         // Comprueba colisión
         let TouchingFloor = level.contact(this.position, this.size, "wall");
-        console.log("floor:", TouchingFloor);
+        //console.log("floor:", TouchingFloor);
 
 
 
