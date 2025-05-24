@@ -35,6 +35,7 @@ class Player extends AnimatedObject {
         this.lives = 2;
         this.invulnerable = false;
         this.invulnerableTimer = 0;
+        this.isDead = false;
 
         this.isFacingRight = true;
         this.isJumping = false;
@@ -87,6 +88,8 @@ class Player extends AnimatedObject {
     }
 
     update(level, deltaTime) {
+        if (this.isDead) return;
+
         // Update invulnerability
         if (this.invulnerable) {
             this.invulnerableTimer -= deltaTime;
@@ -303,194 +306,29 @@ class Player extends AnimatedObject {
 
     // Add method to handle losing a life
     loseLife() {
-        if (!this.invulnerable) {
+        if (!this.invulnerable && !this.isDead) {
             this.lives--;
             this.invulnerable = true;
             this.invulnerableTimer = 1500; // 1.5 seconds of invulnerability
             
             if (this.lives <= 0) {
-                // Game over - reset player
-                this.lives = 2;
-                this.gems = 0;
-                // Could add more reset logic here
+                this.die();
             }
         }
     }
-}
 
-
-class Gem extends AnimatedObject {
-    constructor(x, y) {
-        // Use a smaller hitbox (1x1) but render larger
-        super("yellow", 1, 1, x, y, "gem");
-        
-        // Load the animated gem sprite
-        this.sprite = new Image();
-        this.sprite.src = '../assets/Items/Gems/Gem Animations/gem_animation.png';
-        
-        // Set up correct animation properties
-        this.frameCount = 4;  // Assuming 4 frames in the animation
-        this.frameWidth = 16; // Typical frame width for these sprites
-        this.frameHeight = 16; // Typical frame height
-        this.animationSpeed = 200; // Milliseconds per frame
-        
-        // Initialize animation
-        this.currentFrame = 0;
-        this.animationTimer = 0;
-        this.setAnimation(0, this.frameCount - 1, true, this.animationSpeed);
-    }
-    
-    update(level, deltaTime) {
-        super.update(deltaTime);
-        
-        // Update animation frame
-        this.animationTimer += deltaTime;
-        if (this.animationTimer >= this.animationSpeed) {
-            this.currentFrame = (this.currentFrame + 1) % this.frameCount;
-            this.animationTimer = 0;
-        }
-    }
-    
-    draw(ctx, scale) {
-        if (this.sprite && this.sprite.complete) {
-            // Visual size multiplier for bigger gems (2x bigger)
-            const visualSizeMultiplier = 1.0;
-            
-            // Calculate the offset to center the visual larger gem on the hitbox
-            const xOffset = (this.size.x * (visualSizeMultiplier - 1)) / 2;
-            const yOffset = (this.size.y * (visualSizeMultiplier - 1)) / 2;
-            
-            // Draw the current animation frame with increased size
-            ctx.drawImage(
-                this.sprite,
-                this.currentFrame * this.frameWidth, 0, // Source position
-                this.frameWidth, this.frameHeight,      // Source dimensions
-                (this.position.x - xOffset) * scale,    // Destination position x (centered)
-                (this.position.y - yOffset) * scale,    // Destination position y (centered)
-                this.size.x * scale * visualSizeMultiplier,   // Destination width (bigger)
-                this.size.y * scale * visualSizeMultiplier    // Destination height (bigger)
-            );
-            
-            // Debug hitbox visualization (uncomment to see hitbox)
-            ctx.save();
-            ctx.strokeStyle = 'red';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(
-                this.position.x * scale,
-                this.position.y * scale,
-                this.size.x * scale,
-                this.size.y * scale
-            );
-            ctx.restore();
-        } else {
-            // Fallback to a simple colored square if image isn't loaded
-            ctx.fillStyle = "gold";
-            ctx.fillRect(
-                this.position.x * scale,
-                this.position.y * scale,
-                this.size.x * scale,
-                this.size.y * scale
-            );
-        }
+    die() {
+        this.isDead = true;
+        this.velocity = new Vec(0, 0);
+        // Stop all movement
+        this.stopMovement("left");
+        this.stopMovement("right");
+        this.isJumping = false;
+        this.isCrouching = false;
+        this.isOnLadder = false;
     }
 }
 
-class Ladder extends GameObject {
-    constructor(_color, width, height, x, y, _type) {
-        super("#8B4513", width, height, x, y, _type || "ladder");
-    }
-
-    draw(ctx, scale) {
-        // Fill with brown color
-        ctx.fillStyle = "#8B4513"; // Darker brown
-        ctx.fillRect(
-            this.position.x * scale,
-            this.position.y * scale,
-            this.size.x * scale,
-            this.size.y * scale
-        );
-
-        // Add some ladder rungs for visual effect
-        ctx.fillStyle = "#A0522D"; // Lighter brown for rungs
-        const rungs = 3;
-        const rungHeight = (this.size.y * scale) / (rungs + 1);
-        for (let i = 1; i <= rungs; i++) {
-            ctx.fillRect(
-                this.position.x * scale,
-                this.position.y * scale + (i * rungHeight),
-                this.size.x * scale,
-                5 // rung thickness
-            );
-        }
-    }
-
-    update() {
-        // No behavior needed for static ladders
-    }
-}
-
-
-class Enemy extends GameObject {
-    constructor(color, width, height, x, y, type) {
-        super(color || "blue", width, height, x, y, type || "enemy");
-        this.velocity = new Vec(0.003, 0); // Reduced velocity for smoother movement
-        this.moveDistance = 3;
-        this.startX = x;
-        this.direction = 1; // 1 for right, -1 for left
-    }
-
-    update(level, deltaTime) {
-        // Calculate next position
-        let nextX = this.position.x + this.velocity.x * deltaTime;
-        
-        // Check if next position would be within bounds
-        if (nextX < 0 || nextX > level.width - this.size.x) {
-            this.velocity.x *= -1;
-            this.direction *= -1;
-            return;
-        }
-
-        let newPos = new Vec(nextX, this.position.y);
-
-        // Check for wall collision
-        let wallHit = level.contact(newPos, this.size, "wall");
-
-        // Check for floor
-        let footX = this.position.x + (this.direction > 0 ? this.size.x : 0);
-        let footY = this.position.y + this.size.y + 0.1;
-        let noFloor = !level.contact(new Vec(footX, footY), new Vec(0.1, 0.1), "wall");
-
-        if (wallHit || noFloor) {
-            this.velocity.x *= -1;
-            this.direction *= -1;
-        } else {
-            this.position = newPos;
-        }
-    }
-
-    draw(ctx, scale) {
-        // Draw enemy body
-        ctx.fillStyle = "blue";
-        ctx.fillRect(
-            this.position.x * scale,
-            this.position.y * scale,
-            this.size.x * scale,
-            this.size.y * scale
-        );
-
-        // Draw hitbox for debugging
-        ctx.save();
-        ctx.strokeStyle = 'red';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(
-            this.position.x * scale,
-            this.position.y * scale,
-            this.size.x * scale,
-            this.size.y * scale
-        );
-        ctx.restore();
-    }
-}
 
 
 
@@ -522,98 +360,20 @@ const levelChars = {
         objClass: Ladder,
         label: "ladder",
         sprite: null, 
-        rectParams: [0, 0, 32, 32]  
-},
+        rectParams: [0, 0, 32, 32]  },
     "E": {
-    objClass: Enemy,
-    label: "enemy",
-    sprite: null 
-}
-}
-
-class Fireball extends GameObject {
-    constructor(x, y, direction) {
-        super("red", 0.5, 0.5, x, y, "fireball");
-        this.velocity = new Vec(direction * 0.02, 0); 
+        objClass: Enemy,
+        label: "enemy",
+        sprite: null },
+    "B": {
+        objClass: Barrel,
+        label: "barrel",
+        sprite: null },
+    "S": {
+        objClass: BarrelSpawner,
+        label: "spawner",
+        sprite: null
     }
-
-    update(level, deltaTime) {
-        let newPos = this.position.plus(this.velocity.times(deltaTime));
-        if (!level.contact(newPos, this.size, 'wall')) {
-            this.position = newPos;
-        } else {
-            // Remove fireball if it hits a wall
-            game.actors = game.actors.filter(actor => actor !== this);
-        }
-    }
-
-    draw(ctx, scale) {
-        ctx.fillStyle = "red";
-        ctx.fillRect(this.position.x * scale, this.position.y * scale, this.size.x * scale, this.size.y * scale);
-    }
-}
-
-class Barrel extends GameObject {
-    constructor(x, y) {
-        super("brown", 1, 1, x, y, "barrel"); // Brown color, 1x1 unit size
-        this.velocity = new Vec(0.0, 0.0);
-        this.directionX = 1; // 1 for right, -1 for left
-        this.initialHorizontalSpeed = 0.005; // Adjust as needed
-        this.velocity.x = this.directionX * this.initialHorizontalSpeed;
-    }
-
-    update(level, deltaTime) {
-        // Apply gravity
-        this.velocity.y += gravity * deltaTime;
-
-        // Calculate next horizontal position
-        let newXPosition = this.position.plus(new Vec(this.velocity.x * deltaTime, 0));
-
-        // Check horizontal collision with walls or floors
-        // Use the barrel's size for collision
-        if (level.contact(newXPosition, this.size, 'wall') || level.contact(newXPosition, this.size, 'floor')) {
-            // Reverse horizontal direction on collision
-            this.directionX *= -1;
-            this.velocity.x = this.directionX * this.initialHorizontalSpeed;
-            // Nudge out of collision horizontally
-            // Calculate penetration depth and adjust position
-             let moveBack = new Vec(this.velocity.x * deltaTime, 0);
-             let attemptedPosition = this.position.plus(moveBack);
-             // This is a simplified nudge. In a real engine, you'd find the exact collision point.
-             this.position = this.position.minus(moveBack.times(1.1)); // Move back slightly more than moved
-        } else {
-             // Update horizontal position if no collision
-             this.position = new Vec(newXPosition.x, this.position.y);
-        }
-
-        // Calculate next vertical position
-        let newYPosition = this.position.plus(new Vec(0, this.velocity.y * deltaTime));
-
-        // Check vertical collision with walls or floors
-        // Use the barrel's size for collision
-        if (level.contact(newYPosition, this.size, 'wall') || level.contact(newYPosition, this.size, 'floor')) {
-            // Stop vertical movement
-            this.velocity.y = 0;
-            // Reverse horizontal direction on vertical collision (as requested)
-            this.directionX *= -1;
-            this.velocity.x = this.directionX * this.initialHorizontalSpeed;
-            // Nudge out of collision vertically
-            // For falling onto a floor, snap to the grid bottom edge of the barrel
-            if (velY > 0) { // Moving downwards
-                 this.position.y = Math.floor(this.position.y + this.size.y) - this.size.y; // Snap to grid top
-            }
-             // If moving upwards, maybe snap to grid top edge of the barrel
-             else if (velY < 0) { // Moving upwards
-                  this.position.y = Math.ceil(this.position.y); // Snap to grid bottom
-             }
-
-        } else {
-            // No vertical collision, update vertical position
-            this.position = new Vec(this.position.x, newYPosition.y);
-        }
-    }
-
-    // Barrels will use the default GameObject draw method (draws a colored rectangle)
 }
 
 class Level {
@@ -643,6 +403,11 @@ class Level {
                 if (item.label === "enemy") {
                     this.actors.push(new Enemy("blue", 1, 1, x, y, "enemy"));
                     return "empty";
+                }
+
+                if (item.label === "barrel"){
+                    this.actors.push(new Barrel("brown", 1, 1, x, y, "barrel"));
+                    return "empty"
                 }
 
                 let actor = new item.objClass(color, 1, 1, x, y, item.label);
@@ -751,6 +516,7 @@ class Game {
         this.level = level;
         this.player = level.player;
         this.actors = [...level.actors];
+        this.gameOver = false;
 
         // Load UI sprites
         this.heartSprite = new Image();
@@ -766,6 +532,8 @@ class Game {
     }
 
     update(deltaTime) {
+        if (this.gameOver) return;
+
         this.player.update(this.level, deltaTime);
 
         // Update all actors
@@ -779,11 +547,16 @@ class Game {
                 if (actor.type === 'coin' || actor.type === 'gem') {
                     this.player.gems += 1;
                     this.actors = this.actors.filter(item => item !== actor);
-                } else if (actor.type === 'enemy') {
+                } else if (actor.type === 'enemy' || actor.type === 'barrel') {
                     this.player.loseLife();
                     // Optional: push player away from enemy
                     const pushDirection = this.player.position.x < actor.position.x ? -1 : 1;
                     this.player.position = this.player.position.plus(new Vec(pushDirection * 0.5, -0.5));
+                    
+                    // Check for game over
+                    if (this.player.lives <= 0) {
+                        this.gameOver = true;
+                    }
                 }
             }
         }
@@ -872,6 +645,30 @@ class Game {
                 40          // Height
             );
         }
+
+        // Draw game over screen
+        if (this.gameOver) {
+            ctx.save();
+            // Semi-transparent black background
+            ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+            // Game over text
+            ctx.font = "bold 48px 'Arial Rounded MT Bold', 'Arial Black', sans-serif";
+            ctx.fillStyle = "white";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("GAME OVER", canvasWidth / 2, canvasHeight / 2 - 50);
+
+            // Score text
+            ctx.font = "bold 32px 'Arial Rounded MT Bold', 'Arial Black', sans-serif";
+            ctx.fillText(`Final Score: ${this.player.gems}`, canvasWidth / 2, canvasHeight / 2 + 20);
+
+            // Restart instruction
+            ctx.font = "24px Arial";
+            ctx.fillText("Press R to Restart", canvasWidth / 2, canvasHeight / 2 + 80);
+            ctx.restore();
+        }
     }
 
 }
@@ -929,7 +726,16 @@ function setEventListeners() {
         if (event.key == 'd') game.player.startMovement("right");
         if (event.key == 's') game.player.crouch();
         if (event.key == 'e') game.player.fireFireball();
-        // No need to handle 'w' here unless you want animation feedback
+        // Restart game when R is pressed and game is over
+        if (event.key == 'r' && game.gameOver) {
+            // Reset game state
+            frameStart = undefined;
+            cameraY = 0;
+            // Create new game instance
+            game = new Game('playing', new Level(GAME_LEVELS[0]));
+            // Ensure event listeners are set
+            setEventListeners();
+        }
     });
     
     window.addEventListener("keyup", event => {
@@ -951,8 +757,11 @@ function updateCanvas(frameTime) {
 
     ctx.fillStyle = "#87CEEB"; // Sky blue or any background color you prefer
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-    game.update(deltaTime);
-    game.draw(ctx, scale);
+    
+    if (game) {
+        game.update(deltaTime);
+        game.draw(ctx, scale);
+    }
 
     frameStart = frameTime;
     requestAnimationFrame(updateCanvas);

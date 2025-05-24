@@ -1,4 +1,5 @@
 // Level Generator for Roguelike Platformer
+
 class LevelGenerator {
     constructor(width = 26, height = 60) {
         this.width = width;
@@ -257,7 +258,12 @@ class LevelGenerator {
                     // Only add enemies on larger platforms
                     if (platformLength >= 5 && Math.random() < this.enemyChance) {
                         const enemyX = platformStart + Math.floor(platformLength / 2);
-                        this.grid[y - 1][enemyX] = 'E';
+                        // Add either a barrel or a spawner
+                        if (Math.random() < 0.3) { // 30% chance for spawner
+                            this.grid[y - 1][enemyX] = 'B';
+                        } else {
+                            this.grid[y - 1][enemyX] = 'E';
+                        }
                     }
                     
                     platformStart = -1; // Reset for next platform
@@ -297,10 +303,48 @@ if (typeof module !== 'undefined' && module.exports) {
     window.GAME_LEVELS = GAME_LEVELS;
 }
 
+
+/*
+let GAME_LEVELS = [`
+    ................
+    .##############.
+    .#............#.
+    .#........B...#.
+    .#......#######.
+    .#............#.
+    .#............#.
+    .#.@..........#.
+    .##############.
+    ................
+    `,`
+    ...................................................................
+    ...................................................................
+    .#...............................................................#.
+    .#...............................................................#.
+    .#......................................$........................#.
+    .#...............................................................#.
+    .#..................................#########....................#.
+    .#...............................................................#.
+    .#.......................$.......................................#.
+    .#......................##########..............$................#.
+    .#...............................................................#.
+    .#..............$..........................#########.............#.
+    .#..........########.............................................#.
+    .#.@...$.$.......................................................#.
+    .#################################################################.
+    ...................................................................
+    `];
+    
+    if (typeof module != "undefined" && module.exports && (typeof window == "undefined" || window.exports != exports))
+      module.exports = GAME_LEVELS;
+    if (typeof global != "undefined" && !global.GAME_LEVELS)
+      global.GAME_LEVELS = GAME_LEVELS;
+    
+
 // If your game already has level loading code, modify it to use the generator
 // For example:
 // function gameStart() {
 //     game = new Game('playing', new Level(GAME_LEVELS[0]));
 //     setEventListeners();
 //     updateCanvas(document.timeline.currentTime);
-// } 
+// } */
