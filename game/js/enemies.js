@@ -80,13 +80,20 @@ class Barrel extends GameObject {
 }
 
 
-class Enemy extends GameObject {
+class Enemy extends AnimatedObject {
     constructor(color, width, height, x, y, type) {
         super(color || "blue", width, height, x, y, type || "enemy");
         this.velocity = new Vec(0.003, 0); // Reduced velocity for smoother movement
         this.moveDistance = 3;
         this.startX = x;
         this.direction = 1; // 1 for right, -1 for left
+        
+        // Set up sprite animation
+        this.setSprite('../assets/figure/Orc/Orc1/Orc1_walk/orc1_walk_full.png', new Rect(0, 0, 64, 64));
+        this.sheetCols = 6; // 6 frames per row
+        
+        // Start with right movement animation (4th row = row 3, 0-indexed)
+        this.setAnimation(18, 23, true, 150); // Row 3 (4th row) frames 18-23 for right movement
     }
 
     update(level, deltaTime) {
@@ -97,36 +104,60 @@ class Enemy extends GameObject {
         if (nextX < 0 || nextX > level.width - this.size.x) {
             this.velocity.x *= -1;
             this.direction *= -1;
+            this.updateAnimation();
             return;
         }
 
         let newPos = new Vec(nextX, this.position.y);
 
-        // Check for wall collision
+        // Check for wall collision (but allow crossing ladders)
         let wallHit = level.contact(newPos, this.size, "wall");
 
-        // Check for floor
+        // Check for floor (enemies can walk over ladders)
         let footX = this.position.x + (this.direction > 0 ? this.size.x : 0);
         let footY = this.position.y + this.size.y + 0.1;
-        let noFloor = !level.contact(new Vec(footX, footY), new Vec(0.1, 0.1), "wall");
+        let hasFloor = level.contact(new Vec(footX, footY), new Vec(0.1, 0.1), "wall") || 
+                       level.contact(new Vec(footX, footY), new Vec(0.1, 0.1), "ladder");
 
-        if (wallHit || noFloor) {
+        if (wallHit || !hasFloor) {
             this.velocity.x *= -1;
             this.direction *= -1;
+            this.updateAnimation();
         } else {
             this.position = newPos;
+        }
+        
+        // Update animation frame
+        this.updateFrame(deltaTime);
+    }
+    
+    updateAnimation() {
+        // Update animation based on direction
+        if (this.direction === 1) {
+            // Moving right - use 4th row (row 3, 0-indexed) frames 18-23
+            this.setAnimation(18, 23, true, 150);
+        } else {
+            // Moving left - use 3rd row (row 2, 0-indexed) frames 12-17
+            this.setAnimation(12, 17, true, 150);
         }
     }
 
     draw(ctx, scale) {
-        // Draw enemy body
-        ctx.fillStyle = "blue";
-        ctx.fillRect(
-            this.position.x * scale,
-            this.position.y * scale,
-            this.size.x * scale,
-            this.size.y * scale
-        );
+        // Draw the animated sprite larger than the hitbox
+        if (this.spriteImage && this.spriteRect) {
+            const spriteScale = 2.5; // Make sprite much larger (2.5x)
+            const offsetX = (this.size.x * (spriteScale - 1)) / 2; // Center the larger sprite
+            const offsetY = (this.size.y * (spriteScale - 1)) / 2;
+            
+            ctx.drawImage(this.spriteImage,
+                          this.spriteRect.x * this.spriteRect.width,
+                          this.spriteRect.y * this.spriteRect.height,
+                          this.spriteRect.width, this.spriteRect.height,
+                          (this.position.x - offsetX) * scale, 
+                          (this.position.y - offsetY) * scale,
+                          this.size.x * scale * spriteScale, 
+                          this.size.y * scale * spriteScale);
+        }
 
         // Draw hitbox for debugging
         ctx.save();
@@ -139,6 +170,198 @@ class Enemy extends GameObject {
             this.size.y * scale
         );
         ctx.restore();
+    }
+}
+
+class Minotaur extends AnimatedObject {
+    constructor(color, width, height, x, y, type) {
+        super(color || "red", width, height, x, y, type || "minotaur");
+        this.velocity = new Vec(0.003, 0); // Base patrol speed
+        this.rushSpeed = 0.009; // Faster speed when rushing
+        this.patrolSpeed = 0.003; // Normal patrol speed
+        this.moveDistance = 3;
+        this.startX = x;
+        this.direction = 1; // 1 for right, -1 for left
+        this.state = 'patrol'; // States: patrol, rush, wait
+        this.waitTimer = 0;
+        this.waitDuration = 2000; // 2 seconds in milliseconds
+        this.detectionRange = 5; // Range to detect player
+        
+        // Set up sprite animation with correct frame size
+        this.setSprite('../assets/figure/Minotaur/Minotaur - Sprite Sheet.png', new Rect(0, 0, 96, 96));
+        this.sheetCols = 8; // 8 frames per row based on the sprite sheet
+        
+        // Start with right movement animation (rows 1-2, using row 1 first)
+        this.setAnimation(0, 7, true, 120); // Row 1 (frames 0-7) for right movement
+    }
+
+    update(level, deltaTime) {
+        // Check for player detection
+        if (this.state === 'patrol' && game.player && !game.player.isDead) {
+            const distanceToPlayer = Math.abs(this.position.x - game.player.position.x);
+            const sameHeight = Math.abs(this.position.y - game.player.position.y) < 2;
+            const playerInDirection = (this.direction === 1 && game.player.position.x > this.position.x) ||
+                                    (this.direction === -1 && game.player.position.x < this.position.x);
+
+            if (distanceToPlayer < this.detectionRange && sameHeight && playerInDirection) {
+                this.state = 'rush';
+                this.velocity.x = this.direction * this.rushSpeed;
+                this.updateAnimation(); // Update animation for rush state
+            }
+        }
+
+        // State machine
+        switch (this.state) {
+            case 'patrol':
+                this.updatePatrol(level, deltaTime);
+                break;
+            case 'rush':
+                this.updateRush(level, deltaTime);
+                break;
+            case 'wait':
+                this.updateWait(deltaTime);
+                break;
+        }
+
+        // Calculate next position (horizontal movement only)
+        let nextX = this.position.x + this.velocity.x * deltaTime;
+        
+        // Check if next position would be within bounds
+        if (nextX < 0 || nextX > level.width - this.size.x) {
+            if (this.state === 'rush') {
+                this.state = 'wait';
+                this.waitTimer = 0;
+                this.velocity.x = 0;
+            } else {
+                this.velocity.x *= -1;
+                this.direction *= -1;
+                this.updateAnimation();
+            }
+            return;
+        }
+
+        let newPos = new Vec(nextX, this.position.y);
+
+        // Check for wall collision (but allow crossing ladders)
+        let wallHit = level.contact(newPos, this.size, "wall");
+        
+        // Check for floor ahead (minotaurs can walk over ladders)
+        let footX = this.position.x + (this.direction > 0 ? this.size.x : 0);
+        let footY = this.position.y + this.size.y + 0.1;
+        let hasFloor = level.contact(new Vec(footX, footY), new Vec(0.1, 0.1), "wall") || 
+                       level.contact(new Vec(footX, footY), new Vec(0.1, 0.1), "ladder");
+
+        if (wallHit || !hasFloor) {
+            if (this.state === 'rush') {
+                this.state = 'wait';
+                this.waitTimer = 0;
+                this.velocity.x = 0;
+            } else {
+                this.velocity.x *= -1;
+                this.direction *= -1;
+                this.updateAnimation();
+            }
+        } else {
+            this.position = newPos;
+        }
+        
+        // Update animation frame
+        this.updateFrame(deltaTime);
+    }
+
+    updatePatrol(level, deltaTime) {
+        // Basic patrol behavior
+        let nextX = this.position.x + this.velocity.x * deltaTime;
+        
+        // Check if next position would be within bounds
+        if (nextX < 0 || nextX > level.width - this.size.x) {
+            this.velocity.x *= -1;
+            this.direction *= -1;
+            this.updateAnimation();
+        }
+    }
+
+    updateRush(level, deltaTime) {
+        // Rush behavior uses faster animation
+        // Animation is already updated when entering rush state
+    }
+
+    updateWait(deltaTime) {
+        this.waitTimer += deltaTime;
+        if (this.waitTimer >= this.waitDuration) {
+            this.state = 'patrol';
+            this.velocity.x = this.direction * this.patrolSpeed;
+            this.updateAnimation();
+        }
+    }
+    
+    updateAnimation() {
+        // Update animation based on direction and state
+        if (this.direction === 1) {
+            // Moving right - use rows 1-2
+            if (this.state === 'rush') {
+                // Use row 2 for rushing right (frames 8-15)
+                this.setAnimation(8, 15, true, 80); // Faster animation for rush
+            } else {
+                // Use row 1 for normal right movement (frames 0-7)
+                this.setAnimation(0, 7, true, 120);
+            }
+        } else {
+            // Moving left - use rows 12-13
+            if (this.state === 'rush') {
+                // Use row 13 for rushing left (frames 96-103)
+                this.setAnimation(96, 103, true, 80); // Faster animation for rush
+            } else {
+                // Use row 12 for normal left movement (frames 88-95)
+                this.setAnimation(88, 95, true, 120);
+            }
+        }
+    }
+
+    draw(ctx, scale) {
+        // Draw the animated sprite larger than the hitbox
+        if (this.spriteImage && this.spriteRect) {
+            const spriteScale = 2.5; // Make sprite much larger (2.5x)
+            const offsetX = (this.size.x * (spriteScale - 1)) / 2; // Center the larger sprite
+            const offsetY = (this.size.y * (spriteScale - 1)) / 2;
+            
+            ctx.drawImage(this.spriteImage,
+                          this.spriteRect.x * this.spriteRect.width,
+                          this.spriteRect.y * this.spriteRect.height,
+                          this.spriteRect.width, this.spriteRect.height,
+                          (this.position.x - offsetX) * scale, 
+                          (this.position.y - offsetY) * scale,
+                          this.size.x * scale * spriteScale, 
+                          this.size.y * scale * spriteScale);
+        }
+
+        // Draw hitbox for debugging
+        ctx.save();
+        ctx.strokeStyle = this.state === 'rush' ? 'darkred' : 
+                         this.state === 'wait' ? 'brown' : 'red';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(
+            this.position.x * scale,
+            this.position.y * scale,
+            this.size.x * scale,
+            this.size.y * scale
+        );
+        ctx.restore();
+
+        // Draw detection range for debugging
+        if (this.state === 'patrol') {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255, 0, 0, 0.2)';
+            ctx.beginPath();
+            const rangeX = this.direction === 1 ? 
+                this.position.x * scale + this.size.x * scale :
+                this.position.x * scale;
+            ctx.moveTo(rangeX, this.position.y * scale);
+            ctx.lineTo(rangeX + this.detectionRange * scale * this.direction, 
+                      this.position.y * scale);
+            ctx.stroke();
+            ctx.restore();
+        }
     }
 }
 

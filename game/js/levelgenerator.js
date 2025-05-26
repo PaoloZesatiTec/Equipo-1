@@ -4,302 +4,231 @@ class LevelGenerator {
     constructor(width = 26, height = 60) {
         this.width = width;
         this.height = height;
-        this.minPlatformLength = 5;
-        this.maxPlatformLength = 8;
-        this.jumpDistance = 2; // Maximum horizontal distance for a jump
-        this.minLayerHeight = 4; // Shorter distance between platforms
-        this.ladderFrequency = 0.5; // Not every platform needs a ladder
-        this.enemyChance = 0.3;
-        this.gemChance = 0.3;
+        this.minPlatformLength = 4;
+        this.maxPlatformLength = 7;
+        this.jumpDistance = 3; // Reasonable jump distance
+        this.layerHeight = 6; // Increased from 5 to 6 units between layers
+        this.enemyChance = 0.25; // Increased enemy chance to ensure Minotaurs spawn
+        this.gemChance = 0.4; // Good gem distribution
     }
 
     generate() {
-        // Initialize empty grid with sky
+        // Initialize empty grid
         this.grid = Array(this.height).fill().map(() => Array(this.width).fill('.'));
         
-        // Always create right wall first to ensure it exists
-        this.createRightWall();
+        // Create walls
+        this.createWalls();
         
         // Create ground level
         this.createGroundLevel();
         
-        // Create platforms in a more complex pattern
-        this.createComplexPlatforms();
+        // Create platforms with proper spacing
+        this.createPlatformLayers();
         
-        // Add player starting position
+        // Add player
         this.addPlayer();
         
-        // Add enemies
-        this.addEnemies();
-        
-        // Add collectibles (gems)
-        this.addCollectibles();
+        // Add enemies and collectibles
+        this.populateLevel();
 
+        // Add portal at the top
         this.addPortal();
 
-        //Ver nivel para debugear
         console.log("Generated Level Grid:\n" + this.gridToString());
-
-        // Convert grid to level string
+        console.log("Level dimensions:", this.width, "x", this.height);
+        console.log("Layer height:", this.layerHeight);
+        
         return this.gridToString();
     }
 
-    createRightWall() {
-        // Create right barrier - GUARANTEED
+    createWalls() {
+        // Create left and right walls
         for (let y = 0; y < this.height; y++) {
+            this.grid[y][0] = '#';
             this.grid[y][this.width - 1] = '#';
         }
     }
 
     createGroundLevel() {
-        // Create ground platform
+        // Create solid ground
         for (let x = 0; x < this.width; x++) {
             this.grid[this.height - 1][x] = '#';
         }
     }
 
-    createComplexPlatforms() {
-        // Number of vertical layers
-        const numLayers = 15; // 4-6 layers
-        const layerSpacing = 6;
+    createPlatformLayers() {
+        // Create layers with 5-unit spacing
+        const numLayers = Math.floor((this.height - 10) / this.layerHeight);
         
-        // Create platforms layer by layer
         for (let layer = 1; layer < numLayers; layer++) {
-            const y = this.height - 1 - (layer * layerSpacing);
-            if (y <= 0) continue; // Skip if too high
+            const y = this.height - 1 - (layer * this.layerHeight);
+            if (y <= 5) continue; // Leave room for portal
             
-            // Decide if this will be a "jump layer" or "ladder layer"
-            const isJumpLayer = layer % 3 === 0; // Every third layer is for jumping platforms
+            this.createLayerPlatforms(y);
+        }
+        
+        // Add ladders AFTER all platforms are created
+        for (let layer = 1; layer < numLayers; layer++) {
+            const y = this.height - 1 - (layer * this.layerHeight);
+            if (y <= 5) continue;
             
-            if (isJumpLayer) {
-                this.createJumpablePlatforms(y);
-            } else {
-                this.createConnectedPlatforms(y);
+            this.addLaddersToLayer(y);
+        }
+        
+        // Add ladder from ground level to first platform layer
+        this.addGroundLadder();
+    }
+    
+    createLayerPlatforms(y) {
+        let x = 2; // Start position
+        let platformsCreated = 0;
+        const maxPlatforms = 3 + Math.floor(Math.random() * 2); // 3-4 platforms per layer
+        
+        while (x < this.width - 4 && platformsCreated < maxPlatforms) {
+            const length = this.minPlatformLength + Math.floor(Math.random() * 
+                (this.maxPlatformLength - this.minPlatformLength + 1));
+            
+            const actualLength = Math.min(length, this.width - x - 3);
+            
+            // Create platform
+            for (let i = 0; i < actualLength; i++) {
+                if (x + i < this.width - 1) {
+                    this.grid[y][x + i] = '#';
+                }
             }
             
-            // Ensure every layer has a ladder
-            this.ensureLayerHasLadder(y, layerSpacing);
+            // Move to next platform position with maximum gap of 5
+            x += actualLength + 3 + Math.floor(Math.random() * 3); // Gap of 3-5 units (max 5)
+            platformsCreated++;
         }
     }
     
-    ensureLayerHasLadder(y, layerSpacing) {
-        // Find all platforms in this layer
+    addGroundLadder() {
+        // Find the first platform layer
+        const firstLayerY = this.height - 1 - this.layerHeight;
+        
+        // Find platforms in the first layer
+        let platforms = [];
+        for (let x = 1; x < this.width - 1; x++) {
+            if (this.grid[firstLayerY][x] === '#') {
+                let start = x;
+                while (x < this.width - 1 && this.grid[firstLayerY][x] === '#') {
+                    x++;
+                }
+                platforms.push({ start: start, end: x - 1 });
+            }
+        }
+        
+        if (platforms.length > 0) {
+            const platform = platforms[Math.floor(Math.random() * platforms.length)];
+            const ladderX = Math.floor((platform.start + platform.end) / 2);
+            
+            // Create ladder from ground to the first platform layer
+            for (let checkY = this.height - 2; checkY >= firstLayerY; checkY--) {
+                this.grid[checkY][ladderX] = 'L';
+            }
+            
+            console.log(`Ground ladder placed at x=${ladderX}, from y=${this.height - 2} to y=${firstLayerY}`);
+        }
+    }
+
+    addLaddersToLayer(y) {
+        // Find platforms in this layer
         let platforms = [];
         for (let x = 1; x < this.width - 1; x++) {
             if (this.grid[y][x] === '#') {
-                let platformStart = x;
+                let start = x;
                 while (x < this.width - 1 && this.grid[y][x] === '#') {
                     x++;
                 }
-                platforms.push({
-                    startX: platformStart,
-                    length: x - platformStart,
-                    hasLadder: false
-                });
+                platforms.push({ start: start, end: x - 1 });
             }
         }
         
-        // Check if this layer already has a ladder
-        let hasLadder = false;
-        for (let x = 1; x < this.width - 1; x++) {
-            if (this.grid[y][x] === 'L') {
-                hasLadder = true;
-                break;
-            }
-        }
-        
-        // If no ladder exists, add one
-        if (!hasLadder && platforms.length > 0) {
-            // Try each platform until we find a valid connection
-            let ladderPlaced = false;
-            let attempts = 0;
-            const maxAttempts = platforms.length * 2; // Try each platform twice if needed
+        // Add ONE ladder to ONE platform only
+        if (platforms.length > 0) {
+            const platform = platforms[Math.floor(Math.random() * platforms.length)];
+            const ladderX = Math.floor((platform.start + platform.end) / 2);
             
-            while (!ladderPlaced && attempts < maxAttempts) {
-                // Choose a random platform
-                const selectedPlatform = platforms[Math.floor(Math.random() * platforms.length)];
-                const ladderX = Math.floor(selectedPlatform.startX + selectedPlatform.length / 2);
-                
-                // Check if there's already a ladder in the adjacent layers
-                let hasAdjacentLadder = false;
-                
-                // Check layer above
-                for (let checkY = y - layerSpacing; checkY >= 0; checkY -= layerSpacing) {
-                    if (this.grid[checkY][ladderX] === 'L') {
-                        hasAdjacentLadder = true;
-                        break;
-                    }
-                }
-                
-                // Check layer below
-                for (let checkY = y + layerSpacing; checkY < this.height; checkY += layerSpacing) {
-                    if (this.grid[checkY][ladderX] === 'L') {
-                        hasAdjacentLadder = true;
-                        break;
-                    }
-                }
-                
-                if (!hasAdjacentLadder) {
-                    // Find the next platform or ground below, but only look at the immediate next layer
-                    let nextPlatformY = -1;
-                    const maxSearchY = y + layerSpacing;
-                    
-                    for (let checkY = y + 1; checkY <= maxSearchY; checkY++) {
-                        if (this.grid[checkY][ladderX] === '#') {
-                            nextPlatformY = checkY;
-                            break;
-                        }
-                    }
-                    
-                    if (nextPlatformY !== -1) {
-                        // Create ladder from this platform level to the next platform level
-                        for (let ladderY = y; ladderY < nextPlatformY; ladderY++) {
-                            this.grid[ladderY][ladderX] = 'L';
-                        }
-                        ladderPlaced = true;
-                    }
-                }
-                
-                attempts++;
+            // Create ladder going up one layer to targetY
+            const targetY = y - this.layerHeight;
+            for (let checkY = y; checkY >= targetY && checkY >= 0; checkY--) {
+                this.grid[checkY][ladderX] = 'L';
             }
             
-            // If we still haven't placed a ladder, try one last time with any platform
-            if (!ladderPlaced) {
-                const selectedPlatform = platforms[Math.floor(Math.random() * platforms.length)];
-                const ladderX = Math.floor(selectedPlatform.startX + selectedPlatform.length / 2);
-                
-                // Find the next platform or ground below
-                let nextPlatformY = -1;
-                const maxSearchY = y + layerSpacing;
-                
-                for (let checkY = y + 1; checkY <= maxSearchY; checkY++) {
-                    if (this.grid[checkY][ladderX] === '#') {
-                        nextPlatformY = checkY;
-                        break;
-                    }
-                }
-                
-                if (nextPlatformY !== -1) {
-                    // Create ladder from this platform level to the next platform level
-                    for (let ladderY = y; ladderY < nextPlatformY; ladderY++) {
-                        this.grid[ladderY][ladderX] = 'L';
-                    }
-                }
-            }
-        }
-    }
-    
-    createJumpablePlatforms(y) {
-        // Create platforms that can be reached by jumping
-        let x = 1;
-        while (x < this.width - 3) {
-            // Create a platform
-            const length = Math.floor(Math.random() * 
-                (this.maxPlatformLength - this.minPlatformLength + 1)) + this.minPlatformLength;
-            
-            const actualLength = Math.min(length, this.width - x -4);
-            
-            for (let i = 0; i < actualLength; i++) {
-                this.grid[y][x + i] = '#';
-            }
-            
-            // Skip ahead by jump distance plus platform length
-            x += actualLength + this.jumpDistance;
-        }
-    }
-    
-    createConnectedPlatforms(y) {
-        let x = 1;
-        let platformCount = 0;
-        let platforms = []; // Array to store platform information
-        
-        // First, create all platforms
-        while (x < this.width - 3 && platformCount < 3) {
-            const length = Math.floor(Math.random() * 
-                (this.maxPlatformLength - this.minPlatformLength + 1)) + this.minPlatformLength;
-            
-            const actualLength = Math.min(length, this.width - x - 2);
-            
-            // Create the platform
-            for (let i = 0; i < actualLength; i++) {
-                this.grid[y][x + i] = '#';
-            }
-            
-            // Store platform information
-            platforms.push({
-                startX: x,
-                length: actualLength,
-                hasLadder: false // Track if this platform has a ladder
-            });
-            
-            x += actualLength + Math.floor(Math.random() * 3) + 2;
-            platformCount++;
+            console.log(`Layer ladder placed at x=${ladderX}, y=${y}, going to y=${targetY}`);
         }
     }
 
     addPlayer() {
-        // Place player on the ground level
-        let playerX = 2; // Start near left edge
-        let playerY = this.height - 2; // Just above ground
-        
-        this.grid[playerY][playerX] = '@';
+        // Place player on ground level
+        this.grid[this.height - 2][2] = '@';
     }
 
-    addEnemies() {
-        // Find all platforms
-        for (let y = 0; y < this.height - 2; y++) {
-            let platformStart = -1;
-            
-            for (let x = 0; x < this.width - 1; x++) {
-                // Find start of platform
-                if (platformStart === -1 && this.grid[y][x] === '#') {
-                    platformStart = x;
-                }
-                // Find end of platform
-                else if (platformStart !== -1 && this.grid[y][x] !== '#') {
-                    // Platform ended
-                    const platformLength = x - platformStart;
-                    
-                    // Only add enemies on larger platforms
-                    if (platformLength >= 5 && Math.random() < this.enemyChance) {
-                        const enemyX = platformStart + Math.floor(platformLength / 2);
-                        // Add either a barrel or a spawner
-                        if (Math.random() < 0.3) { // 30% chance for spawner
-                            this.grid[y - 1][enemyX] = 'B';
-                        } else {
-                            this.grid[y - 1][enemyX] = 'E';
+    populateLevel() {
+        // Add enemies and gems to platforms with constraints
+        console.log("Starting enemy placement...");
+        
+        for (let y = 1; y < this.height - 2; y++) {
+            // Look for platform blocks (walls)
+            for (let x = 1; x < this.width - 1; x++) {
+                if (this.grid[y][x] === '#') {
+                    // Check if there's empty space above this platform block
+                    if (this.grid[y - 1][x] === '.') {
+                        // This is a valid platform surface position
+                        
+                        // Add ONE enemy per platform with chance
+                        if (Math.random() < this.enemyChance) {
+                            const enemyType = Math.random();
+                            if (enemyType < 0.4) {
+                                this.grid[y - 1][x] = 'E'; // Regular enemy ON TOP of platform
+                                console.log(`Placed Enemy at (${x}, ${y - 1}) above platform at (${x}, ${y})`);
+                            } else if (enemyType < 0.8) {
+                                this.grid[y - 1][x] = 'M'; // Minotaur ON TOP of platform
+                                console.log(`Placed Minotaur at (${x}, ${y - 1}) above platform at (${x}, ${y})`);
+                            } else {
+                                this.grid[y - 1][x] = 'B'; // Barrel ON TOP of platform
+                                console.log(`Placed Barrel at (${x}, ${y - 1}) above platform at (${x}, ${y})`);
+                            }
+                            
+                            // Skip ahead to avoid placing multiple enemies on same platform
+                            while (x < this.width - 1 && this.grid[y][x] === '#') {
+                                x++;
+                            }
+                            x--; // Adjust for the upcoming x++ in the for loop
+                        }
+                        // Add gems to remaining spots (don't overlap with enemies)
+                        else if (Math.random() < this.gemChance) {
+                            this.grid[y - 1][x] = '$';
                         }
                     }
-                    
-                    platformStart = -1; // Reset for next platform
                 }
             }
         }
-    }
-
-    addCollectibles() {
-        // Add gems on platforms
-        for (let y = 0; y < this.height - 2; y++) {
-            for (let x = 1; x < this.width - 1; x++) {
-                // Place gems above platforms
-                if (this.grid[y][x] === '#' && this.grid[y-1][x] === '.' &&
-                    Math.random() < this.gemChance) {
-                    this.grid[y-1][x] = '$';
-                }
-            }
-        }
+        
+        console.log("Enemy placement completed.");
     }
 
     addPortal() {
-        
-        for (let y = 0; y < this.height - 1; y++) { 
-            for (let x = 1; x < this.width - 1; x++) { 
+        // Find the highest platform for portal placement
+        for (let y = 1; y < 10; y++) {
+            for (let x = 1; x < this.width - 1; x++) {
                 if (this.grid[y][x] === '#' && this.grid[y - 1][x] === '.') {
-                    this.grid[y - 1][x] = 'P'; 
-                    return; 
+                    this.grid[y - 1][x] = 'P';
+                    return;
                 }
             }
         }
+        
+        // If no platform found, create one
+        const portalY = 5;
+        const portalX = Math.floor(this.width / 2);
+        for (let i = -2; i <= 2; i++) {
+            if (portalX + i > 0 && portalX + i < this.width - 1) {
+                this.grid[portalY][portalX + i] = '#';
+            }
+        }
+        this.grid[portalY - 1][portalX] = 'P';
     }
 
     gridToString() {
@@ -307,10 +236,10 @@ class LevelGenerator {
     }
 }
 
-// Generate levels
+// Generate levels with all fixes applied
 const GAME_LEVELS = [
-    new LevelGenerator().generate(),
-    new LevelGenerator().generate(), // Add a second level
+    new LevelGenerator(26, 60).generate(),
+    new LevelGenerator(26, 60).generate(),
 ];
 
 // Export GAME_LEVELS for use in other files
@@ -319,49 +248,3 @@ if (typeof module !== 'undefined' && module.exports) {
 } else {
     window.GAME_LEVELS = GAME_LEVELS;
 }
-
-
-/*
-let GAME_LEVELS = [`
-    ................
-    .##############.
-    .#............#.
-    .#........B...#.
-    .#......#######.
-    .#............#.
-    .#............#.
-    .#.@..........#.
-    .##############.
-    ................
-    `,`
-    ...................................................................
-    ...................................................................
-    .#...............................................................#.
-    .#...............................................................#.
-    .#......................................$........................#.
-    .#...............................................................#.
-    .#..................................#########....................#.
-    .#...............................................................#.
-    .#.......................$.......................................#.
-    .#......................##########..............$................#.
-    .#...............................................................#.
-    .#..............$..........................#########.............#.
-    .#..........########.............................................#.
-    .#.@...$.$.......................................................#.
-    .#################################################################.
-    ...................................................................
-    `];
-    
-    if (typeof module != "undefined" && module.exports && (typeof window == "undefined" || window.exports != exports))
-      module.exports = GAME_LEVELS;
-    if (typeof global != "undefined" && !global.GAME_LEVELS)
-      global.GAME_LEVELS = GAME_LEVELS;
-    
-
-// If your game already has level loading code, modify it to use the generator
-// For example:
-// function gameStart() {
-//     game = new Game('playing', new Level(GAME_LEVELS[0]));
-//     setEventListeners();
-//     updateCanvas(document.timeline.currentTime);
-// } */
