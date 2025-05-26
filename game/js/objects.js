@@ -82,17 +82,55 @@ class Fireball extends GameObject {
 
     update(level, deltaTime) {
         let newPos = this.position.plus(this.velocity.times(deltaTime));
-        if (!level.contact(newPos, this.size, 'wall')) {
-            this.position = newPos;
-        } else {
+        
+        // Check for wall collision
+        if (level.contact(newPos, this.size, 'wall')) {
             // Remove fireball if it hits a wall
+            game.actors = game.actors.filter(actor => actor !== this);
+            return;
+        }
+        
+        // Check for enemy collisions
+        for (let actor of game.actors) {
+            if ((actor.type === 'enemy' || actor.type === 'minotaur' || actor.type === 'barrel') && 
+                this.checkCollision(actor)) {
+                // Remove both the fireball and the enemy
+                game.actors = game.actors.filter(item => item !== this && item !== actor);
+                return;
+            }
+        }
+        
+        // Update position if no collision
+        this.position = newPos;
+        
+        // Remove fireball if it goes off screen
+        if (this.position.x < 0 || this.position.x > level.width) {
             game.actors = game.actors.filter(actor => actor !== this);
         }
     }
+    
+    checkCollision(other) {
+        return this.position.x < other.position.x + other.size.x &&
+               this.position.x + this.size.x > other.position.x &&
+               this.position.y < other.position.y + other.size.y &&
+               this.position.y + this.size.y > other.position.y;
+    }
 
     draw(ctx, scale) {
-        ctx.fillStyle = "red";
+        // Draw a more visible fireball
+        ctx.fillStyle = "orange";
         ctx.fillRect(this.position.x * scale, this.position.y * scale, this.size.x * scale, this.size.y * scale);
+        
+        // Add a red center
+        ctx.fillStyle = "red";
+        const centerSize = this.size.x * 0.6;
+        const offset = (this.size.x - centerSize) / 2;
+        ctx.fillRect(
+            (this.position.x + offset) * scale, 
+            (this.position.y + offset) * scale, 
+            centerSize * scale, 
+            centerSize * scale
+        );
     }
 }
 

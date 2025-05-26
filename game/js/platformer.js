@@ -10,7 +10,7 @@ let game;
 let player;
 let level;
 
-let scale = 25;
+let scale = 30;
 const walkSpeed = 0.006;
 const initialJumpSpeed = -0.014;
 const gravity = 0.000045;
@@ -268,9 +268,11 @@ class Player extends AnimatedObject {
     fireFireball() {
         const now = performance.now();
         if (now - this.lastFireTime >= this.fireCooldown) {
+            // Better fireball position - shoot from center of player
             const fireX = this.position.x + (this.isFacingRight ? this.size.x : -0.5);
+            const fireY = this.position.y + (this.size.y * 0.3); // Lower position, about chest level
             const direction = this.isFacingRight ? 1 : -1;
-            const fireball = new Fireball(fireX, this.position.y + this.size.y / 2, direction);
+            const fireball = new Fireball(fireX, fireY, direction);
             game.actors.push(fireball);
             this.lastFireTime = now;
         }
@@ -374,6 +376,11 @@ class Level {
 
                 if (item.label === "enemy") {
                     this.actors.push(new Enemy("blue", 1, 1, x, y, "enemy"));
+                    return "empty";
+                }
+
+                if (item.label === "minotaur") {
+                    this.actors.push(new Minotaur("red", 1, 1, x, y, "minotaur"));
                     return "empty";
                 }
 
@@ -526,6 +533,10 @@ const levelChars = {
         objClass: Enemy,
         label: "enemy",
         sprite: null },
+    "M": {
+        objClass: Minotaur,
+        label: "minotaur",
+        sprite: null },
     "B": {
         objClass: Barrel,
         label: "barrel",
@@ -580,10 +591,10 @@ class Game {
         // Handle collisions
         for (let actor of this.actors) {
             if (actor.type !== 'empty' && this.checkCollision(this.player, actor)) {
-                if (actor.type === 'coin' || actor.type === 'gem') {
+                if (actor.type === 'collectible' || actor.type === 'gem') {
                     this.player.gems += 1;
                     this.actors = this.actors.filter(item => item !== actor);
-                } else if (actor.type === 'enemy' || actor.type === 'barrel') {
+                } else if (actor.type === 'enemy' || actor.type === 'barrel' || actor.type === 'minotaur') {
                     this.player.loseLife();
                     // Optional: push player away from enemy
                     const pushDirection = this.player.position.x < actor.position.x ? -1 : 1;
@@ -644,15 +655,15 @@ class Game {
         if (this.gemUISprite && this.gemUISprite.complete) {
             ctx.drawImage(
                 this.gemUISprite, 
-                20,         // X position
-                20,         // Y position
-                40,         // Width
-                40          // Height
+                10,         // X position
+                10,         // Y position
+                30,         // Width
+                30          // Height
             );
         }
         
         // Draw gem counter with improved styling
-        ctx.font = "bold 28px 'Arial Rounded MT Bold', 'Arial Black', sans-serif";
+        ctx.font = "bold 24px 'Arial Rounded MT Bold', 'Arial Black', sans-serif";
         ctx.fillStyle = "#FFD700"; // Gold color
         ctx.textAlign = "left";
         ctx.textBaseline = "middle";
@@ -666,8 +677,8 @@ class Game {
         // Position text centered vertically with the gem icon
         ctx.fillText(
             `${this.player.gems}`, 
-            75,  // X position (adjusted to be closer to gem)
-            40   // Y position (centered with the gem icon)
+            50,  // X position (adjusted to be closer to gem)
+            25   // Y position (centered with the gem icon)
         );
         
         // Reset shadow for other elements
@@ -677,11 +688,53 @@ class Game {
         for (let i = 0; i < this.player.lives; i++) {
             ctx.drawImage(
                 this.heartSprite, 
-                20 + i * 50, // X position (hearts are 50px apart)
-                80,         // Y position (moved down a bit to separate from gems)
-                40,         // Width
-                40          // Height
+                10 + i * 40, // X position (hearts are 40px apart)
+                50,         // Y position (moved down a bit to separate from gems)
+                30,         // Width
+                30          // Height
             );
+        }
+
+        // Draw fireball cooldown indicator
+        const now = performance.now();
+        const timeSinceLastFire = now - this.player.lastFireTime;
+        const cooldownProgress = Math.min(timeSinceLastFire / this.player.fireCooldown, 1);
+        const isReady = cooldownProgress >= 1;
+
+        // Fireball icon background
+        ctx.fillStyle = isReady ? "rgba(255, 100, 0, 0.8)" : "rgba(100, 100, 100, 0.5)";
+        ctx.fillRect(10, 90, 30, 30);
+
+        // Fireball icon
+        ctx.fillStyle = isReady ? "orange" : "gray";
+        ctx.fillRect(12, 92, 26, 26);
+        ctx.fillStyle = isReady ? "red" : "darkgray";
+        ctx.fillRect(15, 95, 20, 20);
+
+        // Cooldown progress bar
+        if (!isReady) {
+            // Background bar
+            ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
+            ctx.fillRect(10, 125, 30, 6);
+            
+            // Progress bar
+            ctx.fillStyle = "orange";
+            ctx.fillRect(10, 125, 30 * cooldownProgress, 6);
+        }
+
+        // Fireball ready text
+        if (isReady) {
+            ctx.font = "10px Arial";
+            ctx.fillStyle = "white";
+            ctx.textAlign = "center";
+            ctx.fillText("E", 25, 140);
+        } else {
+            // Show remaining time
+            const remainingTime = Math.ceil((this.player.fireCooldown - timeSinceLastFire) / 1000);
+            ctx.font = "10px Arial";
+            ctx.fillStyle = "white";
+            ctx.textAlign = "center";
+            ctx.fillText(remainingTime + "s", 25, 140);
         }
 
         // Draw game over screen
@@ -743,8 +796,12 @@ function init() {
     }
 
     const container = canvas.parentElement;
-    canvas.width = container.clientWidth;
-    canvas.height = container.clientHeight;
+    // Set a minimum canvas size to ensure UI elements are visible
+    const minWidth = 800;
+    const minHeight = 600;
+    
+    canvas.width = Math.max(container.clientWidth, minWidth);
+    canvas.height = Math.max(container.clientHeight, minHeight);
 
     canvasWidth = canvas.width;
     canvasHeight = canvas.height;
@@ -757,11 +814,10 @@ function init() {
 
     // Resize handler: re-fit scale when window changes
     window.addEventListener('resize', () => {
-        canvas.width = container.clientWidth;
-        canvas.height = container.clientHeight;
+        canvas.width = Math.max(container.clientWidth, minWidth);
+        canvas.height = Math.max(container.clientHeight, minHeight);
         canvasWidth = canvas.width;
         canvasHeight = canvas.height;
-
     });
 
     gameStart();
@@ -775,36 +831,41 @@ function gameStart() {
 }
 
 function setEventListeners() {
-    window.addEventListener("keydown", event => {
-        keyState[event.key] = true;
+    // Remove existing event listeners to prevent duplicates
+    window.removeEventListener("keydown", handleKeyDown);
+    window.removeEventListener("keyup", handleKeyUp);
     
-        if (event.code == 'Space') game.player.jump();
-        if (event.key == 'a') game.player.startMovement("left");
-        if (event.key == 'd') game.player.startMovement("right");
-        if (event.key == 's') game.player.crouch();
-        if (event.key == 'e') game.player.fireFireball();
-        // Restart game when R is pressed and game is over
-        if (event.key == 'r' && game.gameOver) {
-            // Reset game state
-            frameStart = undefined;
-            cameraY = 0;
-            // Create new game instance
-            game = new Game('playing', new Level(GAME_LEVELS[0]));
-            // Ensure event listeners are set
-            setEventListeners();
-        }
-    });
-    
-    window.addEventListener("keyup", event => {
-        keyState[event.key] = false;
-    
-        if (event.key == 'a') game.player.stopMovement("left");
-        if (event.key == 'd') game.player.stopMovement("right");
-        if (event.key == 's') game.player.standUp();
-    });
+    // Add new event listeners
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
 }
 
+function handleKeyDown(event) {
+    keyState[event.key] = true;
 
+    if (event.code == 'Space') game.player.jump();
+    if (event.key == 'a') game.player.startMovement("left");
+    if (event.key == 'd') game.player.startMovement("right");
+    if (event.key == 's') game.player.crouch();
+    if (event.key == 'e') game.player.fireFireball();
+    
+    // Restart game when R is pressed and game is over or won
+    if (event.key == 'r' && (game.gameOver || game.gameWon)) {
+        // Reset game state
+        frameStart = undefined;
+        cameraY = 0;
+        // Create new game instance
+        game = new Game('playing', new Level(GAME_LEVELS[0]));
+    }
+}
+
+function handleKeyUp(event) {
+    keyState[event.key] = false;
+
+    if (event.key == 'a') game.player.stopMovement("left");
+    if (event.key == 'd') game.player.stopMovement("right");
+    if (event.key == 's') game.player.standUp();
+}
 
 function updateCanvas(frameTime) {
     if (frameStart === undefined) {
