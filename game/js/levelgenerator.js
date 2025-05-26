@@ -1,14 +1,14 @@
 // Level Generator for Roguelike Platformer
 
 class LevelGenerator {
-    constructor(width = 26, height = 60) {
+    constructor(width = 30, height = 60) {
         this.width = width;
         this.height = height;
         this.minPlatformLength = 4;
         this.maxPlatformLength = 7;
         this.jumpDistance = 3; // Reasonable jump distance
         this.layerHeight = 6; // Increased from 5 to 6 units between layers
-        this.enemyChance = 0.15; // Reduced from 0.25 to 0.15 for fewer enemies
+        this.enemyChance = 0.4; // Increased from 0.15 to 0.4 to compensate for one-enemy-per-platform
         this.gemChance = 0.4; // Good gem distribution
     }
 
@@ -224,54 +224,85 @@ class LevelGenerator {
         // Add enemies and gems to platforms with constraints
         console.log("Starting enemy placement...");
         
+        // First, identify all platforms
+        let platforms = [];
+        
         for (let y = 1; y < this.height - 2; y++) {
-            // Look for platform blocks (walls)
+            let currentPlatform = null;
+            
             for (let x = 1; x < this.width - 1; x++) {
-                if (this.grid[y][x] === '#') {
-                    // Check if there's empty space above this platform block
-                    if (this.grid[y - 1][x] === '.') {
-                        // This is a valid platform surface position
-                        
-                        // Check if there's already a minotaur on this platform
-                        let hasMinotaur = false;
-                        let platformStart = x;
-                        while (platformStart > 0 && this.grid[y][platformStart] === '#') {
-                            platformStart--;
+                // Check if this is a platform block (wall or ladder) with empty space above
+                const isPlatformBlock = (this.grid[y][x] === '#' || this.grid[y][x] === 'L') && this.grid[y - 1][x] === '.';
+                
+                if (isPlatformBlock) {
+                    // This is a platform block with empty space above
+                    if (!currentPlatform) {
+                        currentPlatform = { y: y, startX: x, endX: x };
+                    } else {
+                        currentPlatform.endX = x;
+                    }
+                } else if (this.grid[y][x] !== '#' && this.grid[y][x] !== 'L') {
+                    // End of platform (hit empty space)
+                    if (currentPlatform) {
+                        platforms.push(currentPlatform);
+                        console.log(`Found platform at y=${currentPlatform.y}, x=${currentPlatform.startX}-${currentPlatform.endX}`);
+                        currentPlatform = null;
+                    }
+                }
+            }
+            
+            // Don't forget the last platform if it ends at the edge
+            if (currentPlatform) {
+                platforms.push(currentPlatform);
+                console.log(`Found platform at y=${currentPlatform.y}, x=${currentPlatform.startX}-${currentPlatform.endX}`);
+            }
+        }
+        
+        console.log(`Found ${platforms.length} platforms total`);
+        
+        // Now place exactly one enemy per platform (with chance)
+        platforms.forEach((platform, index) => {
+            if (Math.random() < this.enemyChance) {
+                // Find valid positions on this platform (only on actual wall blocks, not ladders)
+                let validPositions = [];
+                for (let x = platform.startX; x <= platform.endX; x++) {
+                    if (this.grid[platform.y][x] === '#' && this.grid[platform.y - 1][x] === '.') {
+                        validPositions.push(x);
+                    }
+                }
+                
+                if (validPositions.length > 0) {
+                    // Choose a random valid position
+                    const randomX = validPositions[Math.floor(Math.random() * validPositions.length)];
+                    const enemyY = platform.y - 1;
+                    
+                    // Double check the spot is empty
+                    if (this.grid[enemyY][randomX] === '.') {
+                        const enemyType = Math.random();
+                        if (enemyType < 0.3) {
+                            this.grid[enemyY][randomX] = 'E'; // Regular enemy
+                            console.log(`Placed Enemy at (${randomX}, ${enemyY}) on platform ${index}`);
+                        } else if (enemyType < 0.6) {
+                            this.grid[enemyY][randomX] = 'M'; // Minotaur
+                            console.log(`Placed Minotaur at (${randomX}, ${enemyY}) on platform ${index}`);
+                        } else {
+                            this.grid[enemyY][randomX] = 'B'; // Barrel
+                            console.log(`Placed Barrel at (${randomX}, ${enemyY}) on platform ${index}`);
                         }
-                        platformStart++;
-                        
-                        // Check the entire platform for minotaurs
-                        for (let checkX = platformStart; checkX < this.width && this.grid[y][checkX] === '#'; checkX++) {
-                            if (this.grid[y - 1][checkX] === 'M') {
-                                hasMinotaur = true;
-                                break;
-                            }
-                        }
-                        
-                        // Add ONE enemy per platform with chance
-                        if (Math.random() < this.enemyChance) {
-                            const enemyType = Math.random();
-                            if (enemyType < 0.3) {
-                                this.grid[y - 1][x] = 'E'; // Regular enemy ON TOP of platform
-                                console.log(`Placed Enemy at (${x}, ${y - 1}) above platform at (${x}, ${y})`);
-                            } else if (enemyType < 0.6 && !hasMinotaur) {
-                                this.grid[y - 1][x] = 'M'; // Minotaur ON TOP of platform
-                                console.log(`Placed Minotaur at (${x}, ${y - 1}) above platform at (${x}, ${y})`);
-                            } else {
-                                this.grid[y - 1][x] = 'B'; // Barrel ON TOP of platform
-                                console.log(`Placed Barrel at (${x}, ${y - 1}) above platform at (${x}, ${y})`);
-                            }
-                            
-                            // Skip ahead to avoid placing multiple enemies on same platform
-                            while (x < this.width - 1 && this.grid[y][x] === '#') {
-                                x++;
-                            }
-                            x--; // Adjust for the upcoming x++ in the for loop
-                        }
-                        // Add gems to remaining spots (don't overlap with enemies)
-                        else if (Math.random() < this.gemChance) {
-                            this.grid[y - 1][x] = '$';
-                        }
+                    } else {
+                        console.log(`Spot (${randomX}, ${enemyY}) on platform ${index} was not empty: ${this.grid[enemyY][randomX]}`);
+                    }
+                }
+            }
+        });
+        
+        // Now place gems on remaining empty spots
+        for (let y = 1; y < this.height - 2; y++) {
+            for (let x = 1; x < this.width - 1; x++) {
+                if (this.grid[y][x] === '#' && this.grid[y - 1][x] === '.') {
+                    // Empty platform spot, chance for gem
+                    if (Math.random() < this.gemChance) {
+                        this.grid[y - 1][x] = '$';
                     }
                 }
             }
@@ -309,8 +340,8 @@ class LevelGenerator {
 
 // Generate levels with all fixes applied
 const GAME_LEVELS = [
-    new LevelGenerator(26, 60).generate(),
-    new LevelGenerator(26, 60).generate(),
+    new LevelGenerator(28, 60).generate(),
+    new LevelGenerator(28, 60).generate(),
 ];
 
 // Export GAME_LEVELS for use in other files

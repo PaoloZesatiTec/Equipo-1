@@ -2,7 +2,7 @@
 
 "use strict";
 
-let canvasWidth = 700;
+let canvasWidth = 700; // Reverted back to original
 let canvasHeight = 700; // Taller canvas for vertical platformer
 let ctx;
 let frameStart;
@@ -372,7 +372,7 @@ class Level {
                     return "ladder";
                 }
 
-                let color = item.label === "ladder" ? "#8B4513" : "skyblue";
+                let color = item.label === "ladder" ? "#8B4513" : "transparent";
 
                 if (item.label === "enemy") {
                     this.actors.push(new Enemy("blue", 1, 1, x, y, "enemy"));
@@ -449,7 +449,7 @@ class Level {
 
     addBackgroundFloor(x, y) {
         let floor = levelChars['.'];
-        let floorActor = new GameObject("skyblue", 1, 1, x, y, floor.label);
+        let floorActor = new GameObject("transparent", 1, 1, x, y, floor.label);
         //let instanceRect = new Rect(item.rectParams);
         //floorActor.setSprite(floor.sprite, instanceRect);
         this.actors.push(floorActor);
@@ -565,6 +565,23 @@ class Game {
         this.gameOver = false;
         this.gameWon = false;
 
+        // Load level background image
+        this.backgroundImage = new Image();
+        this.backgroundLoaded = false;
+        this.backgroundImage.src = '../assets/Map1.jpg';  // Correct path to the image
+        
+        console.log("Loading background image from:", this.backgroundImage.src);
+        
+        this.backgroundImage.onload = () => {
+            console.log("Background image loaded successfully!");
+            console.log("Image dimensions:", this.backgroundImage.width, "x", this.backgroundImage.height);
+            this.backgroundLoaded = true;
+        };
+        
+        this.backgroundImage.onerror = (e) => {
+            console.error("Failed to load background image. Please check the browser console for details.");
+        };
+
         // Load UI sprites
         this.heartSprite = new Image();
         this.heartSprite.src = '../assets/Items/Heart/heart.png';
@@ -585,7 +602,11 @@ class Game {
 
         // Update all actors
         for (let actor of this.actors) {
-            actor.update(this.level, deltaTime);
+            if (actor.type === 'minotaur') {
+                actor.update(this.level, deltaTime, this.player);
+            } else {
+                actor.update(this.level, deltaTime);
+            }
         }
 
         // Handle collisions
@@ -625,7 +646,9 @@ class Game {
 
     draw(ctx, scale) {
         ctx.save();
-        ctx.translate(0, -cameraY); // Apply vertical camera offset
+        
+        // Apply camera translation for game elements
+        ctx.translate(0, -cameraY);
 
         // First draw background and non-interactive elements
         for (let actor of this.actors) {
@@ -651,19 +674,19 @@ class Game {
         // Draw UI elements with improved styling
         // ======================================
         
-        // Draw gem icon
+        // Draw gem icon - moved down and made bigger
         if (this.gemUISprite && this.gemUISprite.complete) {
             ctx.drawImage(
                 this.gemUISprite, 
-                10,         // X position
-                10,         // Y position
-                30,         // Width
-                30          // Height
+                20,         // X position
+                30,         // Y position (moved down from 10)
+                40,         // Width (increased from 30)
+                40          // Height (increased from 30)
             );
         }
         
         // Draw gem counter with improved styling
-        ctx.font = "bold 24px 'Arial Rounded MT Bold', 'Arial Black', sans-serif";
+        ctx.font = "bold 28px 'Arial Rounded MT Bold', 'Arial Black', sans-serif"; // Increased font size
         ctx.fillStyle = "#FFD700"; // Gold color
         ctx.textAlign = "left";
         ctx.textBaseline = "middle";
@@ -677,25 +700,25 @@ class Game {
         // Position text centered vertically with the gem icon
         ctx.fillText(
             `${this.player.gems}`, 
-            50,  // X position (adjusted to be closer to gem)
-            25   // Y position (centered with the gem icon)
+            70,  // X position (adjusted for bigger gem icon)
+            50   // Y position (centered with the new gem icon position)
         );
         
         // Reset shadow for other elements
         ctx.shadowColor = "transparent";
         
-        // Draw hearts based on player's lives
+        // Draw hearts based on player's lives - moved down and made bigger
         for (let i = 0; i < this.player.lives; i++) {
             ctx.drawImage(
                 this.heartSprite, 
-                10 + i * 40, // X position (hearts are 40px apart)
-                50,         // Y position (moved down a bit to separate from gems)
-                30,         // Width
-                30          // Height
+                20 + i * 50, // X position (hearts are 50px apart, increased spacing)
+                80,         // Y position (moved down from 50)
+                40,         // Width (increased from 30)
+                40          // Height (increased from 30)
             );
         }
 
-        // Draw fireball cooldown indicator
+        // Draw fireball cooldown indicator - moved down and made bigger
         const now = performance.now();
         const timeSinceLastFire = now - this.player.lastFireTime;
         const cooldownProgress = Math.min(timeSinceLastFire / this.player.fireCooldown, 1);
@@ -703,38 +726,38 @@ class Game {
 
         // Fireball icon background
         ctx.fillStyle = isReady ? "rgba(255, 100, 0, 0.8)" : "rgba(100, 100, 100, 0.5)";
-        ctx.fillRect(10, 90, 30, 30);
+        ctx.fillRect(20, 130, 40, 40); // Moved down and made bigger
 
         // Fireball icon
         ctx.fillStyle = isReady ? "orange" : "gray";
-        ctx.fillRect(12, 92, 26, 26);
+        ctx.fillRect(22, 132, 36, 36); // Adjusted for bigger size
         ctx.fillStyle = isReady ? "red" : "darkgray";
-        ctx.fillRect(15, 95, 20, 20);
+        ctx.fillRect(26, 136, 28, 28); // Adjusted for bigger size
 
         // Cooldown progress bar
         if (!isReady) {
             // Background bar
             ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
-            ctx.fillRect(10, 125, 30, 6);
+            ctx.fillRect(20, 175, 40, 8); // Moved down and made wider
             
             // Progress bar
             ctx.fillStyle = "orange";
-            ctx.fillRect(10, 125, 30 * cooldownProgress, 6);
+            ctx.fillRect(20, 175, 40 * cooldownProgress, 8); // Adjusted for new size
         }
 
         // Fireball ready text
         if (isReady) {
-            ctx.font = "10px Arial";
+            ctx.font = "12px Arial"; // Slightly bigger font
             ctx.fillStyle = "white";
             ctx.textAlign = "center";
-            ctx.fillText("E", 25, 140);
+            ctx.fillText("E", 40, 190); // Adjusted position
         } else {
             // Show remaining time
             const remainingTime = Math.ceil((this.player.fireCooldown - timeSinceLastFire) / 1000);
-            ctx.font = "10px Arial";
+            ctx.font = "12px Arial"; // Slightly bigger font
             ctx.fillStyle = "white";
             ctx.textAlign = "center";
-            ctx.fillText(remainingTime + "s", 25, 140);
+            ctx.fillText(remainingTime + "s", 40, 190); // Adjusted position
         }
 
         // Draw game over screen
@@ -797,7 +820,7 @@ function init() {
 
     const container = canvas.parentElement;
     // Set a minimum canvas size to ensure UI elements are visible
-    const minWidth = 800;
+    const minWidth = 800; // Reverted back to original
     const minHeight = 600;
     
     canvas.width = Math.max(container.clientWidth, minWidth);
@@ -873,8 +896,20 @@ function updateCanvas(frameTime) {
     }
     let deltaTime = frameTime - frameStart;
 
-    ctx.fillStyle = "#87CEEB"; // Sky blue or any background color you prefer
-    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+    // Draw background image stretched to fill entire canvas
+    if (game && game.backgroundLoaded && game.backgroundImage && game.backgroundImage.complete) {
+        // Force the image to fill the entire canvas, stretching if necessary
+        ctx.drawImage(
+            game.backgroundImage,
+            0, 0,                    // Source position
+            game.backgroundImage.width, game.backgroundImage.height, // Source size (full image)
+            0, 0,                    // Destination position
+            canvasWidth, canvasHeight // Destination size (full canvas)
+        );
+    } else {
+        // Only clear if no background image
+        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+    }
     
     if (game) {
         game.update(deltaTime);
