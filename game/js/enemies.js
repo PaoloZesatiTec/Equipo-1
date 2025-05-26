@@ -176,9 +176,9 @@ class Enemy extends AnimatedObject {
 class Minotaur extends AnimatedObject {
     constructor(color, width, height, x, y, type) {
         super(color || "red", width, height, x, y, type || "minotaur");
-        this.velocity = new Vec(0.003, 0); // Base patrol speed
-        this.rushSpeed = 0.009; // Faster speed when rushing
-        this.patrolSpeed = 0.003; // Normal patrol speed
+        this.velocity = new Vec(0.002, 0); // Base patrol speed (decreased from 0.003)
+        this.rushSpeed = 0.006; // Faster speed when rushing (decreased from 0.009)
+        this.patrolSpeed = 0.002; // Normal patrol speed (decreased from 0.003)
         this.moveDistance = 3;
         this.startX = x;
         this.direction = 1; // 1 for right, -1 for left
@@ -195,18 +195,19 @@ class Minotaur extends AnimatedObject {
         this.setAnimation(0, 7, true, 120); // Row 1 (frames 0-7) for right movement
     }
 
-    update(level, deltaTime) {
+    update(level, deltaTime, player = null) {
         // Check for player detection
-        if (this.state === 'patrol' && game.player && !game.player.isDead) {
-            const distanceToPlayer = Math.abs(this.position.x - game.player.position.x);
-            const sameHeight = Math.abs(this.position.y - game.player.position.y) < 2;
-            const playerInDirection = (this.direction === 1 && game.player.position.x > this.position.x) ||
-                                    (this.direction === -1 && game.player.position.x < this.position.x);
+        if (this.state === 'patrol' && player && !player.isDead) {
+            const distanceToPlayer = Math.abs(this.position.x - player.position.x);
+            const sameHeight = Math.abs(this.position.y - player.position.y) < 2;
+            const playerInDirection = (this.direction === 1 && player.position.x > this.position.x) ||
+                                    (this.direction === -1 && player.position.x < this.position.x);
 
             if (distanceToPlayer < this.detectionRange && sameHeight && playerInDirection) {
                 this.state = 'rush';
                 this.velocity.x = this.direction * this.rushSpeed;
                 this.updateAnimation(); // Update animation for rush state
+                console.log("Minotaur detected player and is now rushing!");
             }
         }
 
@@ -296,25 +297,15 @@ class Minotaur extends AnimatedObject {
     }
     
     updateAnimation() {
-        // Update animation based on direction and state
+        // Update animation based on direction - use rush frames for both states
         if (this.direction === 1) {
-            // Moving right - use rows 1-2
-            if (this.state === 'rush') {
-                // Use row 2 for rushing right (frames 8-15)
-                this.setAnimation(8, 15, true, 80); // Faster animation for rush
-            } else {
-                // Use row 1 for normal right movement (frames 0-7)
-                this.setAnimation(0, 7, true, 120);
-            }
+            // Moving right - use row 2 (frames 8-15) for all right movement
+            const animSpeed = this.state === 'rush' ? 80 : 120; // Faster animation for rush
+            this.setAnimation(8, 15, true, animSpeed);
         } else {
-            // Moving left - use rows 12-13
-            if (this.state === 'rush') {
-                // Use row 13 for rushing left (frames 96-103)
-                this.setAnimation(96, 103, true, 80); // Faster animation for rush
-            } else {
-                // Use row 12 for normal left movement (frames 88-95)
-                this.setAnimation(88, 95, true, 120);
-            }
+            // Moving left - use row 12 (frames 88-95) for all left movement
+            const animSpeed = this.state === 'rush' ? 80 : 120; // Faster animation for rush
+            this.setAnimation(88, 95, true, animSpeed);
         }
     }
 
