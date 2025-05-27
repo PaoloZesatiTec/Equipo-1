@@ -181,24 +181,6 @@ class Player extends AnimatedObject {
     update(level, deltaTime) {
         if (this.isDead) return;
 
-        // Handle jumping with keyState for better responsiveness
-        if (keyState[" "] && !this.wasSpacePressed && (this.isOnGround(level) || this.isOnLadder) && !this.isJumping) {
-            this.velocity.y = initialJumpSpeed;
-            this.isJumping = true;
-    
-            if (this.isOnLadder) {
-                this.exitingLadder = true;   // Signal we're jumping *off* the ladder
-                this.isOnLadder = false;
-            }
-    
-            if (!this.isHurt && !this.isAttacking) {
-                this.setMageAnimation('jump');
-            }
-        }
-        
-        // Track space key state to prevent continuous jumping
-        this.wasSpacePressed = keyState[" "];
-
         // Handle delayed fireball creation during attack
         if (this.isAttacking && !this.fireballFired) {
             const now = performance.now();
@@ -324,6 +306,11 @@ class Player extends AnimatedObject {
             }
         }
 
+        // Reset isJumping if player is on ground and has no upward velocity
+        if (this.isJumping && this.isOnGround(level) && this.velocity.y >= 0) {
+            this.isJumping = false;
+        }
+
         // Update animation state based on movement
         if (!this.isHurt && !this.isAttacking) {
             if (this.isJumping) {
@@ -374,7 +361,8 @@ class Player extends AnimatedObject {
     // Method to check if player is on the ground
     isOnGround(level) {
         // Check if there's a wall or ladder directly below the player
-        const testPosition = this.position.plus(new Vec(0, 0.01)); // Slightly below current position
+        // Use a larger offset to account for floating point precision issues
+        const testPosition = this.position.plus(new Vec(0, 0.05)); // Increased from 0.01 to 0.05
         return level.contact(testPosition, this.size, 'wall') || level.contact(testPosition, this.size, 'ladder');
     }
 
@@ -1236,6 +1224,22 @@ function handleKeyDown(event) {
     if (event.key == 'd') game.player.startMovement("right");
     if (event.key == 's') game.player.crouch();
     if (event.key == 'e') game.player.fireFireball();
+    if (event.key == ' ') {
+        // Simplified jumping logic - allow jumping if not already jumping and velocity is low
+        if (!game.player.isJumping && game.player.velocity.y >= -0.001) {
+            game.player.velocity.y = initialJumpSpeed;
+            game.player.isJumping = true;
+            
+            if (game.player.isOnLadder) {
+                game.player.exitingLadder = true;
+                game.player.isOnLadder = false;
+            }
+            
+            if (!game.player.isHurt && !game.player.isAttacking) {
+                game.player.setMageAnimation('jump');
+            }
+        }
+    }
     
     // Restart game when R is pressed and game is over or won
     if (event.key == 'r' && (game.gameOver || game.gameWon)) {
