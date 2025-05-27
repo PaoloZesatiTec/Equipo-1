@@ -25,8 +25,7 @@ html, body {
 }
 
 body {
-    background: url('../assets/backgrounds/main_background.jpg') no-repeat center center fixed;
-    background-size: cover;
+    background: black;
     font-family: 'Press Start 2P', monospace;
     color: #fff;
     position: relative;

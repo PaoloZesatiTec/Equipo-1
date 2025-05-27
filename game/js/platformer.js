@@ -32,7 +32,7 @@ class Player extends AnimatedObject {
         
         this.velocity = new Vec(0.0, 0.0);
         this.gems = 0;
-        this.lives = 2;
+        this.lives = 3;
         this.invulnerable = false;
         this.invulnerableTimer = 0;
         this.isDead = false;
@@ -181,24 +181,6 @@ class Player extends AnimatedObject {
     update(level, deltaTime) {
         if (this.isDead) return;
 
-        // Handle jumping with keyState for better responsiveness
-        if (keyState[" "] && !this.wasSpacePressed && (this.isOnGround(level) || this.isOnLadder) && !this.isJumping) {
-            this.velocity.y = initialJumpSpeed;
-            this.isJumping = true;
-    
-            if (this.isOnLadder) {
-                this.exitingLadder = true;   // Signal we're jumping *off* the ladder
-                this.isOnLadder = false;
-            }
-    
-            if (!this.isHurt && !this.isAttacking) {
-                this.setMageAnimation('jump');
-            }
-        }
-        
-        // Track space key state to prevent continuous jumping
-        this.wasSpacePressed = keyState[" "];
-
         // Handle delayed fireball creation during attack
         if (this.isAttacking && !this.fireballFired) {
             const now = performance.now();
@@ -324,6 +306,11 @@ class Player extends AnimatedObject {
             }
         }
 
+        // Reset isJumping if player is on ground and has no upward velocity
+        if (this.isJumping && this.isOnGround(level) && this.velocity.y >= 0) {
+            this.isJumping = false;
+        }
+
         // Update animation state based on movement
         if (!this.isHurt && !this.isAttacking) {
             if (this.isJumping) {
@@ -374,7 +361,8 @@ class Player extends AnimatedObject {
     // Method to check if player is on the ground
     isOnGround(level) {
         // Check if there's a wall or ladder directly below the player
-        const testPosition = this.position.plus(new Vec(0, 0.01)); // Slightly below current position
+        // Use a larger offset to account for floating point precision issues
+        const testPosition = this.position.plus(new Vec(0, 0.05)); // Increased from 0.01 to 0.05
         return level.contact(testPosition, this.size, 'wall') || level.contact(testPosition, this.size, 'ladder');
     }
 
@@ -494,23 +482,48 @@ class Player extends AnimatedObject {
     }
 }
 
-class Portal extends GameObject {
+class Portal extends AnimatedObject {
     constructor(x, y) {
-        super("purple", 1, 1, x, y, "portal");
+        super("purple", 1.5, 1.5, x, y, "portal"); // Increased hitbox from 1x1 to 1.5x1.5
+        
+        // Set up sprite animation for the dimensional portal (32x32 sprite sheet)
+        this.setSprite('../assets/figure/Portal/Dimensional_Portal.png', new Rect(0, 0, 32, 32));
+        this.sheetCols = 3; // 3 columns as specified
+        
+        // Start portal animation - 6 frames total (3 columns x 2 rows)
+        this.setAnimation(0, 5, true, 200); // Frames 0-5, looping, 200ms per frame
     }
 
     update(level, deltaTime) {
+        // Update animation frame
+        this.updateFrame(deltaTime);
     }
 
     draw(ctx, scale) {
-        ctx.fillStyle = this.color; 
-        ctx.fillRect(
-            this.position.x * scale,
-            this.position.y * scale,
-            this.size.x * scale,
-            this.size.y * scale
-        );
-        
+        // Draw the animated portal sprite
+        if (this.spriteImage && this.spriteRect) {
+            const spriteScale = 3.0; // Increased from 2.0 to 3.0 for bigger animation
+            const offsetX = (this.size.x * (spriteScale - 1)) / 2; // Center the larger sprite horizontally
+            const offsetY = (this.size.y * (spriteScale - 1)) / 2 + this.size.y * 1.5; // Move sprite much higher above the platform
+            
+            ctx.drawImage(this.spriteImage,
+                          this.spriteRect.x * this.spriteRect.width,
+                          this.spriteRect.y * this.spriteRect.height,
+                          this.spriteRect.width, this.spriteRect.height,
+                          (this.position.x - offsetX) * scale, 
+                          (this.position.y - offsetY) * scale, // Adjusted Y position to be well above platform
+                          this.size.x * scale * spriteScale, 
+                          this.size.y * scale * spriteScale);
+        } else {
+            // Fallback to purple rectangle if sprite isn't loaded
+            ctx.fillStyle = this.color; 
+            ctx.fillRect(
+                this.position.x * scale,
+                this.position.y * scale,
+                this.size.x * scale,
+                this.size.y * scale
+            );
+        }
     }
 }
 
@@ -714,29 +727,72 @@ const levelChars = {
 
 
 class Game {
-    constructor(state, level) {
+    constructor(state, level, levelNumber = 1) {
         this.state = state;
         this.level = level;
         this.player = level.player;
         this.actors = [...level.actors];
         this.gameOver = false;
         this.gameWon = false;
+        this.currentLevel = levelNumber; // Track current level
+        this.totalLevels = 3; // Updated to 3 total levels
+        
+        // Transition state properties
+        this.isTransitioning = false;
+        this.transitionTimer = 0;
+        this.transitionDuration = 3000; // 3 seconds
+        this.nextLevelNumber = null;
+        
+        // Load transition images
+        this.transitionImages = {};
+        this.transitionImagesLoaded = {};
+        
+        // Load level 2 transition image
+        this.transitionImages[2] = new Image();
+        this.transitionImagesLoaded[2] = false;
+        this.transitionImages[2].src = '../assets/figure/Transition/level2transition.png';
+        this.transitionImages[2].onload = () => {
+            console.log("Level 2 transition image loaded successfully!");
+            this.transitionImagesLoaded[2] = true;
+        };
+        this.transitionImages[2].onerror = () => {
+            console.error("Failed to load level 2 transition image");
+        };
+        
+        // Load level 3 transition image
+        this.transitionImages[3] = new Image();
+        this.transitionImagesLoaded[3] = false;
+        this.transitionImages[3].src = '../assets/figure/Transition/level3transition.png';
+        this.transitionImages[3].onload = () => {
+            console.log("Level 3 transition image loaded successfully!");
+            this.transitionImagesLoaded[3] = true;
+        };
+        this.transitionImages[3].onerror = () => {
+            console.error("Failed to load level 3 transition image");
+        };
 
-        // Load level background image
+        // Load level background image based on level number
         this.backgroundImage = new Image();
         this.backgroundLoaded = false;
-        this.backgroundImage.src = '../assets/Map1.jpg';  // Correct path to the image
         
-        console.log("Loading background image from:", this.backgroundImage.src);
+        if (levelNumber === 1) {
+            this.backgroundImage.src = '../assets/Map1.jpg';
+        } else if (levelNumber === 2) {
+            this.backgroundImage.src = '../assets/stages/Map-2/map-2.png';
+        } else if (levelNumber === 3) {
+            this.backgroundImage.src = '../assets/stages/Map-3/map_3.png';
+        }
+        
+        console.log(`Loading background image for level ${levelNumber} from:`, this.backgroundImage.src);
         
         this.backgroundImage.onload = () => {
-            console.log("Background image loaded successfully!");
+            console.log(`Level ${levelNumber} background image loaded successfully!`);
             console.log("Image dimensions:", this.backgroundImage.width, "x", this.backgroundImage.height);
             this.backgroundLoaded = true;
         };
         
         this.backgroundImage.onerror = (e) => {
-            console.error("Failed to load background image. Please check the browser console for details.");
+            console.error(`Failed to load level ${levelNumber} background image. Please check the browser console for details.`);
         };
 
         // Load UI sprites
@@ -749,11 +805,21 @@ class Game {
         
         this.labelGems = new TextLabel(80, 30, "30px Arial", "black");
 
-        console.log("############ LEVEL START ###################");
+        console.log(`############ LEVEL ${levelNumber} START ###################`);
     }
 
     update(deltaTime) {
         if (this.gameOver || this.gameWon) return;
+
+        // Handle level transition
+        if (this.isTransitioning) {
+            this.transitionTimer += deltaTime;
+            if (this.transitionTimer >= this.transitionDuration) {
+                // Transition complete, load next level
+                this.completeTransition();
+            }
+            return; // Don't update game during transition
+        }
 
         this.player.update(this.level, deltaTime);
 
@@ -783,7 +849,14 @@ class Game {
                         this.gameOver = true;
                     }
                 } else if (actor.type === 'portal') {
-                    this.gameWon = true;
+                    // Check if this is the last level
+                    if (this.currentLevel >= this.totalLevels) {
+                        // Final level completed - end the game
+                        this.gameWon = true;
+                    } else {
+                        // Start transition to next level
+                        this.startTransition();
+                    }
                 }
             }
         }
@@ -801,7 +874,122 @@ class Game {
                obj1.position.y + obj1.size.y > obj2.position.y;
     }
 
+    // Method to start level transition
+    startTransition() {
+        console.log(`Starting transition from level ${this.currentLevel} to level ${this.currentLevel + 1}`);
+        this.isTransitioning = true;
+        this.transitionTimer = 0;
+        this.nextLevelNumber = this.currentLevel + 1;
+    }
+
+    // Method to complete the transition and load next level
+    completeTransition() {
+        console.log(`Completing transition to level ${this.nextLevelNumber}`);
+        
+        // Reset camera position
+        cameraY = 0;
+        
+        // Create new level
+        const nextLevel = new Level(GAME_LEVELS[this.nextLevelNumber - 1]);
+        
+        // Preserve player stats but reset position and state
+        const playerGems = this.player.gems;
+        const playerLives = this.player.lives;
+        
+        // Create new game instance for next level
+        game = new Game('playing', nextLevel, this.nextLevelNumber);
+        
+        // Restore player stats
+        game.player.gems = playerGems;
+        game.player.lives = playerLives;
+        
+        console.log(`Level ${this.nextLevelNumber} loaded with ${playerGems} gems and ${playerLives} lives`);
+    }
+
+    // Method to advance to the next level (kept for compatibility, now just calls startTransition)
+    advanceToNextLevel() {
+        this.startTransition();
+    }
+
     draw(ctx, scale) {
+        // Handle transition screen
+        if (this.isTransitioning) {
+            // Draw black background
+            ctx.fillStyle = "black";
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+            
+            // Calculate fade effect
+            const fadeInDuration = 500; // 0.5 seconds to fade in
+            const fadeOutDuration = 500; // 0.5 seconds to fade out
+            const holdDuration = this.transitionDuration - fadeInDuration - fadeOutDuration; // Time to hold at full opacity
+            
+            let opacity = 1;
+            
+            if (this.transitionTimer < fadeInDuration) {
+                // Fade in phase
+                opacity = this.transitionTimer / fadeInDuration;
+            } else if (this.transitionTimer > fadeInDuration + holdDuration) {
+                // Fade out phase
+                const fadeOutProgress = this.transitionTimer - (fadeInDuration + holdDuration);
+                opacity = 1 - (fadeOutProgress / fadeOutDuration);
+            } else {
+                // Hold phase - full opacity
+                opacity = 1;
+            }
+            
+            // Ensure opacity stays within bounds
+            opacity = Math.max(0, Math.min(1, opacity));
+            
+            // Draw transition image if loaded
+            if (this.transitionImagesLoaded[this.nextLevelNumber] && this.transitionImages[this.nextLevelNumber].complete) {
+                // Calculate position to center the image
+                const imageWidth = this.transitionImages[this.nextLevelNumber].width;
+                const imageHeight = this.transitionImages[this.nextLevelNumber].height;
+                
+                // Scale the image to fit nicely on screen (max 80% of canvas size)
+                const maxWidth = canvasWidth * 0.8;
+                const maxHeight = canvasHeight * 0.8;
+                
+                let displayWidth = imageWidth;
+                let displayHeight = imageHeight;
+                
+                // Scale down if image is too large
+                if (imageWidth > maxWidth || imageHeight > maxHeight) {
+                    const scaleRatio = Math.min(maxWidth / imageWidth, maxHeight / imageHeight);
+                    displayWidth = imageWidth * scaleRatio;
+                    displayHeight = imageHeight * scaleRatio;
+                }
+                
+                // Center the image
+                const x = (canvasWidth - displayWidth) / 2;
+                const y = (canvasHeight - displayHeight) / 2;
+                
+                // Apply opacity
+                ctx.save();
+                ctx.globalAlpha = opacity;
+                
+                ctx.drawImage(
+                    this.transitionImages[this.nextLevelNumber],
+                    x, y,
+                    displayWidth, displayHeight
+                );
+                
+                ctx.restore();
+            } else {
+                // Fallback text if image isn't loaded
+                ctx.save();
+                ctx.globalAlpha = opacity;
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.font = "bold 48px Arial";
+                ctx.fillStyle = "white";
+                ctx.fillText(`Entering Level ${this.nextLevelNumber}`, canvasWidth / 2, canvasHeight / 2);
+                ctx.restore();
+            }
+            
+            return; // Don't draw game elements during transition
+        }
+
         ctx.save();
         
         // Apply camera translation for game elements
@@ -950,13 +1138,22 @@ class Game {
             ctx.fillStyle = "white";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
-            ctx.fillText("LEVEL COMPLETE!", canvasWidth / 2, canvasHeight / 2 - 50);
-
-            ctx.font = "bold 32px 'Arial Rounded MT Bold', 'Arial Black', sans-serif";
-            ctx.fillText(`Score: ${this.player.gems}`, canvasWidth / 2, canvasHeight / 2 + 20);
-
-            ctx.font = "24px Arial";
-            ctx.fillText("Press R to Continue", canvasWidth / 2, canvasHeight / 2 + 80);
+            
+            // Show different message based on whether this is the final level
+            if (this.currentLevel >= this.totalLevels) {
+                ctx.fillText("GAME COMPLETE!", canvasWidth / 2, canvasHeight / 2 - 50);
+                ctx.font = "bold 32px 'Arial Rounded MT Bold', 'Arial Black', sans-serif";
+                ctx.fillText(`Final Score: ${this.player.gems}`, canvasWidth / 2, canvasHeight / 2 + 20);
+                ctx.font = "24px Arial";
+                ctx.fillText("Press R to Play Again", canvasWidth / 2, canvasHeight / 2 + 80);
+            } else {
+                ctx.fillText("LEVEL COMPLETE!", canvasWidth / 2, canvasHeight / 2 - 50);
+                ctx.font = "bold 32px 'Arial Rounded MT Bold', 'Arial Black', sans-serif";
+                ctx.fillText(`Score: ${this.player.gems}`, canvasWidth / 2, canvasHeight / 2 + 20);
+                ctx.font = "24px Arial";
+                ctx.fillText("Entering Portal...", canvasWidth / 2, canvasHeight / 2 + 80);
+            }
+            
             ctx.restore();
         }
     }
@@ -1005,7 +1202,7 @@ function init() {
 
 
 function gameStart() {
-    game = new Game('playing', new Level(GAME_LEVELS[0]));
+    game = new Game('playing', new Level(GAME_LEVELS[0]), 1); // Start with level 1
     setEventListeners();
     updateCanvas(document.timeline.currentTime);
 }
@@ -1027,14 +1224,30 @@ function handleKeyDown(event) {
     if (event.key == 'd') game.player.startMovement("right");
     if (event.key == 's') game.player.crouch();
     if (event.key == 'e') game.player.fireFireball();
+    if (event.key == ' ') {
+        // Simplified jumping logic - allow jumping if not already jumping and velocity is low
+        if (!game.player.isJumping && game.player.velocity.y >= -0.001) {
+            game.player.velocity.y = initialJumpSpeed;
+            game.player.isJumping = true;
+            
+            if (game.player.isOnLadder) {
+                game.player.exitingLadder = true;
+                game.player.isOnLadder = false;
+            }
+            
+            if (!game.player.isHurt && !game.player.isAttacking) {
+                game.player.setMageAnimation('jump');
+            }
+        }
+    }
     
     // Restart game when R is pressed and game is over or won
     if (event.key == 'r' && (game.gameOver || game.gameWon)) {
         // Reset game state
         frameStart = undefined;
         cameraY = 0;
-        // Create new game instance
-        game = new Game('playing', new Level(GAME_LEVELS[0]));
+        // Create new game instance starting from level 1
+        game = new Game('playing', new Level(GAME_LEVELS[0]), 1);
     }
 }
 
