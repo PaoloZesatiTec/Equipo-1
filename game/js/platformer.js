@@ -428,8 +428,8 @@ class Player extends AnimatedObject {
 
         // Calculate sprite size (adjust scale for better fit)
         const spriteScale = 2.5; // Increased from 2.0 to make sprite bigger
-        const spriteWidth = this.size.x * scale * spriteScale * 1.15; // Made 15% wider
-        const spriteHeight = this.size.y * scale * spriteScale;
+        const spriteWidth = this.size.x * scale * spriteScale * 1.4; // Made 30% wider (increased from 1.15)
+        const spriteHeight = this.size.y * scale * spriteScale * 1.05;
         
         // Center the sprite on the hitbox with adjustments for mage sprite padding
         const hitboxCenterX = (this.position.x + this.size.x / 2) * scale;

@@ -129,27 +129,98 @@ class Ladder extends GameObject {
     }
 
     draw(ctx, scale) {
-        // Fill with brown color
-        ctx.fillStyle = "#8B4513"; // Darker brown
-        ctx.fillRect(
-            this.position.x * scale,
-            this.position.y * scale,
-            this.size.x * scale,
-            this.size.y * scale
-        );
+        const x = this.position.x * scale;
+        const y = this.position.y * scale;
+        const width = this.size.x * scale;
+        const height = this.size.y * scale;
 
-        // Add some ladder rungs for visual effect
-        ctx.fillStyle = "#A0522D"; // Lighter brown for rungs
-        const rungs = 3;
-        const rungHeight = (this.size.y * scale) / (rungs + 1);
-        for (let i = 1; i <= rungs; i++) {
-            ctx.fillRect(
-                this.position.x * scale,
-                this.position.y * scale + (i * rungHeight),
-                this.size.x * scale,
-                5 // rung thickness
-            );
+        // Draw ladder shadow first (for depth)
+        ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+        ctx.fillRect(x + 2, y + 2, width, height);
+
+        // Draw background (wall behind ladder)
+        ctx.fillStyle = "#654321"; // Dark brown background
+        ctx.fillRect(x, y, width, height);
+
+        // Calculate ladder dimensions
+        const railWidth = width * 0.15; // Side rails are 15% of total width
+        const rungSpacing = height / 6; // 6 rungs per ladder block
+        const rungThickness = 4;
+        const rungWidth = width * 0.7; // Rungs span 70% of width
+        const rungStartX = x + (width - rungWidth) / 2;
+
+        // Draw left rail with gradient effect
+        const leftRailGradient = ctx.createLinearGradient(x, y, x + railWidth, y);
+        leftRailGradient.addColorStop(0, "#8B4513"); // Saddle brown
+        leftRailGradient.addColorStop(0.5, "#A0522D"); // Sienna
+        leftRailGradient.addColorStop(1, "#654321"); // Dark brown
+        ctx.fillStyle = leftRailGradient;
+        ctx.fillRect(x + railWidth * 0.5, y, railWidth, height);
+
+        // Draw right rail with gradient effect
+        const rightRailGradient = ctx.createLinearGradient(x + width - railWidth, y, x + width, y);
+        rightRailGradient.addColorStop(0, "#654321"); // Dark brown
+        rightRailGradient.addColorStop(0.5, "#A0522D"); // Sienna
+        rightRailGradient.addColorStop(1, "#8B4513"); // Saddle brown
+        ctx.fillStyle = rightRailGradient;
+        ctx.fillRect(x + width - railWidth * 1.5, y, railWidth, height);
+
+        // Draw rungs with 3D effect
+        for (let i = 1; i <= 5; i++) {
+            const rungY = y + (i * rungSpacing);
+            
+            // Rung shadow
+            ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
+            ctx.fillRect(rungStartX + 1, rungY + 1, rungWidth, rungThickness);
+            
+            // Main rung with gradient
+            const rungGradient = ctx.createLinearGradient(rungStartX, rungY, rungStartX, rungY + rungThickness);
+            rungGradient.addColorStop(0, "#D2B48C"); // Tan (highlight)
+            rungGradient.addColorStop(0.5, "#A0522D"); // Sienna
+            rungGradient.addColorStop(1, "#8B4513"); // Saddle brown (shadow)
+            ctx.fillStyle = rungGradient;
+            ctx.fillRect(rungStartX, rungY, rungWidth, rungThickness);
+
+            // Rung highlight on top
+            ctx.fillStyle = "#DEB887"; // Burlywood highlight
+            ctx.fillRect(rungStartX, rungY, rungWidth, 1);
         }
+
+        // Add some wood grain texture to rails
+        ctx.strokeStyle = "rgba(101, 67, 33, 0.3)"; // Dark brown grain
+        ctx.lineWidth = 1;
+        
+        // Left rail grain
+        for (let i = 0; i < 3; i++) {
+            ctx.beginPath();
+            ctx.moveTo(x + railWidth * 0.5 + i * 2, y);
+            ctx.lineTo(x + railWidth * 0.5 + i * 2, y + height);
+            ctx.stroke();
+        }
+        
+        // Right rail grain
+        for (let i = 0; i < 3; i++) {
+            ctx.beginPath();
+            ctx.moveTo(x + width - railWidth * 1.5 + i * 2, y);
+            ctx.lineTo(x + width - railWidth * 1.5 + i * 2, y + height);
+            ctx.stroke();
+        }
+
+        // Add metal brackets at connection points (top and bottom)
+        ctx.fillStyle = "#696969"; // Dim gray for metal
+        
+        // Top brackets
+        ctx.fillRect(x + railWidth * 0.3, y + 2, railWidth * 0.4, 3);
+        ctx.fillRect(x + width - railWidth * 0.7, y + 2, railWidth * 0.4, 3);
+        
+        // Bottom brackets
+        ctx.fillRect(x + railWidth * 0.3, y + height - 5, railWidth * 0.4, 3);
+        ctx.fillRect(x + width - railWidth * 0.7, y + height - 5, railWidth * 0.4, 3);
+
+        // Add subtle highlight to the entire ladder
+        ctx.strokeStyle = "rgba(222, 184, 135, 0.2)"; // Burlywood with transparency
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, y, width, height);
     }
 
     update() {
