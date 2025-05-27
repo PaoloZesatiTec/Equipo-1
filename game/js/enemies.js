@@ -64,18 +64,6 @@ class Barrel extends GameObject {
             this.size.x * scale,
             this.size.y * scale
         );
-
-        // Debug
-        ctx.save();
-        ctx.strokeStyle = 'red';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(
-            this.position.x * scale,
-            this.position.y * scale,
-            this.size.x * scale,
-            this.size.y * scale
-        );
-        ctx.restore();
     }
 }
 
@@ -158,18 +146,6 @@ class Enemy extends AnimatedObject {
                           this.size.x * scale * spriteScale, 
                           this.size.y * scale * spriteScale);
         }
-
-        // Draw hitbox for debugging
-        ctx.save();
-        ctx.strokeStyle = 'red';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(
-            this.position.x * scale,
-            this.position.y * scale,
-            this.size.x * scale,
-            this.size.y * scale
-        );
-        ctx.restore();
     }
 }
 
@@ -324,34 +300,6 @@ class Minotaur extends AnimatedObject {
                           (this.position.y - offsetY) * scale,
                           this.size.x * scale * spriteScale, 
                           this.size.y * scale * spriteScale);
-        }
-
-        // Draw hitbox for debugging
-        ctx.save();
-        ctx.strokeStyle = this.state === 'rush' ? 'darkred' : 
-                         this.state === 'wait' ? 'brown' : 'red';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(
-            this.position.x * scale,
-            this.position.y * scale,
-            this.size.x * scale,
-            this.size.y * scale
-        );
-        ctx.restore();
-
-        // Draw detection range for debugging
-        if (this.state === 'patrol') {
-            ctx.save();
-            ctx.strokeStyle = 'rgba(255, 0, 0, 0.2)';
-            ctx.beginPath();
-            const rangeX = this.direction === 1 ? 
-                this.position.x * scale + this.size.x * scale :
-                this.position.x * scale;
-            ctx.moveTo(rangeX, this.position.y * scale);
-            ctx.lineTo(rangeX + this.detectionRange * scale * this.direction, 
-                      this.position.y * scale);
-            ctx.stroke();
-            ctx.restore();
         }
     }
 }

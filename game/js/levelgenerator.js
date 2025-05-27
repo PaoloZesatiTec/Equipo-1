@@ -7,9 +7,9 @@ class LevelGenerator {
         this.minPlatformLength = 4;
         this.maxPlatformLength = 7;
         this.jumpDistance = 3; // Reasonable jump distance
-        this.layerHeight = 6; // Increased from 5 to 6 units between layers
+        this.layerHeight = 4; // Increased from 5 to 6 units between layers
         this.enemyChance = 0.4; // Increased from 0.15 to 0.4 to compensate for one-enemy-per-platform
-        this.gemChance = 0.4; // Good gem distribution
+        this.gemChance = 0.2; // Good gem distribution
     }
 
     generate() {
