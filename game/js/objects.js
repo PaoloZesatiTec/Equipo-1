@@ -49,18 +49,6 @@ class Gem extends AnimatedObject {
                 this.size.x * scale * visualSizeMultiplier,   // Destination width (bigger)
                 this.size.y * scale * visualSizeMultiplier    // Destination height (bigger)
             );
-            
-            // Debug hitbox visualization (uncomment to see hitbox)
-            ctx.save();
-            ctx.strokeStyle = 'red';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(
-                this.position.x * scale,
-                this.position.y * scale,
-                this.size.x * scale,
-                this.size.y * scale
-            );
-            ctx.restore();
         } else {
             // Fallback to a simple colored square if image isn't loaded
             ctx.fillStyle = "gold";

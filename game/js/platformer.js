@@ -40,6 +40,7 @@ class Player extends AnimatedObject {
         this.isFacingRight = true;
         this.isJumping = false;
         this.isCrouching = false;
+        this.wasSpacePressed = false; // Track space key for responsive jumping
         this.lastFireTime = -Infinity;
         this.fireCooldown = 10000; // 10 seconds in milliseconds
         this.exitingLadder = false;
@@ -48,35 +49,86 @@ class Player extends AnimatedObject {
         // Horizontal hitbox: narrower than the player's main hitbox, defined in Level constructor
         this.horizontalHitbox = null; // Initialize to null
 
-        // Movement variables to define directions and animations
-        this.movement = {
-            right:  { status: false,
-                      axis: "x",
-                      sign: 1,
-                      repeat: true,
-                      duration: 80,
-                      moveFrames: [24, 31],
-                      idleFrames: [0, 0] },
-            left:   { status: false,
-                      axis: "x",
-                      sign: -1,
-                      repeat: true,
-                      duration: 80,
-                      moveFrames: [56, 63],
-                      idleFrames: [32, 32] },
-            jump:   { status: false,
-                      repeat: false,
-                      duration: 300,
-                      right: [6, 7],
-                      left: [38, 39] },
-            crouch: { status: false,
-                      repeat: false,
-                      duration: 100,
-                      right: [1, 1],
-                      left: [33, 33],
-                      upRight: [0, 0],
-                      upLeft: [32, 32] },
+        // Mage animation system
+        this.currentAnimation = 'idle';
+        this.animationFrame = 0;
+        this.animationTimer = 0;
+        this.animationSpeed = 150; // milliseconds per frame
+        this.isAttacking = false;
+        this.isHurt = false;
+        this.hurtTimer = 0;
+        this.hurtDuration = 500; // 500ms hurt animation
+        
+        // Attack timing variables
+        this.attackStartTime = 0;
+        this.fireballDelay = 100; // 0.1 seconds in milliseconds
+        this.fireballFired = false;
+
+        // Load all mage sprites
+        this.sprites = {
+            idle: [],
+            walk: [],
+            jump: [],
+            attack: [],
+            climb: [],
+            hurt: []
         };
+
+        this.loadMageSprites();
+
+        // Animation frame counts
+        this.animationFrames = {
+            idle: 14,
+            walk: 6,
+            jump: 7, // Updated to use all 7 jump frames
+            attack: 7,
+            climb: 4,
+            hurt: 4 // Updated to use all 4 hurt frames
+        };
+    }
+
+    loadMageSprites() {
+        // Load idle animation (14 frames)
+        for (let i = 1; i <= 14; i++) {
+            const img = new Image();
+            img.src = `../assets/figure/Mage/Idle/idle${i}.png`;
+            this.sprites.idle.push(img);
+        }
+
+        // Load walk animation (6 frames)
+        for (let i = 1; i <= 6; i++) {
+            const img = new Image();
+            img.src = `../assets/figure/Mage/Walk/walk${i}.png`;
+            this.sprites.walk.push(img);
+        }
+
+        // Load jump animation (7 frames)
+        for (let i = 1; i <= 7; i++) {
+            const img = new Image();
+            img.src = `../assets/figure/Mage/Jump/jump${i}.png`;
+            this.sprites.jump.push(img);
+        }
+
+        // Load attack animation (7 frames)
+        for (let i = 1; i <= 7; i++) {
+            const img = new Image();
+            img.src = `../assets/figure/Mage/Attack/attack${i}.png`;
+            this.sprites.attack.push(img);
+        }
+
+        // Load climb animation (4 frames)
+        for (let i = 1; i <= 4; i++) {
+            const img = new Image();
+            img.src = `../assets/figure/Mage/Climb/climb${i}.png`;
+            this.sprites.climb.push(img);
+        }
+
+        // Load hurt animation (4 frames)
+        for (let i = 1; i <= 4; i++) {
+            const img = new Image();
+            img.src = `../assets/figure/Mage/Hurt/hurt${i}.png`;
+            this.sprites.hurt.push(img);
+        }
     }
 
     // Method to center the hitbox
@@ -87,8 +139,93 @@ class Player extends AnimatedObject {
         this.position = new Vec(this.originalX + xOffset, this.originalY + yOffset);
     }
 
+    setMageAnimation(animationType) {
+        if (this.currentAnimation !== animationType) {
+            this.currentAnimation = animationType;
+            // Start attack animation with frame 2 (attack3.png)
+            this.animationFrame = animationType === 'attack' ? 2 : 0;
+            this.animationTimer = 0;
+        }
+    }
+
+    updateMageAnimation(deltaTime) {
+        this.animationTimer += deltaTime;
+        
+        if (this.animationTimer >= this.animationSpeed) {
+            this.animationTimer = 0;
+            
+            const maxFrames = this.animationFrames[this.currentAnimation];
+            
+            if (this.currentAnimation === 'attack' && this.isAttacking) {
+                this.animationFrame++;
+                if (this.animationFrame >= maxFrames) {
+                    this.isAttacking = false;
+                    this.animationFrame = 0;
+                    // Return to appropriate animation after attack
+                    if (this.velocity.x !== 0) {
+                        this.setMageAnimation('walk');
+                    } else {
+                        this.setMageAnimation('idle');
+                    }
+                }
+            } else if (this.currentAnimation === 'hurt' && this.isHurt) {
+                // Hurt animation doesn't loop, just stays on frame 0
+                // The hurt state is controlled by hurtTimer
+            } else {
+                // Normal looping animations
+                this.animationFrame = (this.animationFrame + 1) % maxFrames;
+            }
+        }
+    }
+
     update(level, deltaTime) {
         if (this.isDead) return;
+
+        // Handle jumping with keyState for better responsiveness
+        if (keyState[" "] && !this.wasSpacePressed && (this.isOnGround(level) || this.isOnLadder) && !this.isJumping) {
+            this.velocity.y = initialJumpSpeed;
+            this.isJumping = true;
+    
+            if (this.isOnLadder) {
+                this.exitingLadder = true;   // Signal we're jumping *off* the ladder
+                this.isOnLadder = false;
+            }
+    
+            if (!this.isHurt && !this.isAttacking) {
+                this.setMageAnimation('jump');
+            }
+        }
+        
+        // Track space key state to prevent continuous jumping
+        this.wasSpacePressed = keyState[" "];
+
+        // Handle delayed fireball creation during attack
+        if (this.isAttacking && !this.fireballFired) {
+            const now = performance.now();
+            if (now - this.attackStartTime >= this.fireballDelay) {
+                // Create fireball after delay
+                const fireX = this.position.x + (this.isFacingRight ? this.size.x : -0.5);
+                const fireY = this.position.y + (this.size.y * 0.3); // Lower position, about chest level
+                const direction = this.isFacingRight ? 1 : -1;
+                const fireball = new Fireball(fireX, fireY, direction);
+                game.actors.push(fireball);
+                this.fireballFired = true;
+            }
+        }
+
+        // Update hurt state
+        if (this.isHurt) {
+            this.hurtTimer -= deltaTime;
+            if (this.hurtTimer <= 0) {
+                this.isHurt = false;
+                // Return to appropriate animation
+                if (this.velocity.x !== 0) {
+                    this.setMageAnimation('walk');
+                } else {
+                    this.setMageAnimation('idle');
+                }
+            }
+        }
 
         // Update invulnerability
         if (this.invulnerable) {
@@ -98,18 +235,18 @@ class Player extends AnimatedObject {
             }
         }
 
-        // Check if the player is on a ladder using the entire player hitbox
+        // Simplified ladder system: activate when touching ladder AND pressing W or S
         let wasOnLadder = this.isOnLadder;
-        let ladderContact = level.contact(this.position, this.size, "ladder");
-
-        // Update ladder state
-        if (wasOnLadder && !ladderContact) {
-            this.ladderCooldownTime = performance.now();
-            this.isOnLadder = false;
-        }
-
-        if (ladderContact && (!this.ladderCooldownTime || performance.now() - this.ladderCooldownTime > 200)) {
+        let bottomOnLadder = this.isBottomOnLadder(level);
+        
+        // Enter ladder mode if touching ladder AND pressing W or S
+        if (bottomOnLadder && (keyState["w"] || keyState["s"]) && !this.isOnLadder) {
             this.isOnLadder = true;
+        }
+        
+        // Exit ladder mode only if no longer touching ladder with bottom
+        if (this.isOnLadder && !bottomOnLadder) {
+            this.isOnLadder = false;
         }
 
         // Apply gravity or ladder movement
@@ -123,13 +260,22 @@ class Player extends AnimatedObject {
                 let upwardPosition = this.position.plus(new Vec(0, -0.1));
                 if (!level.contact(upwardPosition, this.size, 'wall')) {
                     this.velocity.y = -0.008;
+                    if (!this.isHurt && !this.isAttacking) {
+                        this.setMageAnimation('climb');
+                    }
                 }
             } else if (keyState["s"]) {
                 // Check if there's a wall directly below before moving down
                 let downwardPosition = this.position.plus(new Vec(0, 0.1));
                 if (!level.contact(downwardPosition, this.size, 'wall')) {
                     this.velocity.y = 0.008;
+                    if (!this.isHurt && !this.isAttacking) {
+                        this.setMageAnimation('climb');
+                    }
                 }
+            } else if (this.isOnLadder && !this.isHurt && !this.isAttacking) {
+                // Idle on ladder
+                this.setMageAnimation('idle');
             }
         }
     
@@ -166,7 +312,9 @@ class Player extends AnimatedObject {
             }
         } else {
             // Normal collision check when not on ladder
-            if (level.contact(newYPosition, this.size, 'wall')) {
+            // Check for both walls and ladders as solid surfaces
+            if (level.contact(newYPosition, this.size, 'wall') || 
+                (level.contact(newYPosition, this.size, 'ladder') && velY > 0)) {
                 this.velocity.y = 0;
                 if (velY > 0) {
                     this.land();
@@ -175,135 +323,146 @@ class Player extends AnimatedObject {
                 this.position = newYPosition;
             }
         }
+
+        // Update animation state based on movement
+        if (!this.isHurt && !this.isAttacking) {
+            if (this.isJumping) {
+                this.setMageAnimation('jump');
+            } else if (this.velocity.x !== 0 && !this.isOnLadder) {
+                this.setMageAnimation('walk');
+            } else if (!this.isOnLadder) {
+                this.setMageAnimation('idle');
+            }
+        }
     
-        this.updateFrame(deltaTime);
+        this.updateMageAnimation(deltaTime);
     }
-    
 
     startMovement(direction) {
-        const dirData = this.movement[direction];
         this.isFacingRight = direction == "right";
-        if (!dirData.status && !this.isCrouching) {
-            dirData.status = true;
-            this.velocity[dirData.axis] = dirData.sign * walkSpeed;
-            this.setAnimation(...dirData.moveFrames, dirData.repeat, dirData.duration);
+        if (!this.isCrouching && !this.isAttacking) {
+            this.velocity.x = (direction === "right" ? 1 : -1) * walkSpeed;
+            if (!this.isHurt && !this.isJumping && !this.isOnLadder) {
+                this.setMageAnimation('walk');
+            }
         }
     }
 
     stopMovement(direction) {
-        const dirData = this.movement[direction];
-        dirData.status = false;
-        this.velocity[dirData.axis] = 0;
-        this.setAnimation(...dirData.idleFrames, dirData.repeat, 100);
+        this.velocity.x = 0;
+        if (!this.isHurt && !this.isAttacking && !this.isJumping && !this.isOnLadder) {
+            this.setMageAnimation('idle');
+        }
     }
 
     crouch() {
         this.isCrouching = true;
         this.velocity.x = 0;
-        const crouchData = this.movement.crouch;
-        if (this.isFacingRight) {
-            this.setAnimation(...crouchData.right, crouchData.repeat, crouchData.duration);
-        } else {
-            this.setAnimation(...crouchData.left, crouchData.repeat, crouchData.duration);
+        // Mage doesn't have crouch animation, use idle
+        if (!this.isHurt && !this.isAttacking) {
+            this.setMageAnimation('idle');
         }
     }
 
-    standUp () {
+    standUp() {
         this.isCrouching = false;
-        const crouchData = this.movement.crouch;
-        if (this.isFacingRight) {
-            this.setAnimation(...crouchData.upRight, crouchData.repeat, crouchData.duration);
-        } else {
-            this.setAnimation(...crouchData.upLeft, crouchData.repeat, crouchData.duration);
+        if (!this.isHurt && !this.isAttacking) {
+            this.setMageAnimation('idle');
         }
     }
 
-    jump() {
-        if (!this.isJumping || this.isOnLadder) {
-            this.velocity.y = initialJumpSpeed;
-            this.isJumping = true;
-    
-            if (this.isOnLadder) {
-                this.exitingLadder = true;   // Signal we're jumping *off* the ladder
-                this.isOnLadder = false;
-            }
-    
-            const jumpData = this.movement.jump;
-            if (this.isFacingRight) {
-                this.setAnimation(...jumpData.right, jumpData.repeat, jumpData.duration);
-            } else {
-                this.setAnimation(...jumpData.left, jumpData.repeat, jumpData.duration);
-            }
-        }
+    // Method to check if player is on the ground
+    isOnGround(level) {
+        // Check if there's a wall or ladder directly below the player
+        const testPosition = this.position.plus(new Vec(0, 0.01)); // Slightly below current position
+        return level.contact(testPosition, this.size, 'wall') || level.contact(testPosition, this.size, 'ladder');
     }
-    
-    
+
+    // Method to check if only the bottom part of the player is touching a ladder
+    isBottomOnLadder(level) {
+        // Check a larger portion of the player hitbox for ladder contact (bottom 60%)
+        // Also extend slightly below to catch ladders when standing on top
+        const bottomHeight = this.size.y * 0.6; // Bottom 60% of the player (increased from 50%)
+        const bottomPosition = new Vec(this.position.x, this.position.y + this.size.y - bottomHeight);
+        const bottomSize = new Vec(this.size.x, bottomHeight + 0.1); // Extend slightly below
+        return level.contact(bottomPosition, bottomSize, 'ladder');
+    }
 
     land() {
         // If the character is touching the ground,
         // there is no vertical velocity
         this.velocity.y = 0;
-        // Force the player to move down to touch the floor
-        this.position.y = Math.ceil(this.position.y);
         if (this.isJumping) {
             // Reset the jump variable
             this.isJumping = false;
-            const leftData = this.movement["left"];
-            const rightData = this.movement["right"];
-            // Continue the running animation if the player is moving
-            if (leftData.status) {
-                this.setAnimation(...leftData.moveFrames, leftData.repeat, leftData.duration);
-            } else if (rightData.status) {
-                this.setAnimation(...rightData.moveFrames, rightData.repeat, rightData.duration);
-            // Otherwise switch to the idle animation
-            } else {
-                if (this.isFacingRight) {
-                    this.setAnimation(0, 0, false, 100);
+            // Return to appropriate animation
+            if (!this.isHurt && !this.isAttacking) {
+                if (this.velocity.x !== 0) {
+                    this.setMageAnimation('walk');
                 } else {
-                    this.setAnimation(32, 32, false, 100);
+                    this.setMageAnimation('idle');
                 }
             }
         }
     }
+
     fireFireball() {
         const now = performance.now();
         if (now - this.lastFireTime >= this.fireCooldown) {
-            // Better fireball position - shoot from center of player
-            const fireX = this.position.x + (this.isFacingRight ? this.size.x : -0.5);
-            const fireY = this.position.y + (this.size.y * 0.3); // Lower position, about chest level
-            const direction = this.isFacingRight ? 1 : -1;
-            const fireball = new Fireball(fireX, fireY, direction);
-            game.actors.push(fireball);
+            // Start attack animation immediately
+            this.isAttacking = true;
+            this.setMageAnimation('attack');
+            this.attackStartTime = now;
+            this.fireballFired = false;
             this.lastFireTime = now;
         }
     }
 
     draw(ctx, scale) {
-        // Draw the player sprite first
-        super.draw(ctx, scale);
-        console.log(scale, "scale");
+        // Get current sprite
+        const currentSprites = this.sprites[this.currentAnimation];
+        if (!currentSprites || currentSprites.length === 0) return;
         
-        // Draw hitbox outline for debugging
-        ctx.strokeStyle = 'red';
-        ctx.lineWidth = 3;
-        ctx.strokeRect(
-            this.position.x * scale,
-            this.position.y * scale,
-            this.size.x * scale,
-            this.size.y * scale
-        );
+        const currentSprite = currentSprites[this.animationFrame];
+        if (!currentSprite || !currentSprite.complete) return;
+
+        // Calculate sprite size (adjust scale for better fit)
+        const spriteScale = 2.5; // Increased from 2.0 to make sprite bigger
+        const spriteWidth = this.size.x * scale * spriteScale * 1.15; // Made 15% wider
+        const spriteHeight = this.size.y * scale * spriteScale;
         
-        // Add center cross marker
-        const centerX = (this.position.x + this.size.x/2) * scale;
-        const centerY = (this.position.y + this.size.y/2) * scale;
-        const crossSize = 10;
+        // Center the sprite on the hitbox with adjustments for mage sprite padding
+        const hitboxCenterX = (this.position.x + this.size.x / 2) * scale;
+        const hitboxCenterY = (this.position.y + this.size.y / 2) * scale;
         
-        ctx.beginPath();
-        ctx.moveTo(centerX - crossSize, centerY);
-        ctx.lineTo(centerX + crossSize, centerY);
-        ctx.moveTo(centerX, centerY - crossSize);
-        ctx.lineTo(centerX, centerY + crossSize);
-        ctx.stroke();
+        // Add offsets to account for mage sprite internal padding
+        const verticalOffset = -15; // Increased from -5 to move sprite up so feet align with hitbox bottom
+        const horizontalOffset = 5; // Move sprite slightly to the right (reduced from 8)
+        
+        const drawX = hitboxCenterX - spriteWidth / 2 + horizontalOffset;
+        const drawY = hitboxCenterY - spriteHeight / 2 + verticalOffset;
+
+        ctx.save();
+        
+        // Flip horizontally if facing left
+        if (!this.isFacingRight) {
+            ctx.scale(-1, 1);
+            // When flipped, we need to adjust the horizontal offset
+            const flippedDrawX = hitboxCenterX - spriteWidth / 2 - horizontalOffset;
+            ctx.drawImage(
+                currentSprite,
+                -(flippedDrawX + spriteWidth), drawY,
+                spriteWidth, spriteHeight
+            );
+        } else {
+            ctx.drawImage(
+                currentSprite,
+                drawX, drawY,
+                spriteWidth, spriteHeight
+            );
+        }
+        
+        ctx.restore();
     }
 
     // Add method to handle losing a life
@@ -311,7 +470,12 @@ class Player extends AnimatedObject {
         if (!this.invulnerable && !this.isDead) {
             this.lives--;
             this.invulnerable = true;
-            this.invulnerableTimer = 1500; // 1.5 seconds of invulnerability
+            this.invulnerableTimer = 2000; // 2 seconds of invulnerability (changed from 1500)
+            
+            // Trigger hurt animation
+            this.isHurt = true;
+            this.hurtTimer = this.hurtDuration;
+            this.setMageAnimation('hurt');
             
             if (this.lives <= 0) {
                 this.die();
@@ -399,13 +563,22 @@ class Level {
 
                 if (actor.type === "player") {
                     this.addBackgroundFloor(x, y);
-                    actor.position = actor.position.plus(new Vec(0, -3));
-                    actor.size = new Vec(0.8, 3);
+                    
+                    // Set the final hitbox size first
+                    actor.size = new Vec(0.7, 1.5);
+                    
+                    // Calculate proper position so bottom of hitbox aligns with ground
+                    // The original position (x, y) represents the top-left of the grid cell
+                    // We want the bottom of the player hitbox to be at y + 1 (bottom of the cell)
+                    const targetBottomY = y + 1;  // Bottom of the grid cell
+                    const newY = targetBottomY - actor.size.y;  // Top of hitbox
+                    
+                    // Center horizontally in the cell
+                    const newX = x + (1 - actor.size.x) / 2;
+                    
+                    actor.position = new Vec(newX, newY);
 
-                    let instanceRect = new Rect(...item.rectParams);
-                    actor.setSprite(item.sprite, instanceRect);
-                    actor.sheetCols = item.sheetCols;
-                    actor.setAnimation(...item.startFrame, false, 100);
+                    // No need for sprite configuration - mage sprites are loaded in Player class
                     this.player = actor;
                     cellType = "empty";
                 } else if (actor.type === "gem") {
@@ -419,18 +592,6 @@ class Level {
                     const originalDraw = actor.draw;
                     actor.draw = function(ctx, scale) {
                         originalDraw.call(this, ctx, scale);
-                        
-                        // Add hitbox
-                        ctx.save();
-                        ctx.strokeStyle = 'red';
-                        ctx.lineWidth = 2;
-                        ctx.strokeRect(
-                            this.position.x * scale,
-                            this.position.y * scale,
-                            this.size.x * scale,
-                            this.size.y * scale
-                        );
-                        ctx.restore();
                     };
                     this.actors.push(actor);
                     cellType = "wall";
@@ -512,11 +673,7 @@ const levelChars = {
         rectParams: [1, 6, 32, 32] 
                                     },
     "@": { objClass: Player,
-           label: "player",
-           sprite: '../assets/assets_platform/sprites/hero/redpants_left_right.png',
-           rectParams: [0, 0, 46, 50],
-           sheetCols: 8,
-           startFrame: [0, 0] },
+           label: "player" },
     "$": { objClass: Gem,
        label: "collectible",
        sprite: '../assets/Items/Gems/Gem Animations/gem_animation.png',
@@ -866,7 +1023,6 @@ function setEventListeners() {
 function handleKeyDown(event) {
     keyState[event.key] = true;
 
-    if (event.code == 'Space') game.player.jump();
     if (event.key == 'a') game.player.startMovement("left");
     if (event.key == 'd') game.player.startMovement("right");
     if (event.key == 's') game.player.crouch();

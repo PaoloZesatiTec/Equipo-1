@@ -59,11 +59,21 @@ class GameObject {
         if (rect) {
             this.spriteRect = rect;
         }
+        
+        // Add error handling for failed image loads
+        this.spriteImage.onerror = () => {
+            console.warn(`Failed to load sprite image: ${imagePath}`);
+            this.spriteImage = null; // Clear the broken image reference
+        };
+        
+        this.spriteImage.onload = () => {
+            console.log(`Successfully loaded sprite: ${imagePath}`);
+        };
     }
 
     draw(ctx, scale) {
-        if (this.spriteImage) {
-            // Draw a sprite if the object has one defined
+        if (this.spriteImage && this.spriteImage.complete && this.spriteImage.naturalWidth > 0) {
+            // Draw a sprite if the object has one defined and it's properly loaded
             if (this.spriteRect) {
                 ctx.drawImage(this.spriteImage,
                               this.spriteRect.x * this.spriteRect.width,
@@ -77,7 +87,7 @@ class GameObject {
                               this.size.x * scale, this.size.y * scale);
             }
         } else {
-            // If there is no sprite asociated, just draw a color square
+            // If there is no sprite or it failed to load, just draw a color square
             ctx.fillStyle = this.color;
             ctx.fillRect(this.position.x * scale, this.position.y * scale,
                          this.size.x * scale, this.size.y * scale);
