@@ -19,7 +19,7 @@ let cameraY = 0; // New variable for vertical camera scrolling
 let keyState = {}; // For climbing
 
 class Player extends AnimatedObject {
-    constructor(color, width, height, x, y, type) {
+    constructor(color, width, height, x, y, type, powerUps = {}) {
         // Make hitbox even smaller - reducing height and width further
         super(color, 0.3, 1.3, x, y, type); // Even smaller hitbox (0.5 width, 1.3 height)
         
@@ -42,9 +42,21 @@ class Player extends AnimatedObject {
         this.isCrouching = false;
         this.wasSpacePressed = false; // Track space key for responsive jumping
         this.lastFireTime = -Infinity;
-        this.fireCooldown = 10000; // 10 seconds in milliseconds
+        this.fireCooldown = 10000; // 10 seconds in milliseconds (can be reduced by power-up)
         this.exitingLadder = false;
         this.isOnLadder = false; // Initialize isOnLadder
+
+        // Power-up flags
+        this.hasFastFireball = powerUps.hasFastFireball || false; // Reduces cooldown to 7 seconds
+        this.hasExtraLife = powerUps.hasExtraLife || false; // Starts with 4 lives instead of 3
+
+        // Apply power-ups if purchased
+        if (this.hasFastFireball) {
+            this.fireCooldown = 7000; // 7 seconds
+        }
+        if (this.hasExtraLife) {
+            this.lives = 4;
+        }
 
         // Horizontal hitbox: narrower than the player's main hitbox, defined in Level constructor
         this.horizontalHitbox = null; // Initialize to null
@@ -743,6 +755,18 @@ class Game {
         this.currentLevel = levelNumber; // Track current level
         this.totalLevels = 3; // Updated to 3 total levels
         
+        // Shop system
+        this.shop = new Shop();
+        this.showShop = false;
+        
+        // Death fade transition
+        this.isDeathFading = false;
+        this.deathFadeTimer = 0;
+        this.deathFadeDuration = 2000; // 2 seconds fade
+        this.shopFadeIn = false;
+        this.shopFadeTimer = 0;
+        this.shopFadeDuration = 1500; // 1.5 seconds to fade in shop
+        
         // Transition state properties
         this.isTransitioning = false;
         this.transitionTimer = 0;
@@ -813,7 +837,39 @@ class Game {
     }
 
     update(deltaTime) {
-        if (this.gameOver || this.gameWon) return;
+        if (this.gameWon) return;
+        
+        // Handle shop state
+        if (this.showShop && !this.shopFadeIn) {
+            // Don't update game while shop is open (and not fading in)
+            return;
+        }
+        
+        // Handle shop fade-in transition
+        if (this.shopFadeIn) {
+            this.shopFadeTimer += deltaTime;
+            if (this.shopFadeTimer >= this.shopFadeDuration) {
+                // Shop fade-in complete
+                this.shopFadeIn = false;
+            }
+            return; // Don't update game during shop fade-in
+        }
+        
+        // Handle death fade transition
+        if (this.isDeathFading) {
+            this.deathFadeTimer += deltaTime;
+            if (this.deathFadeTimer >= this.deathFadeDuration) {
+                // Death fade complete, start shop fade-in
+                this.isDeathFading = false;
+                this.showShop = true;
+                this.shop.open();
+                this.shopFadeIn = true;
+                this.shopFadeTimer = 0;
+            }
+            return; // Don't update game during death fade
+        }
+        
+        if (this.gameOver) return;
 
         // Handle level transition
         if (this.isTransitioning) {
@@ -831,10 +887,7 @@ class Game {
         for (let actor of this.actors) {
             if (actor.type === 'minotaur') {
                 actor.update(this.level, deltaTime, this.player);
-            } else if (actor.type === 'barrel' && actor.position.y > this.level.height - 2){
-                this.actors = this.actors.filter(item => item !== actor);
-                console.log("Barrel height: ", actor.position.y, "LVLHght: ", this.level.height);
-            }else{
+            } else {
                 actor.update(this.level, deltaTime);
             }
         }
@@ -851,9 +904,10 @@ class Game {
                     const pushDirection = this.player.position.x < actor.position.x ? -1 : 1;
                     this.player.position = this.player.position.plus(new Vec(pushDirection * 0.5, -0.5));
                     
-                    // Check for game over
+                    // Check for game over - start death fade instead of immediately opening shop
                     if (this.player.lives <= 0) {
-                        this.gameOver = true;
+                        this.isDeathFading = true;
+                        this.deathFadeTimer = 0;
                     }
                 } else if (actor.type === 'portal') {
                     // Check if this is the last level
@@ -914,6 +968,60 @@ class Game {
     // Method to advance to the next level (kept for compatibility, now just calls startTransition)
     advanceToNextLevel() {
         this.startTransition();
+    }
+
+    // Handle shop purchase and respawn
+    handleShopPurchase() {
+        if (this.shop.purchase(this.player)) {
+            this.shop.close();
+            this.showShop = false;
+            this.shopFadeIn = false;
+            this.shopFadeTimer = 0;
+            this.respawnPlayer();
+        }
+    }
+
+    // Respawn the player
+    respawnPlayer() {
+        // Reset player state
+        this.player.isDead = false;
+        this.player.invulnerable = true;
+        this.player.invulnerableTimer = 2000;
+        this.player.velocity = new Vec(0, 0);
+        
+        // Apply power-ups for respawn
+        if (this.player.hasExtraLife) {
+            this.player.lives = 4;
+        } else {
+            this.player.lives = 3;
+        }
+        
+        // Reset player position to start of current level
+        const startPosition = this.findPlayerStartPosition();
+        if (startPosition) {
+            this.player.position = startPosition;
+        }
+        
+        // Reset camera
+        cameraY = 0;
+    }
+
+    // Find the player's starting position in the current level
+    findPlayerStartPosition() {
+        // Look for the player spawn point in the level
+        for (let y = 0; y < this.level.height; y++) {
+            for (let x = 0; x < this.level.width; x++) {
+                if (this.level.rows[y] && this.level.rows[y][x] === 'player') {
+                    // Calculate proper position like in Level constructor
+                    const targetBottomY = y + 1;
+                    const newY = targetBottomY - this.player.size.y;
+                    const newX = x + (1 - this.player.size.x) / 2;
+                    return new Vec(newX, newY);
+                }
+            }
+        }
+        // Fallback to a safe position
+        return new Vec(1, this.level.height - 5);
     }
 
     draw(ctx, scale) {
@@ -1110,6 +1218,43 @@ class Game {
             ctx.fillText(remainingTime + "s", 40, 190); // Adjusted position
         }
 
+        // Handle death fade transition - draw fade overlay over everything
+        if (this.isDeathFading) {
+            const fadeProgress = this.deathFadeTimer / this.deathFadeDuration;
+            const opacity = Math.min(fadeProgress, 1);
+            
+            ctx.save();
+            ctx.fillStyle = `rgba(0, 0, 0, ${opacity})`;
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+            ctx.restore();
+        }
+
+        // Draw shop with fade-in effect
+        if (this.showShop) {
+            if (this.shopFadeIn) {
+                // Shop is fading in - apply opacity
+                const fadeProgress = this.shopFadeTimer / this.shopFadeDuration;
+                const shopOpacity = Math.min(fadeProgress, 1);
+                const blackOpacity = 1 - shopOpacity; // Black fades out as shop fades in
+                
+                ctx.save();
+                
+                // Draw shop with increasing opacity
+                ctx.globalAlpha = shopOpacity;
+                this.shop.draw(ctx, canvasWidth, canvasHeight, this.player.gems);
+                
+                // Draw black overlay with decreasing opacity
+                ctx.globalAlpha = blackOpacity;
+                ctx.fillStyle = "black";
+                ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+                
+                ctx.restore();
+            } else {
+                // Shop is fully visible
+                this.shop.draw(ctx, canvasWidth, canvasHeight, this.player.gems);
+            }
+        }
+
         // Draw game over screen
         if (this.gameOver) {
             ctx.save();
@@ -1165,6 +1310,394 @@ class Game {
 
 }
 
+class Shop {
+    constructor() {
+        this.isOpen = false;
+        this.selectedItem = 0; // 0 = Fast Fireball, 1 = Extra Life, 2 = Continue
+        this.items = [
+            {
+                name: "Fast Fireball",
+                description: "Reduce fireball cooldown to 7 seconds",
+                cost: 200,
+                purchased: false,
+                icon: "FIRE"
+            },
+            {
+                name: "Extra Life",
+                description: "Start with 4 lives instead of 3",
+                cost: 200,
+                purchased: false,
+                icon: "LIFE"
+            },
+            {
+                name: "Continue",
+                description: "Respawn and continue playing",
+                cost: 0,
+                purchased: false,
+                icon: "PLAY"
+            }
+        ];
+    }
+
+    open() {
+        this.isOpen = true;
+        this.selectedItem = 0;
+    }
+
+    close() {
+        this.isOpen = false;
+    }
+
+    selectNext() {
+        this.selectedItem = (this.selectedItem + 1) % this.items.length;
+    }
+
+    selectPrevious() {
+        this.selectedItem = (this.selectedItem - 1 + this.items.length) % this.items.length;
+    }
+
+    canPurchase(playerGems) {
+        const item = this.items[this.selectedItem];
+        return playerGems >= item.cost && !item.purchased;
+    }
+
+    purchase(player) {
+        const item = this.items[this.selectedItem];
+        
+        if (item.name === "Continue") {
+            // Continue without purchasing anything
+            return true;
+        }
+        
+        if (this.canPurchase(player.gems)) {
+            player.gems -= item.cost;
+            item.purchased = true;
+            
+            // Apply power-up
+            if (item.name === "Fast Fireball") {
+                player.hasFastFireball = true;
+                player.fireCooldown = 7000; // 7 seconds
+            } else if (item.name === "Extra Life") {
+                player.hasExtraLife = true;
+                // Extra life will be applied on next respawn
+            }
+            
+            return true;
+        }
+        
+        return false;
+    }
+
+    // Helper function to create gradient
+    createGradient(ctx, x, y, width, height, color1, color2) {
+        const gradient = ctx.createLinearGradient(x, y, x, y + height);
+        gradient.addColorStop(0, color1);
+        gradient.addColorStop(1, color2);
+        return gradient;
+    }
+
+    // Helper function to draw rounded rectangle
+    drawRoundedRect(ctx, x, y, width, height, radius) {
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + width - radius, y);
+        ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+        ctx.lineTo(x + width, y + height - radius);
+        ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+        ctx.lineTo(x + radius, y + height);
+        ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+        ctx.lineTo(x, y + radius);
+        ctx.quadraticCurveTo(x, y, x + radius, y);
+        ctx.closePath();
+    }
+
+    draw(ctx, canvasWidth, canvasHeight, playerGems) {
+        if (!this.isOpen) return;
+
+        ctx.save();
+
+        // Disable anti-aliasing for pixel art look
+        ctx.imageSmoothingEnabled = false;
+
+        // Magical background with deep reds and oranges
+        ctx.fillStyle = "#1a0a0a";
+        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+        // Create a magical dithered pattern with fiery colors
+        const patternSize = 8;
+        ctx.fillStyle = "#2d1b1b";
+        for (let x = 0; x < canvasWidth; x += patternSize * 2) {
+            for (let y = 0; y < canvasHeight; y += patternSize * 2) {
+                ctx.fillRect(x, y, patternSize, patternSize);
+                ctx.fillRect(x + patternSize, y + patternSize, patternSize, patternSize);
+            }
+        }
+
+        // Add magical floating runes and sparkles with fiery colors
+        const time = Date.now() * 0.001;
+        const colors = ["#ff4500", "#ff6b35", "#ff8c42", "#ffa500", "#ffd700"];
+        
+        for (let i = 0; i < 40; i++) {
+            const x = Math.floor((Math.sin(time + i * 0.5) * 0.4 + 0.5) * canvasWidth / 4) * 4;
+            const y = Math.floor((Math.cos(time * 0.7 + i * 0.3) * 0.4 + 0.5) * canvasHeight / 4) * 4;
+            const colorIndex = Math.floor((Math.sin(time + i) + 1) * 2.5) % colors.length;
+            ctx.fillStyle = colors[colorIndex];
+            
+            // Draw magical symbols (stars, diamonds, crosses)
+            const symbol = i % 4;
+            if (symbol === 0) {
+                // Star
+                ctx.fillRect(x, y - 4, 4, 4);
+                ctx.fillRect(x - 4, y, 4, 4);
+                ctx.fillRect(x + 4, y, 4, 4);
+                ctx.fillRect(x, y + 4, 4, 4);
+                ctx.fillRect(x, y, 4, 4);
+            } else if (symbol === 1) {
+                // Diamond
+                ctx.fillRect(x, y - 8, 4, 4);
+                ctx.fillRect(x - 4, y - 4, 4, 4);
+                ctx.fillRect(x + 4, y - 4, 4, 4);
+                ctx.fillRect(x, y, 4, 4);
+            } else if (symbol === 2) {
+                // Cross/Plus
+                ctx.fillRect(x, y - 4, 4, 12);
+                ctx.fillRect(x - 4, y, 12, 4);
+            } else {
+                // Simple sparkle
+                ctx.fillRect(x, y, 4, 4);
+            }
+        }
+
+        // Magical shop title with fiery styling
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        
+        // Title with magical glow effect (multiple layers)
+        ctx.font = "bold 48px monospace";
+        // Outer glow
+        ctx.fillStyle = "#8b0000";
+        ctx.fillText("ARCANE EMPORIUM", canvasWidth / 2 + 3, 103);
+        ctx.fillText("ARCANE EMPORIUM", canvasWidth / 2 - 3, 103);
+        ctx.fillText("ARCANE EMPORIUM", canvasWidth / 2, 106);
+        ctx.fillText("ARCANE EMPORIUM", canvasWidth / 2, 94);
+        // Main title
+        ctx.fillStyle = "#ff6b35";
+        ctx.fillText("ARCANE EMPORIUM", canvasWidth / 2, 100);
+
+        // Magical gems display with fiery styling
+        const gemBoxWidth = 320;
+        const gemBoxHeight = 60;
+        const gemBoxX = canvasWidth / 2 - gemBoxWidth / 2;
+        const gemBoxY = 150;
+
+        // Magical gem box with fiery border
+        ctx.fillStyle = "#4a1a1a";
+        ctx.fillRect(gemBoxX, gemBoxY, gemBoxWidth, gemBoxHeight);
+        
+        // Enchanted border with fiery colors
+        ctx.fillStyle = "#ff4500";
+        ctx.fillRect(gemBoxX - 3, gemBoxY - 3, gemBoxWidth + 6, 3); // top
+        ctx.fillRect(gemBoxX - 3, gemBoxY + gemBoxHeight, gemBoxWidth + 6, 3); // bottom
+        ctx.fillRect(gemBoxX - 3, gemBoxY - 3, 3, gemBoxHeight + 6); // left
+        ctx.fillRect(gemBoxX + gemBoxWidth, gemBoxY - 3, 3, gemBoxHeight + 6); // right
+        
+        // Inner magical glow
+        ctx.fillStyle = "#ff8c42";
+        ctx.fillRect(gemBoxX - 1, gemBoxY - 1, gemBoxWidth + 2, 1); // top inner
+        ctx.fillRect(gemBoxX - 1, gemBoxY + gemBoxHeight, gemBoxWidth + 2, 1); // bottom inner
+        ctx.fillRect(gemBoxX - 1, gemBoxY - 1, 1, gemBoxHeight + 2); // left inner
+        ctx.fillRect(gemBoxX + gemBoxWidth, gemBoxY - 1, 1, gemBoxHeight + 2); // right inner
+
+        // Magical gem text
+        ctx.font = "bold 24px monospace";
+        ctx.fillStyle = "#ffa500";
+        ctx.fillText(`MYSTICAL GEMS: ${playerGems}`, canvasWidth / 2, gemBoxY + gemBoxHeight / 2);
+
+        // Magical shop items
+        const startY = 240;
+        const itemHeight = 120;
+        const itemWidth = 620;
+        const itemX = canvasWidth / 2 - itemWidth / 2;
+
+        for (let i = 0; i < this.items.length; i++) {
+            const item = this.items[i];
+            const y = startY + i * itemHeight;
+            const isSelected = i === this.selectedItem;
+            const canAfford = playerGems >= item.cost;
+            const isPurchased = item.purchased;
+
+            // Magical item background
+            if (isSelected) {
+                // Selected item with magical aura
+                ctx.fillStyle = "#660000";
+                ctx.fillRect(itemX, y, itemWidth, 80);
+                
+                // Magical selected border (pulsing effect)
+                const pulse = Math.sin(time * 3) * 0.3 + 0.7;
+                ctx.fillStyle = `rgba(255, 107, 53, ${pulse})`;
+                ctx.fillRect(itemX - 2, y - 2, itemWidth + 4, 2); // top
+                ctx.fillRect(itemX - 2, y + 80, itemWidth + 4, 2); // bottom
+                ctx.fillRect(itemX - 2, y - 2, 2, 84); // left
+                ctx.fillRect(itemX + itemWidth, y - 2, 2, 84); // right
+                
+                // Inner magical glow
+                ctx.fillStyle = "#ff4500";
+                ctx.fillRect(itemX - 1, y - 1, itemWidth + 2, 1);
+                ctx.fillRect(itemX - 1, y + 80, itemWidth + 2, 1);
+                ctx.fillRect(itemX - 1, y - 1, 1, 82);
+                ctx.fillRect(itemX + itemWidth, y - 1, 1, 82);
+            } else {
+                // Normal magical item background
+                ctx.fillStyle = "#4a1a1a";
+                ctx.fillRect(itemX, y, itemWidth, 80);
+                
+                // Subtle magical border
+                ctx.fillStyle = "#b22222";
+                ctx.fillRect(itemX - 1, y - 1, itemWidth + 2, 1); // top
+                ctx.fillRect(itemX - 1, y + 80, itemWidth + 2, 1); // bottom
+                ctx.fillRect(itemX - 1, y - 1, 1, 82); // left
+                ctx.fillRect(itemX + itemWidth, y - 1, 1, 82); // right
+            }
+
+            // Magical item icons
+            const iconX = itemX + 20;
+            const iconY = y + 15;
+            
+            if (item.icon === "FIRE") {
+                // Magical fireball spell icon
+                const fireColor = isPurchased ? "#4CAF50" : (canAfford ? "#ff4500" : "#666666");
+                ctx.fillStyle = fireColor;
+                // Magical flame pattern
+                ctx.fillRect(iconX + 16, iconY + 8, 8, 8);
+                ctx.fillRect(iconX + 12, iconY + 16, 8, 8);
+                ctx.fillRect(iconX + 20, iconY + 16, 8, 8);
+                ctx.fillRect(iconX + 8, iconY + 24, 8, 8);
+                ctx.fillRect(iconX + 24, iconY + 24, 8, 8);
+                ctx.fillRect(iconX + 16, iconY + 32, 8, 8);
+                // Magical core
+                ctx.fillStyle = isPurchased ? "#4CAF50" : (canAfford ? "#ffd700" : "#888888");
+                ctx.fillRect(iconX + 16, iconY + 20, 8, 8);
+                ctx.fillRect(iconX + 12, iconY + 28, 8, 8);
+                ctx.fillRect(iconX + 20, iconY + 28, 8, 8);
+            } else if (item.icon === "LIFE") {
+                // Magical life essence icon (mystical heart)
+                const lifeColor = isPurchased ? "#4CAF50" : (canAfford ? "#dc143c" : "#666666");
+                ctx.fillStyle = lifeColor;
+                // Mystical heart with magical aura
+                ctx.fillRect(iconX + 8, iconY + 12, 8, 8);
+                ctx.fillRect(iconX + 24, iconY + 12, 8, 8);
+                ctx.fillRect(iconX + 4, iconY + 20, 8, 8);
+                ctx.fillRect(iconX + 28, iconY + 20, 8, 8);
+                ctx.fillRect(iconX + 8, iconY + 28, 8, 8);
+                ctx.fillRect(iconX + 16, iconY + 28, 8, 8);
+                ctx.fillRect(iconX + 24, iconY + 28, 8, 8);
+                ctx.fillRect(iconX + 12, iconY + 36, 8, 8);
+                ctx.fillRect(iconX + 20, iconY + 36, 8, 8);
+                ctx.fillRect(iconX + 16, iconY + 44, 8, 8);
+                // Magical glow around heart
+                ctx.fillStyle = isPurchased ? "#4CAF50" : (canAfford ? "#ff6b35" : "#444444");
+                ctx.fillRect(iconX + 12, iconY + 16, 8, 8);
+                ctx.fillRect(iconX + 20, iconY + 16, 8, 8);
+                ctx.fillRect(iconX + 16, iconY + 32, 8, 8);
+            } else if (item.icon === "PLAY") {
+                // Magical portal/continue icon
+                ctx.fillStyle = "#ff4500";
+                // Magical portal design
+                ctx.fillRect(iconX + 8, iconY + 12, 8, 8);
+                ctx.fillRect(iconX + 24, iconY + 12, 8, 8);
+                ctx.fillRect(iconX + 4, iconY + 20, 8, 8);
+                ctx.fillRect(iconX + 28, iconY + 20, 8, 8);
+                ctx.fillRect(iconX + 4, iconY + 28, 8, 8);
+                ctx.fillRect(iconX + 28, iconY + 28, 8, 8);
+                ctx.fillRect(iconX + 8, iconY + 36, 8, 8);
+                ctx.fillRect(iconX + 24, iconY + 36, 8, 8);
+                // Portal center
+                ctx.fillStyle = "#ff8c42";
+                ctx.fillRect(iconX + 12, iconY + 20, 8, 8);
+                ctx.fillRect(iconX + 20, iconY + 20, 8, 8);
+                ctx.fillRect(iconX + 12, iconY + 28, 8, 8);
+                ctx.fillRect(iconX + 20, iconY + 28, 8, 8);
+                ctx.fillStyle = "#ffa500";
+                ctx.fillRect(iconX + 16, iconY + 24, 8, 8);
+            }
+
+            // Magical item name
+            ctx.font = "bold 24px monospace";
+            ctx.fillStyle = isPurchased ? "#4CAF50" : (canAfford || item.cost === 0) ? "#ffa500" : "#b22222";
+            ctx.textAlign = "left";
+            ctx.fillText(item.name, itemX + 100, y + 25);
+
+            // Magical cost display
+            if (item.cost > 0) {
+                ctx.font = "bold 20px monospace";
+                ctx.fillStyle = isPurchased ? "#4CAF50" : (canAfford ? "#ffd700" : "#dc143c");
+                ctx.textAlign = "right";
+                if (isPurchased) {
+                    ctx.fillText("ENCHANTED", itemX + itemWidth - 20, y + 25);
+                } else {
+                    ctx.fillText(`${item.cost} GEMS`, itemX + itemWidth - 20, y + 25);
+                }
+            } else {
+                ctx.font = "bold 20px monospace";
+                ctx.fillStyle = "#4CAF50";
+                ctx.textAlign = "right";
+                ctx.fillText("FREE MAGIC", itemX + itemWidth - 20, y + 25);
+            }
+
+            // Magical item description
+            ctx.font = "16px monospace";
+            ctx.fillStyle = "#ff8c42";
+            ctx.textAlign = "left";
+            ctx.fillText(item.description, itemX + 100, y + 50);
+
+            // Magical selection indicator
+            if (isSelected) {
+                ctx.fillStyle = "#ffd700";
+                // Magical rune arrow
+                const arrowX = itemX - 30;
+                const arrowY = y + 25;
+                // Draw a magical rune-like arrow
+                ctx.fillRect(arrowX, arrowY, 4, 4);
+                ctx.fillRect(arrowX + 4, arrowY - 8, 4, 4);
+                ctx.fillRect(arrowX + 4, arrowY + 8, 4, 4);
+                ctx.fillRect(arrowX + 8, arrowY - 4, 4, 4);
+                ctx.fillRect(arrowX + 8, arrowY + 4, 4, 4);
+                ctx.fillRect(arrowX + 12, arrowY - 12, 4, 4);
+                ctx.fillRect(arrowX + 12, arrowY + 12, 4, 4);
+                ctx.fillRect(arrowX + 16, arrowY - 8, 4, 4);
+                ctx.fillRect(arrowX + 16, arrowY + 8, 4, 4);
+                ctx.fillRect(arrowX + 20, arrowY - 4, 4, 4);
+                ctx.fillRect(arrowX + 20, arrowY + 4, 4, 4);
+                ctx.fillRect(arrowX + 24, arrowY, 4, 4);
+            }
+        }
+
+        // Magical instructions area
+        const instructY = canvasHeight - 80;
+        
+        // Mystical instructions background
+        ctx.fillStyle = "#4a1a1a";
+        ctx.fillRect(0, instructY - 15, canvasWidth, 60);
+        
+        // Magical border
+        ctx.fillStyle = "#ff4500";
+        ctx.fillRect(0, instructY - 16, canvasWidth, 1);
+
+        // Enchanted instructions text
+        ctx.font = "bold 18px monospace";
+        ctx.fillStyle = "#ffa500";
+        ctx.textAlign = "center";
+        ctx.fillText("CAST W/S TO NAVIGATE - SPACE TO ENCHANT", canvasWidth / 2, instructY + 5);
+        
+        ctx.font = "14px monospace";
+        ctx.fillStyle = "#ff8c42";
+        ctx.fillText("YOUR SPIRIT HAS DEPARTED! ACQUIRE MAGICAL POWERS OR CONTINUE", canvasWidth / 2, instructY + 25);
+
+        // Re-enable anti-aliasing
+        ctx.imageSmoothingEnabled = true;
+        ctx.restore();
+    }
+}
 
 function main() {
     window.onload = init;
@@ -1225,6 +1758,18 @@ function setEventListeners() {
 function handleKeyDown(event) {
     keyState[event.key] = true;
 
+    // Handle shop navigation
+    if (game.showShop) {
+        if (event.key === 'w') {
+            game.shop.selectPrevious();
+        } else if (event.key === 's') {
+            game.shop.selectNext();
+        } else if (event.key === ' ') {
+            game.handleShopPurchase();
+        }
+        return; // Don't process other keys while shop is open
+    }
+
     if (event.key == 'a') game.player.startMovement("left");
     if (event.key == 'd') game.player.startMovement("right");
     if (event.key == 's') game.player.crouch();
@@ -1258,6 +1803,11 @@ function handleKeyDown(event) {
 
 function handleKeyUp(event) {
     keyState[event.key] = false;
+
+    // Don't process movement keys while shop is open
+    if (game.showShop) {
+        return;
+    }
 
     if (event.key == 'a') game.player.stopMovement("left");
     if (event.key == 'd') game.player.stopMovement("right");
