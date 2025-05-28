@@ -1035,7 +1035,9 @@ class Game {
         for (let actor of this.actors) {
             if (actor.type === 'minotaur') {
                 actor.update(this.level, deltaTime, this.player);
-            } else {
+            } else if (actor.type === 'barrel' && actor.position.y > this.level.height - 2){
+                this.actors = this.actors.filter(item => item !== actor);
+            }else{
                 actor.update(this.level, deltaTime);
             }
         }

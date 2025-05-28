@@ -8,7 +8,7 @@ class LevelGenerator {
         this.maxPlatformLength = 7;
         this.jumpDistance = 3; // Reasonable jump distance
         this.layerHeight = 6; // Increased from 5 to 6 units between layers
-        this.enemyChance = 0.4; // Increased from 0.15 to 0.4 to compensate for one-enemy-per-platform
+        this.enemyChance = 0.3; // Increased from 0.15 to 0.4 to compensate for one-enemy-per-platform
         this.gemChance = 0.4; // Good gem distribution
     }
 
@@ -277,7 +277,7 @@ class LevelGenerator {
                     // Double check the spot is empty
                     if (this.grid[enemyY][randomX] === '.') {
                         const enemyType = Math.random();
-                        if (enemyType < 0.3) {
+                        if (enemyType >= 0.5) {
                             this.grid[enemyY][randomX] = 'E'; // Regular enemy
                             //console.log(`Placed Enemy at (${randomX}, ${enemyY}) on platform ${index}`);
                         } else if (enemyType < 0.6) {
