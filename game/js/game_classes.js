@@ -67,7 +67,7 @@ class GameObject {
         };
         
         this.spriteImage.onload = () => {
-            console.log(`Successfully loaded sprite: ${imagePath}`);
+//            console.log(`Successfully loaded sprite: ${imagePath}`);
         };
     }
 

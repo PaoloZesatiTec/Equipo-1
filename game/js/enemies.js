@@ -183,7 +183,6 @@ class Minotaur extends AnimatedObject {
                 this.state = 'rush';
                 this.velocity.x = this.direction * this.rushSpeed;
                 this.updateAnimation(); // Update animation for rush state
-                console.log("Minotaur detected player and is now rushing!");
             }
         }
 
@@ -307,10 +306,11 @@ class Minotaur extends AnimatedObject {
 class BarrelSpawner extends GameObject {
     constructor(x, y) {
         super("transparent", 1, 1, x, y, "spawner");
-        this.spawnTimer = 0;
-        this.spawnInterval = 2000; // Spawn a barrel every 2 seconds
-        this.maxBarrels = 2; // Maximum number of barrels this spawner can have
+        this.spawnTimer = Math.random()*3000;
+        this.spawnInterval = 10000; // Spawn a barrel every 2 seconds
+        this.maxBarrels = 15; // Maximum number of barrels this spawner can have
         this.activeBarrels = [];
+        console.log("Spawner generated")
     }
 
     update(level, deltaTime) {
@@ -318,32 +318,21 @@ class BarrelSpawner extends GameObject {
         this.spawnTimer += deltaTime;
 
         // Clean up destroyed barrels from our tracking list
-        this.activeBarrels = this.activeBarrels.filter(barrel => level.actors.includes(barrel));
+        //this.activeBarrels = this.activeBarrels.filter(barrel => level.actors.includes(barrel));
 
         // Check if it's time to spawn a new barrel
         if (this.spawnTimer >= this.spawnInterval && this.activeBarrels.length < this.maxBarrels) {
             // Create new barrel
             const barrel = new Barrel("brown", 1, 1, this.position.x, this.position.y, "barrel");
             this.activeBarrels.push(barrel);
-            level.actors.push(barrel);
+            game.actors.push(barrel);
             this.spawnTimer = 0; // Reset timer
         }
     }
 
     draw(ctx, scale) {
-        // Draw a small indicator for the spawner (optional)
-        ctx.save();
-        ctx.fillStyle = "rgba(255, 0, 0, 0.2)";
-        ctx.beginPath();
-        ctx.arc(
-            (this.position.x + 0.5) * scale,
-            (this.position.y + 0.5) * scale,
-            5,
-            0,
-            Math.PI * 2
-        );
-        ctx.fill();
-        ctx.restore();
+        //ctx.fillStyle = "black";
+        //ctx.fillRect(this.position.x*scale, this.position.y*scale,1*scale,1*scale);
     }
 }
 
