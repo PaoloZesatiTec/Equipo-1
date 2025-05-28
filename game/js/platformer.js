@@ -32,7 +32,7 @@ class Player extends AnimatedObject {
         
         this.velocity = new Vec(0.0, 0.0);
         this.gems = 0;
-        this.lives = 3;
+        this.lives = 2; // Changed from 3 to 2
         this.invulnerable = false;
         this.invulnerableTimer = 0;
         this.isDead = false;
@@ -49,6 +49,7 @@ class Player extends AnimatedObject {
         // Power-up flags
         this.hasFastFireball = powerUps.hasFastFireball || false; // Reduces cooldown to 7 seconds
         this.hasExtraLife = powerUps.hasExtraLife || false; // Starts with 4 lives instead of 3
+        this.lifeUpgradeLevel = powerUps.lifeUpgradeLevel || 0; // 0 = 2 lives, 1 = 3 lives, 2 = 4 lives
 
         // Apply power-ups if purchased
         if (this.hasFastFireball) {
@@ -56,6 +57,10 @@ class Player extends AnimatedObject {
         }
         if (this.hasExtraLife) {
             this.lives = 4;
+        } else if (this.lifeUpgradeLevel === 1) {
+            this.lives = 3;
+        } else {
+            this.lives = 2; // Base lives
         }
 
         // Horizontal hitbox: narrower than the player's main hitbox, defined in Level constructor
@@ -618,12 +623,8 @@ class Level {
                     this.actors.push(gemActor);
                     cellType = "empty";
                 } else if (actor.type === "wall") {
-                    let instanceRect = this.randomEvironment(rnd);
-                    actor.setSprite(item.sprite, instanceRect);
-                    const originalDraw = actor.draw;
-                    actor.draw = function(ctx, scale) {
-                        originalDraw.call(this, ctx, scale);
-                    };
+                    // Create custom wall actor with pixel art drawing
+                    actor.drawCustomWall = this.drawCustomWall.bind(this);
                     this.actors.push(actor);
                     cellType = "wall";
                 } else if (actor.type === "empty") {
@@ -637,6 +638,153 @@ class Level {
                 return cellType;
             });
         });
+    }
+
+    // Custom pixel art wall drawing based on level theme
+    drawCustomWall(ctx, scale, x, y, levelNumber) {
+        const blockSize = scale;
+        const drawX = x * scale;
+        const drawY = y * scale;
+        
+        // Disable anti-aliasing for crisp pixel art
+        ctx.imageSmoothingEnabled = false;
+        
+        if (levelNumber === 1) {
+            // Level 1: Dirt with grass block
+            this.drawDirtGrassBlock(ctx, drawX, drawY, blockSize);
+        } else if (levelNumber === 2) {
+            // Level 2: Cloud block
+            this.drawCloudBlock(ctx, drawX, drawY, blockSize);
+        } else if (levelNumber === 3) {
+            // Level 3: Lava/Obsidian block
+            this.drawLavaObsidianBlock(ctx, drawX, drawY, blockSize);
+        }
+        
+        // Re-enable anti-aliasing
+        ctx.imageSmoothingEnabled = true;
+    }
+
+    drawDirtGrassBlock(ctx, x, y, size) {
+        const pixelSize = size / 16; // 16x16 pixel block
+        
+        // Use position as seed for consistent random patterns
+        const seed = (x / size) * 1000 + (y / size);
+        
+        // Draw dirt base (brown tones)
+        ctx.fillStyle = "#8B4513"; // Saddle brown
+        ctx.fillRect(x, y + pixelSize * 3, size, size - pixelSize * 3);
+        
+        // Add dirt texture with darker brown pixels (deterministic)
+        ctx.fillStyle = "#654321";
+        for (let i = 0; i < 8; i++) {
+            const px = x + (Math.floor((seed + i * 17) % 16)) * pixelSize;
+            const py = y + (3 + Math.floor((seed + i * 23) % 13)) * pixelSize;
+            ctx.fillRect(px, py, pixelSize, pixelSize);
+        }
+        
+        // Draw grass top layer
+        ctx.fillStyle = "#228B22"; // Forest green
+        ctx.fillRect(x, y, size, pixelSize * 3);
+        
+        // Add grass texture with different green shades (deterministic)
+        ctx.fillStyle = "#32CD32"; // Lime green highlights
+        for (let i = 0; i < 6; i++) {
+            const px = x + (Math.floor((seed + i * 31) % 16)) * pixelSize;
+            const py = y + (Math.floor((seed + i * 37) % 3)) * pixelSize;
+            ctx.fillRect(px, py, pixelSize, pixelSize);
+        }
+        
+        // Add some darker green for depth (deterministic)
+        ctx.fillStyle = "#006400"; // Dark green
+        for (let i = 0; i < 4; i++) {
+            const px = x + (Math.floor((seed + i * 41) % 16)) * pixelSize;
+            const py = y + (Math.floor((seed + i * 43) % 3)) * pixelSize;
+            ctx.fillRect(px, py, pixelSize, pixelSize);
+        }
+    }
+
+    drawCloudBlock(ctx, x, y, size) {
+        const pixelSize = size / 16; // 16x16 pixel block
+        
+        // Use position as seed for consistent random patterns
+        const seed = (x / size) * 1000 + (y / size);
+        
+        // Draw cloud base (light blue/white)
+        ctx.fillStyle = "#F0F8FF"; // Alice blue
+        ctx.fillRect(x, y, size, size);
+        
+        // Add cloud puffs with white
+        ctx.fillStyle = "#FFFFFF";
+        // Top row puffs
+        ctx.fillRect(x + pixelSize * 2, y, pixelSize * 12, pixelSize * 4);
+        ctx.fillRect(x + pixelSize * 1, y + pixelSize, pixelSize * 14, pixelSize * 3);
+        
+        // Middle section
+        ctx.fillRect(x, y + pixelSize * 4, size, pixelSize * 8);
+        
+        // Bottom puffs
+        ctx.fillRect(x + pixelSize * 1, y + pixelSize * 12, pixelSize * 14, pixelSize * 3);
+        ctx.fillRect(x + pixelSize * 2, y + pixelSize * 15, pixelSize * 12, pixelSize);
+        
+        // Add some light gray shadows for depth (deterministic)
+        ctx.fillStyle = "#E6E6FA"; // Lavender
+        for (let i = 0; i < 8; i++) {
+            const px = x + (Math.floor((seed + i * 19) % 16)) * pixelSize;
+            const py = y + (Math.floor((seed + i * 29) % 16)) * pixelSize;
+            ctx.fillRect(px, py, pixelSize, pixelSize);
+        }
+        
+        // Add subtle blue tint in some areas (deterministic)
+        ctx.fillStyle = "#E0F6FF";
+        for (let i = 0; i < 6; i++) {
+            const px = x + (Math.floor((seed + i * 47) % 16)) * pixelSize;
+            const py = y + (Math.floor((seed + i * 53) % 16)) * pixelSize;
+            ctx.fillRect(px, py, pixelSize, pixelSize);
+        }
+    }
+
+    drawLavaObsidianBlock(ctx, x, y, size) {
+        const pixelSize = size / 16; // 16x16 pixel block
+        
+        // Use position as seed for consistent random patterns
+        const seed = (x / size) * 1000 + (y / size);
+        
+        // Draw obsidian base (very dark)
+        ctx.fillStyle = "#1C1C1C"; // Very dark gray
+        ctx.fillRect(x, y, size, size);
+        
+        // Add obsidian texture with slightly lighter grays (deterministic)
+        ctx.fillStyle = "#2F2F2F";
+        for (let i = 0; i < 10; i++) {
+            const px = x + (Math.floor((seed + i * 13) % 16)) * pixelSize;
+            const py = y + (Math.floor((seed + i * 17) % 16)) * pixelSize;
+            ctx.fillRect(px, py, pixelSize, pixelSize);
+        }
+        
+        // Add lava cracks/veins
+        ctx.fillStyle = "#FF4500"; // Orange red
+        // Horizontal cracks
+        ctx.fillRect(x + pixelSize * 2, y + pixelSize * 5, pixelSize * 8, pixelSize);
+        ctx.fillRect(x + pixelSize * 1, y + pixelSize * 10, pixelSize * 10, pixelSize);
+        
+        // Vertical cracks
+        ctx.fillRect(x + pixelSize * 6, y + pixelSize * 2, pixelSize, pixelSize * 6);
+        ctx.fillRect(x + pixelSize * 12, y + pixelSize * 8, pixelSize, pixelSize * 5);
+        
+        // Add bright lava glow in cracks
+        ctx.fillStyle = "#FFD700"; // Gold
+        ctx.fillRect(x + pixelSize * 3, y + pixelSize * 5, pixelSize * 4, pixelSize);
+        ctx.fillRect(x + pixelSize * 2, y + pixelSize * 10, pixelSize * 6, pixelSize);
+        ctx.fillRect(x + pixelSize * 6, y + pixelSize * 3, pixelSize, pixelSize * 3);
+        ctx.fillRect(x + pixelSize * 12, y + pixelSize * 9, pixelSize, pixelSize * 3);
+        
+        // Add some red hot spots (deterministic)
+        ctx.fillStyle = "#DC143C"; // Crimson
+        for (let i = 0; i < 6; i++) {
+            const px = x + (Math.floor((seed + i * 59) % 16)) * pixelSize;
+            const py = y + (Math.floor((seed + i * 61) % 16)) * pixelSize;
+            ctx.fillRect(px, py, pixelSize, pixelSize);
+        }
     }
 
     addBackgroundFloor(x, y) {
@@ -862,7 +1010,7 @@ class Game {
                 // Death fade complete, start shop fade-in
                 this.isDeathFading = false;
                 this.showShop = true;
-                this.shop.open();
+                this.shop.openWithPlayer(this.player);
                 this.shopFadeIn = true;
                 this.shopFadeTimer = 0;
             }
@@ -948,21 +1096,88 @@ class Game {
         // Reset camera position
         cameraY = 0;
         
-        // Create new level
-        const nextLevel = new Level(GAME_LEVELS[this.nextLevelNumber - 1]);
+        console.log(`Starting transition to level ${this.nextLevelNumber}`);
+        
+        // Generate a new random layout for the next level
+        let nextLevelPlan;
+        if (typeof LevelGenerator !== 'undefined') {
+            // Use LevelGenerator to create a fresh random layout
+            const generator = new LevelGenerator(28, 60);
+            nextLevelPlan = generator.generate();
+            console.log(`Generated new random layout for level ${this.nextLevelNumber}`);
+        } else {
+            // Fallback to existing level if LevelGenerator is not available
+            nextLevelPlan = GAME_LEVELS[this.nextLevelNumber - 1];
+            console.log(`Using static layout for level ${this.nextLevelNumber}`);
+        }
+        
+        // Create new level with random layout
+        const nextLevel = new Level(nextLevelPlan);
+        console.log(`Created new level instance for level ${this.nextLevelNumber}`);
         
         // Preserve player stats but reset position and state
         const playerGems = this.player.gems;
-        const playerLives = this.player.lives;
+        const playerPowerUps = {
+            hasFastFireball: this.player.hasFastFireball,
+            hasExtraLife: this.player.hasExtraLife,
+            lifeUpgradeLevel: this.player.lifeUpgradeLevel
+        };
         
-        // Create new game instance for next level
-        game = new Game('playing', nextLevel, this.nextLevelNumber);
+        // Update game state for next level
+        this.currentLevel = this.nextLevelNumber;
+        this.level = nextLevel;
+        this.player = nextLevel.player;
+        this.actors = [...nextLevel.actors];
         
-        // Restore player stats
-        game.player.gems = playerGems;
-        game.player.lives = playerLives;
+        // Restore player stats and power-ups
+        this.player.gems = playerGems;
+        this.player.hasFastFireball = playerPowerUps.hasFastFireball;
+        this.player.hasExtraLife = playerPowerUps.hasExtraLife;
+        this.player.lifeUpgradeLevel = playerPowerUps.lifeUpgradeLevel;
         
-        console.log(`Level ${this.nextLevelNumber} loaded with ${playerGems} gems and ${playerLives} lives`);
+        // Apply power-ups
+        if (this.player.hasFastFireball) {
+            this.player.fireCooldown = 7000; // 7 seconds
+        }
+        if (this.player.hasExtraLife) {
+            this.player.lives = 4;
+        } else if (this.player.lifeUpgradeLevel === 1) {
+            this.player.lives = 3;
+        } else {
+            this.player.lives = 2; // Base lives
+        }
+        
+        // Update background for the new level
+        this.backgroundImage = new Image();
+        this.backgroundLoaded = false;
+        
+        if (this.currentLevel === 1) {
+            this.backgroundImage.src = '../assets/Map1.jpg';
+            console.log('Loading level 1 background: ../assets/Map1.jpg');
+        } else if (this.currentLevel === 2) {
+            this.backgroundImage.src = '../assets/stages/Map-2/map-2.png';
+            console.log('Loading level 2 background: ../assets/stages/Map-2/map-2.png');
+        } else if (this.currentLevel === 3) {
+            this.backgroundImage.src = '../assets/stages/Map-3/map_3.png';
+            console.log('Loading level 3 background: ../assets/stages/Map-3/map_3.png');
+        }
+        
+        this.backgroundImage.onload = () => {
+            this.backgroundLoaded = true;
+            console.log(`Level ${this.currentLevel} background loaded successfully`);
+        };
+        
+        this.backgroundImage.onerror = (e) => {
+            console.error(`Failed to load level ${this.currentLevel} background image: ${this.backgroundImage.src}`);
+            console.error('Error details:', e);
+        };
+        
+        // Reset transition state
+        this.isTransitioning = false;
+        this.transitionTimer = 0;
+        this.nextLevelNumber = null;
+        
+        console.log(`Level ${this.currentLevel} loaded with ${playerGems} gems and ${this.player.lives} lives`);
     }
 
     // Method to advance to the next level (kept for compatibility, now just calls startTransition)
@@ -972,56 +1187,91 @@ class Game {
 
     // Handle shop purchase and respawn
     handleShopPurchase() {
-        if (this.shop.purchase(this.player)) {
+        const item = this.shop.items[this.shop.selectedItem];
+        
+        if (item.name === "Continue") {
+            // Only "Continue" option returns to game
             this.shop.close();
             this.showShop = false;
             this.shopFadeIn = false;
             this.shopFadeTimer = 0;
-            this.respawnPlayer();
+            this.restartFromLevel1();
+        } else {
+            // For other items, just attempt purchase but stay in shop
+            this.shop.purchase(this.player);
+            // Update the life upgrade item in case it was purchased
+            this.shop.updateLifeUpgradeItem(this.player);
+            // Shop remains open for more purchases
         }
     }
 
-    // Respawn the player
-    respawnPlayer() {
-        // Reset player state
+    // Restart from level 1 (roguelike style) while preserving gems and upgrades
+    restartFromLevel1() {
+        // Store player stats and upgrades
+        const playerGems = this.player.gems;
+        const playerPowerUps = {
+            hasFastFireball: this.player.hasFastFireball,
+            hasExtraLife: this.player.hasExtraLife,
+            lifeUpgradeLevel: this.player.lifeUpgradeLevel
+        };
+        
+        // Generate a completely new random level 1 layout
+        let newLevel1Plan;
+        if (typeof LevelGenerator !== 'undefined') {
+            // Use LevelGenerator to create a fresh random layout for level 1
+            const generator = new LevelGenerator(28, 60);
+            newLevel1Plan = generator.generate();
+        } else {
+            // Fallback to existing level 1 if LevelGenerator is not available
+            newLevel1Plan = GAME_LEVELS[0];
+        }
+        
+        // Create completely new game instance starting from level 1
+        const newLevel = new Level(newLevel1Plan);
+        
+        // Reset to level 1
+        this.currentLevel = 1;
+        this.level = newLevel;
+        this.player = newLevel.player;
+        this.actors = [...newLevel.actors];
+        
+        // Restore player gems and purchased power-ups
+        this.player.gems = playerGems;
+        this.player.hasFastFireball = playerPowerUps.hasFastFireball;
+        this.player.hasExtraLife = playerPowerUps.hasExtraLife;
+        this.player.lifeUpgradeLevel = playerPowerUps.lifeUpgradeLevel;
+        
+        // Apply power-ups
+        if (this.player.hasFastFireball) {
+            this.player.fireCooldown = 7000; // 7 seconds
+        }
+        if (this.player.hasExtraLife) {
+            this.player.lives = 4;
+        } else if (this.player.lifeUpgradeLevel === 1) {
+            this.player.lives = 3;
+        } else {
+            this.player.lives = 2; // Base lives
+        }
+        
+        // Set player state
         this.player.isDead = false;
         this.player.invulnerable = true;
         this.player.invulnerableTimer = 2000;
         this.player.velocity = new Vec(0, 0);
         
-        // Apply power-ups for respawn
-        if (this.player.hasExtraLife) {
-            this.player.lives = 4;
-        } else {
-            this.player.lives = 3;
-        }
-        
-        // Reset player position to start of current level
-        const startPosition = this.findPlayerStartPosition();
-        if (startPosition) {
-            this.player.position = startPosition;
-        }
-        
         // Reset camera
         cameraY = 0;
-    }
-
-    // Find the player's starting position in the current level
-    findPlayerStartPosition() {
-        // Look for the player spawn point in the level
-        for (let y = 0; y < this.level.height; y++) {
-            for (let x = 0; x < this.level.width; x++) {
-                if (this.level.rows[y] && this.level.rows[y][x] === 'player') {
-                    // Calculate proper position like in Level constructor
-                    const targetBottomY = y + 1;
-                    const newY = targetBottomY - this.player.size.y;
-                    const newX = x + (1 - this.player.size.x) / 2;
-                    return new Vec(newX, newY);
-                }
-            }
-        }
-        // Fallback to a safe position
-        return new Vec(1, this.level.height - 5);
+        
+        // Load level 1 background
+        this.backgroundImage = new Image();
+        this.backgroundLoaded = false;
+        this.backgroundImage.src = '../assets/Map1.jpg';
+        this.backgroundImage.onload = () => {
+            this.backgroundLoaded = true;
+        };
+        this.backgroundImage.onerror = (e) => {
+            console.error('Failed to load level 1 background image.');
+        };
     }
 
     draw(ctx, scale) {
@@ -1111,7 +1361,12 @@ class Game {
         // First draw background and non-interactive elements
         for (let actor of this.actors) {
             if (actor.type === 'empty' || actor.type === 'wall' || actor.type === 'ladder') {
-                actor.draw(ctx, scale);
+                if (actor.type === 'wall' && actor.drawCustomWall) {
+                    // Use custom wall drawing with level theme
+                    actor.drawCustomWall(ctx, scale, actor.position.x, actor.position.y, this.currentLevel);
+                } else {
+                    actor.draw(ctx, scale);
+                }
             }
         }
 
@@ -1313,7 +1568,7 @@ class Game {
 class Shop {
     constructor() {
         this.isOpen = false;
-        this.selectedItem = 0; // 0 = Fast Fireball, 1 = Extra Life, 2 = Continue
+        this.selectedItem = 0; // 0 = Fast Fireball, 1 = Life Upgrade, 2 = Continue
         this.items = [
             {
                 name: "Fast Fireball",
@@ -1323,9 +1578,9 @@ class Shop {
                 icon: "FIRE"
             },
             {
-                name: "Extra Life",
-                description: "Start with 4 lives instead of 3",
-                cost: 200,
+                name: "Life Upgrade",
+                description: "Increase maximum lives",
+                cost: 50, // Will be dynamically updated
                 purchased: false,
                 icon: "LIFE"
             },
@@ -1339,9 +1594,39 @@ class Shop {
         ];
     }
 
+    updateLifeUpgradeItem(player) {
+        const lifeItem = this.items[1]; // Life Upgrade item
+        
+        if (player.hasExtraLife) {
+            // Player already has max lives (4)
+            lifeItem.name = "Life Upgrade";
+            lifeItem.description = "Maximum lives reached (4)";
+            lifeItem.cost = 0;
+            lifeItem.purchased = true;
+        } else if (player.lifeUpgradeLevel === 1) {
+            // Player has 3 lives, can upgrade to 4
+            lifeItem.name = "Extra Life";
+            lifeItem.description = "Upgrade to 4 lives";
+            lifeItem.cost = 200;
+            lifeItem.purchased = false;
+        } else {
+            // Player has 2 lives, can upgrade to 3
+            lifeItem.name = "Life Upgrade";
+            lifeItem.description = "Upgrade to 3 lives";
+            lifeItem.cost = 50;
+            lifeItem.purchased = false;
+        }
+    }
+
     open() {
         this.isOpen = true;
         this.selectedItem = 0;
+    }
+
+    openWithPlayer(player) {
+        this.isOpen = true;
+        this.selectedItem = 0;
+        this.updateLifeUpgradeItem(player);
     }
 
     close() {
@@ -1365,7 +1650,7 @@ class Shop {
         const item = this.items[this.selectedItem];
         
         if (item.name === "Continue") {
-            // Continue without purchasing anything
+            // Continue is always "purchasable" (free)
             return true;
         }
         
@@ -1373,19 +1658,26 @@ class Shop {
             player.gems -= item.cost;
             item.purchased = true;
             
-            // Apply power-up
+            // Apply power-up immediately
             if (item.name === "Fast Fireball") {
                 player.hasFastFireball = true;
                 player.fireCooldown = 7000; // 7 seconds
-            } else if (item.name === "Extra Life") {
-                player.hasExtraLife = true;
-                // Extra life will be applied on next respawn
+            } else if (item.name === "Life Upgrade" || item.name === "Extra Life") {
+                if (player.lifeUpgradeLevel === 0) {
+                    // Upgrade from 2 to 3 lives
+                    player.lifeUpgradeLevel = 1;
+                    player.lives = 3;
+                } else if (player.lifeUpgradeLevel === 1) {
+                    // Upgrade from 3 to 4 lives
+                    player.hasExtraLife = true;
+                    player.lives = 4;
+                }
             }
             
-            return true;
+            return true; // Purchase successful
         }
         
-        return false;
+        return false; // Purchase failed (not enough gems)
     }
 
     // Helper function to create gradient
@@ -1740,7 +2032,17 @@ function init() {
 
 
 function gameStart() {
-    game = new Game('playing', new Level(GAME_LEVELS[0]), 1); // Start with level 1
+    // Generate a random level 1 for the start of the game
+    let level1Plan;
+    if (typeof LevelGenerator !== 'undefined') {
+        const generator = new LevelGenerator(28, 60);
+        level1Plan = generator.generate();
+    } else {
+        // Fallback to static level 1 if LevelGenerator is not available
+        level1Plan = GAME_LEVELS[0];
+    }
+    
+    game = new Game('playing', new Level(level1Plan), 1); // Start with random level 1
     setEventListeners();
     updateCanvas(document.timeline.currentTime);
 }
@@ -1796,8 +2098,19 @@ function handleKeyDown(event) {
         // Reset game state
         frameStart = undefined;
         cameraY = 0;
-        // Create new game instance starting from level 1
-        game = new Game('playing', new Level(GAME_LEVELS[0]), 1);
+        
+        // Generate a new random level 1 for restart
+        let level1Plan;
+        if (typeof LevelGenerator !== 'undefined') {
+            const generator = new LevelGenerator(28, 60);
+            level1Plan = generator.generate();
+        } else {
+            // Fallback to static level 1 if LevelGenerator is not available
+            level1Plan = GAME_LEVELS[0];
+        }
+        
+        // Create new game instance starting from random level 1
+        game = new Game('playing', new Level(level1Plan), 1);
     }
 }
 
@@ -1831,13 +2144,36 @@ function updateCanvas(frameTime) {
             canvasWidth, canvasHeight // Destination size (full canvas)
         );
     } else {
-        // Only clear if no background image
-        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+        // Debug logging for background issues
+        if (game) {
+            console.log(`Background debug - Level: ${game.currentLevel}, Loaded: ${game.backgroundLoaded}, Image exists: ${!!game.backgroundImage}, Complete: ${game.backgroundImage ? game.backgroundImage.complete : 'N/A'}`);
+        }
+        
+        // Fallback background color based on current level
+        if (game && game.currentLevel === 1) {
+            // Level 1: Green/brown nature theme
+            ctx.fillStyle = "#87CEEB"; // Sky blue
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+        } else if (game && game.currentLevel === 2) {
+            // Level 2: Sky/cloud theme
+            ctx.fillStyle = "#87CEFA"; // Light sky blue
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+        } else if (game && game.currentLevel === 3) {
+            // Level 3: Lava/volcanic theme
+            ctx.fillStyle = "#2F1B14"; // Dark brown/volcanic
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+        } else {
+            // Default fallback
+            ctx.fillStyle = "#87CEEB";
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+        }
     }
     
     if (game) {
         game.update(deltaTime);
         game.draw(ctx, scale);
+    } else {
+        console.error("Game instance is null or undefined");
     }
 
     frameStart = frameTime;
@@ -1845,5 +2181,6 @@ function updateCanvas(frameTime) {
 }
 
 main();
+
 
 
