@@ -833,7 +833,6 @@ class Game {
                 actor.update(this.level, deltaTime, this.player);
             } else if (actor.type === 'barrel' && actor.position.y > this.level.height - 2){
                 this.actors = this.actors.filter(item => item !== actor);
-                console.log("Barrel height: ", actor.position.y, "LVLHght: ", this.level.height);
             }else{
                 actor.update(this.level, deltaTime);
             }
