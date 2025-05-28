@@ -307,7 +307,6 @@ class BarrelSpawner extends GameObject {
         this.spawnInterval = 10000; // Spawn a barrel every 2 seconds
         this.maxBarrels = 15; // Maximum number of barrels this spawner can have
         this.activeBarrels = [];
-        console.log("Spawner generated")
     }
 
     update(level, deltaTime) {
