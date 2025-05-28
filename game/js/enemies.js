@@ -1,13 +1,20 @@
-class Barrel extends GameObject {
+class Barrel extends AnimatedObject {
     constructor(color, width, height, x, y, type) {
         super(color || "brown", width, height, x, y, type || "barrel");
+        this.setSprite('../assets/sprites/barrel-sprite.png', new Rect(0, 0, 32, 32));
+        this.sheetCols = 4; 
         this.velocity = new Vec(0.003, 0); // Reduced velocity for smoother movement
         this.moveDistance = 3;
         this.startX = x;
         this.direction = 1; // 1 der, -1 izq
+        this.Falling = false;
+
+        this.setAnimation(0, 3, true, 100); // Row 3 (4th row) frames 18-23 for right movement
+
     }
 
     update(level, deltaTime) {
+        let Rndm = Math.random();
 
         // Comprueba colisión
         let TouchingFloor = level.contact(this.position, this.size, "wall");
@@ -17,11 +24,19 @@ class Barrel extends GameObject {
 
         if (!TouchingFloor) {
             this.velocity.y += gravity * deltaTime;
+            this.Falling = true;
         }else{
             this.velocity.y = 0;
-
+            if(this.Falling){
+                if (Rndm <=.5){
+                    this.velocity.x *= -1;
+                    this.direction *= -1;
+                }
+                this.Falling = false;
+            }
         }
         
+
 
         let nextX = this.position.x + this.velocity.x * deltaTime;
         let nextY = this.position.y + this.velocity.y * deltaTime;
@@ -37,33 +52,15 @@ class Barrel extends GameObject {
 
         let newPos = new Vec(nextX, nextY);
 
-        /* Temporalmente es comentario, ya que no funciona
-        // Check for wall collision
-        let wallHit = level.contact(newPos, this.size, "wall");
-        console.log("wall:", wallHit);
 
-
-        if (wallHit) {
-            this.velocity.x *= -1;
-            this.direction *= -1;
-        }
-        else{
-            this.position = newPos;
-        }
-            */
+            this.updateFrame(deltaTime);
            this.position = newPos;
 
     }
 
     draw(ctx, scale) {
         // Cuerpo
-        ctx.fillStyle = "brown";
-        ctx.fillRect(
-            this.position.x * scale,
-            this.position.y * scale,
-            this.size.x * scale,
-            this.size.y * scale
-        );
+        super.draw(ctx,scale);
     }
 }
 
