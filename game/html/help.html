@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ayuda | Mage Tower</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: url('../assets/backgrounds/main_background.jpg') no-repeat center center fixed;
+            background-size: cover;
+            min-height: 100vh;
+            font-family: 'Press Start 2P', cursive;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0.92) 100%);
+            z-index: -1;
+        }
+
+        .header {
+            text-align: center;
+            padding: 50px 0 30px 0;
+            position: relative;
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 25px;
+            left: 25px;
+            padding: 12px 24px;
+            font-size: 12px;
+            background: linear-gradient(145deg, #ff2d00 0%, #ff6b35 50%, #ffa500 100%);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 20px rgba(255, 45, 0, 0.4);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .back-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(255, 45, 0, 0.6);
+        }
+
+        .help-title {
+            color: #ffd700;
+            font-size: 42px;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            text-shadow: 
+                0 0 20px rgba(255, 215, 0, 1),
+                0 0 40px rgba(255, 215, 0, 0.8),
+                0 0 60px rgba(255, 107, 53, 0.6);
+            animation: titleGlow 3s infinite alternate ease-in-out;
+        }
+
+        .help-subtitle {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            margin-top: 15px;
+            letter-spacing: 2px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
+        }
+
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 40px 40px 40px;
+        }
+
+        .sections-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto;
+            gap: 25px;
+        }
+
+        .help-section {
+            background: linear-gradient(145deg, 
+                rgba(0, 0, 0, 0.95) 0%, 
+                rgba(15, 15, 25, 0.98) 50%, 
+                rgba(0, 0, 0, 0.95) 100%);
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            border-radius: 16px;
+            padding: 30px;
+            backdrop-filter: blur(8px);
+            box-shadow: 
+                0 15px 35px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            position: relative;
+        }
+
+        .help-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #ffd700, transparent);
+            border-radius: 16px 16px 0 0;
+            opacity: 0.6;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+        }
+
+        .section-icon {
+            font-size: 24px;
+            margin-right: 15px;
+            animation: iconFloat 4s infinite ease-in-out;
+        }
+
+        .section-title {
+            color: #ffd700;
+            font-size: 18px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
+        }
+
+        .section-content {
+            height: calc(100% - 80px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Sección de Controles */
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            height: 100%;
+        }
+
+        .control-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 215, 0, 0.15);
+            transition: all 0.3s ease;
+        }
+
+        .control-item:hover {
+            background: rgba(255, 215, 0, 0.1);
+            border-color: rgba(255, 215, 0, 0.4);
+            transform: translateX(5px);
+        }
+
+        .key {
+            background: linear-gradient(145deg, #ffd700 0%, #ffa500 100%);
+            color: #000;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 11px;
+            min-width: 70px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .description {
+            color: #fff;
+            font-size: 12px;
+            line-height: 1.5;
+            flex: 1;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Sección de Objetivo */
+        .objective-content {
+            background: linear-gradient(135deg, 
+                rgba(255, 215, 0, 0.08) 0%, 
+                rgba(255, 107, 53, 0.04) 100%);
+            border-radius: 12px;
+            padding: 25px;
+            border-left: 4px solid #ffd700;
+            height: 100%;
+            display: flex;
+            align-items: center;
+        }
+
+        .objective-text {
+            color: #fff;
+            font-size: 13px;
+            line-height: 1.8;
+            text-align: justify;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Listas de Elementos y Consejos */
+        .game-list {
+            list-style: none;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            height: 100%;
+        }
+
+        .game-list li {
+            color: #fff;
+            font-size: 12px;
+            padding: 15px 15px 15px 45px;
+            position: relative;
+            line-height: 1.6;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 10px;
+            border-left: 3px solid #ffd700;
+            transition: all 0.3s ease;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        .game-list li:hover {
+            transform: translateX(8px);
+            background: rgba(255, 215, 0, 0.08);
+            border-left-width: 5px;
+            color: #ffd700;
+        }
+
+        .game-list li::before {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .game-list li:hover::before {
+            transform: translateY(-50%) scale(1.2);
+        }
+
+        .elements-list li::before { content: "💎"; }
+        .elements-list li { border-left-color: #ff6b35; }
+        .elements-list li:hover { border-left-color: #ff6b35; }
+
+        .tips-list li::before { content: "🔥"; }
+
+        /* Animaciones */
+        @keyframes titleGlow {
+            0% {
+                text-shadow: 
+                    0 0 20px rgba(255, 215, 0, 1),
+                    0 0 40px rgba(255, 215, 0, 0.8),
+                    0 0 60px rgba(255, 107, 53, 0.6);
+            }
+            100% {
+                text-shadow: 
+                    0 0 30px rgba(255, 215, 0, 1),
+                    0 0 60px rgba(255, 215, 0, 1),
+                    0 0 90px rgba(255, 107, 53, 0.8);
+            }
+        }
+
+        @keyframes iconFloat {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            25% { transform: translateY(-3px) rotate(2deg); }
+            50% { transform: translateY(0px) rotate(0deg); }
+            75% { transform: translateY(-2px) rotate(-1deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 1400px) {
+            .main-container {
+                max-width: 1200px;
+                padding: 0 30px 30px 30px;
+            }
+            
+            .help-title { font-size: 36px; }
+            
+            .sections-grid {
+                gap: 20px;
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .sections-grid {
+                grid-template-columns: 1fr;
+                max-width: 800px;
+                margin: 0 auto;
+            }
+            
+            .help-section {
+                min-height: 350px;
+            }
+
+            .controls-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 900px) {
+            .controls-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 0 20px 20px 20px;
+            }
+
+            .controls-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .back-btn {
+                top: 15px;
+                left: 15px;
+                padding: 10px 20px;
+                font-size: 11px;
+            }
+            
+            .help-title { 
+                font-size: 24px;
+                letter-spacing: 3px;
+            }
+
+            .help-subtitle {
+                font-size: 12px;
+            }
+
+            .section-title {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 class="help-title">Torre del Mago</h1>
+        <p class="help-subtitle">Guía de Juego Completa</p>
+    </div>
+    
+    <a href="login.html" class="back-btn">← Volver</a>
+
+    <div class="main-container">
+        <div class="sections-grid">
+            <section class="help-section">
+                <div class="section-header">
+                    <span class="section-icon">🎮</span>
+                    <h2 class="section-title">Controles</h2>
+                </div>
+                <div class="section-content">
+                    <div class="controls-grid">
+                        <div class="control-item">
+                            <span class="key">A</span>
+                            <span class="description">Mover Izquierda</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="key">D</span>
+                            <span class="description">Mover Derecha</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="key">W</span>
+                            <span class="description">Subir Escalera</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="key">S</span>
+                            <span class="description">Bajar Escalera</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="key">Espacio</span>
+                            <span class="description">Saltar</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="key">E</span>
+                            <span class="description">Lanzar Fuego</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="help-section">
+                <div class="section-header">
+                    <span class="section-icon">🎯</span>
+                    <h2 class="section-title">Objetivo Principal</h2>
+                </div>
+                <div class="section-content">
+                    <div class="objective-content">
+                        <div class="objective-text">
+                            Escala la misteriosa Torre del Mago enfrentando desafíos épicos en cada nivel. 
+                            Derrota criaturas mágicas usando tu poder de fuego, recolecta gemas ancestrales 
+                            para aumentar tu puntuación, y descubre los secretos ocultos en las alturas. 
+                            Cada piso te acerca más al poder supremo del mago, pero también aumenta el peligro. 
+                            ¿Tendrás el valor y la habilidad necesaria para conquistar la torre?
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="help-section">
+                <div class="section-header">
+                    <span class="section-icon">💎</span>
+                    <h2 class="section-title">Elementos del Juego</h2>
+                </div>
+                <div class="section-content">
+                    <ul class="game-list elements-list">
+                        <li>Recolecta gemas mágicas brillantes para aumentar tu puntuación</li>
+                        <li>Usa tu devastador poder de fuego para eliminar enemigos</li>
+                        <li>Navega por escaleras místicas para moverte verticalmente</li>
+                        <li>Encuentra portales mágicos para avanzar al siguiente nivel</li>
+                        <li>Evita barriles explosivos y feroces minotauros</li>
+                        <li>Descubre cofres del tesoro con recompensas secretas</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section class="help-section">
+                <div class="section-header">
+                    <span class="section-icon">🧙‍♂️</span>
+                    <h2 class="section-title">Estrategias Maestras</h2>
+                </div>
+                <div class="section-content">
+                    <ul class="game-list tips-list">
+                        <li>Conserva tu energía de fuego para los momentos más críticos</li>
+                        <li>Estudia cuidadosamente los patrones de movimiento enemigos</li>
+                        <li>Mantente siempre alejado de bordes y precipicios peligrosos</li>
+                        <li>Explora meticulosamente cada rincón buscando gemas ocultas</li>
+                        <li>Vigila constantemente tu barra de salud y corazones restantes</li>
+                        <li>Utiliza el entorno y obstáculos como ventaja táctica</li>
+                    </ul>
+                </div>
+            </section>
+        </div>
+    </div>
+</body>
+</html>
