@@ -31,6 +31,8 @@ class LevelGenerator {
         // Add enemies and collectibles
         this.populateLevel();
 
+        this.addSpawners();
+
         // Add portal at the top
         this.addPortal();
 
@@ -163,7 +165,6 @@ class LevelGenerator {
             }
             
             lastLadderX = ladderX;
-            console.log(`Layer ${layer}: Placed ladder at x=${ladderX}, from y=${y} to y=${nextPlatformY}`);
         }
     }
     
@@ -221,9 +222,6 @@ class LevelGenerator {
     }
 
     populateLevel() {
-        // Add enemies and gems to platforms with constraints
-        console.log("Starting enemy placement...");
-        
         // First, identify all platforms
         let platforms = [];
         
@@ -245,7 +243,7 @@ class LevelGenerator {
                     // End of platform (hit empty space)
                     if (currentPlatform) {
                         platforms.push(currentPlatform);
-                        console.log(`Found platform at y=${currentPlatform.y}, x=${currentPlatform.startX}-${currentPlatform.endX}`);
+//                        console.log(`Found platform at y=${currentPlatform.y}, x=${currentPlatform.startX}-${currentPlatform.endX}`);
                         currentPlatform = null;
                     }
                 }
@@ -254,11 +252,11 @@ class LevelGenerator {
             // Don't forget the last platform if it ends at the edge
             if (currentPlatform) {
                 platforms.push(currentPlatform);
-                console.log(`Found platform at y=${currentPlatform.y}, x=${currentPlatform.startX}-${currentPlatform.endX}`);
+//                console.log(`Found platform at y=${currentPlatform.y}, x=${currentPlatform.startX}-${currentPlatform.endX}`);
             }
         }
         
-        console.log(`Found ${platforms.length} platforms total`);
+//        console.log(`Found ${platforms.length} platforms total`);
         
         // Now place exactly one enemy per platform (with chance)
         platforms.forEach((platform, index) => {
@@ -281,13 +279,13 @@ class LevelGenerator {
                         const enemyType = Math.random();
                         if (enemyType < 0.3) {
                             this.grid[enemyY][randomX] = 'E'; // Regular enemy
-                            console.log(`Placed Enemy at (${randomX}, ${enemyY}) on platform ${index}`);
+                            //console.log(`Placed Enemy at (${randomX}, ${enemyY}) on platform ${index}`);
                         } else if (enemyType < 0.6) {
                             this.grid[enemyY][randomX] = 'M'; // Minotaur
-                            console.log(`Placed Minotaur at (${randomX}, ${enemyY}) on platform ${index}`);
+                            //console.log(`Placed Minotaur at (${randomX}, ${enemyY}) on platform ${index}`);
                         } else {
                             this.grid[enemyY][randomX] = 'B'; // Barrel
-                            console.log(`Placed Barrel at (${randomX}, ${enemyY}) on platform ${index}`);
+                            //console.log(`Placed Barrel at (${randomX}, ${enemyY}) on platform ${index}`);
                         }
                     } else {
                         console.log(`Spot (${randomX}, ${enemyY}) on platform ${index} was not empty: ${this.grid[enemyY][randomX]}`);
@@ -308,11 +306,30 @@ class LevelGenerator {
             }
         }
         
-        console.log("Enemy placement completed.");
+    }
+
+    addSpawners(){
+        let OS = '#';     //OS = object searching
+        let SG = 0;       //SG = Spawners generated
+
+        for (let y = 1; y < 10; y++) {
+            for (let x = 1; x < this.width - 1; x++){
+                if(this.grid[y][x] === OS && this.grid[y - 1][x] === '.'){
+                    if(SG<3 && OS == '#'){
+                        this.grid[y - 1][x] = 'S';
+                        OS = '.';
+                        SG++;
+                    }else if (SG < 3 && OS == '.'){
+                        OS = '#';
+                    }else{return;}
+                }
+            }
+        }
     }
 
     addPortal() {
         // Find the highest platform for portal placement
+
         for (let y = 1; y < 10; y++) {
             for (let x = 1; x < this.width - 1; x++) {
                 if (this.grid[y][x] === '#' && this.grid[y - 1][x] === '.') {
@@ -344,6 +361,7 @@ const GAME_LEVELS = [
     new LevelGenerator(28, 60).generate(),
     new LevelGenerator(28, 60).generate(), // Add Level 3
 ];
+
 
 // Export GAME_LEVELS for use in other files
 if (typeof module !== 'undefined' && module.exports) {

@@ -572,6 +572,12 @@ class Level {
                     return "empty"; 
                 }
 
+                if (item.label === "spawner"){
+                    let spawner = new BarrelSpawner (x,y);
+                    this.actors.push(spawner);
+                    return "empty";
+                }
+
                 let actor = new item.objClass(color, 1, 1, x, y, item.label);
 
                 if (actor.type === "player") {
@@ -783,11 +789,9 @@ class Game {
             this.backgroundImage.src = '../assets/stages/Map-3/map_3.png';
         }
         
-        console.log(`Loading background image for level ${levelNumber} from:`, this.backgroundImage.src);
         
         this.backgroundImage.onload = () => {
-            console.log(`Level ${levelNumber} background image loaded successfully!`);
-            console.log("Image dimensions:", this.backgroundImage.width, "x", this.backgroundImage.height);
+            //console.log("Image dimensions:", this.backgroundImage.width, "x", this.backgroundImage.height);
             this.backgroundLoaded = true;
         };
         
@@ -827,7 +831,10 @@ class Game {
         for (let actor of this.actors) {
             if (actor.type === 'minotaur') {
                 actor.update(this.level, deltaTime, this.player);
-            } else {
+            } else if (actor.type === 'barrel' && actor.position.y > this.level.height - 2){
+                this.actors = this.actors.filter(item => item !== actor);
+                console.log("Barrel height: ", actor.position.y, "LVLHght: ", this.level.height);
+            }else{
                 actor.update(this.level, deltaTime);
             }
         }
@@ -876,7 +883,6 @@ class Game {
 
     // Method to start level transition
     startTransition() {
-        console.log(`Starting transition from level ${this.currentLevel} to level ${this.currentLevel + 1}`);
         this.isTransitioning = true;
         this.transitionTimer = 0;
         this.nextLevelNumber = this.currentLevel + 1;
@@ -884,7 +890,6 @@ class Game {
 
     // Method to complete the transition and load next level
     completeTransition() {
-        console.log(`Completing transition to level ${this.nextLevelNumber}`);
         
         // Reset camera position
         cameraY = 0;
