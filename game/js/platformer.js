@@ -234,6 +234,16 @@ class Player extends AnimatedObject {
             }
         }
 
+        // Handle jumping - only allow jump when on ground
+        if (keyState[" "] && !this.wasSpacePressed && this.isOnGround(level)) {
+            this.velocity.y = initialJumpSpeed;
+            this.isJumping = true;
+            if (!this.isHurt && !this.isAttacking) {
+                this.setMageAnimation('jump');
+            }
+        }
+        this.wasSpacePressed = keyState[" "];
+
         // Simplified ladder system: activate when touching ladder AND pressing W or S
         let wasOnLadder = this.isOnLadder;
         let bottomOnLadder = this.isBottomOnLadder(level);
@@ -241,6 +251,9 @@ class Player extends AnimatedObject {
         // Enter ladder mode if touching ladder AND pressing W or S
         if (bottomOnLadder && (keyState["w"] || keyState["s"]) && !this.isOnLadder) {
             this.isOnLadder = true;
+            // Center player on ladder when entering
+            const ladderX = Math.floor(this.position.x) + 0.5; // Center of the ladder cell
+            this.position.x = ladderX - (this.size.x / 2); // Adjust for player width
         }
         
         // Exit ladder mode only if no longer touching ladder with bottom
@@ -259,6 +272,9 @@ class Player extends AnimatedObject {
                 let upwardPosition = this.position.plus(new Vec(0, -0.1));
                 if (!level.contact(upwardPosition, this.size, 'wall')) {
                     this.velocity.y = -0.008;
+                    // Keep player centered on ladder while moving up
+                    const ladderX = Math.floor(this.position.x) + 0.5;
+                    this.position.x = ladderX - (this.size.x / 2);
                     if (!this.isHurt && !this.isAttacking) {
                         this.setMageAnimation('climb');
                     }
