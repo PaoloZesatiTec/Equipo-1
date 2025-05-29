@@ -40,8 +40,8 @@
 
         .back-btn {
             position: fixed;
-            top: 25px;
-            left: 25px;
+            top: 20px;
+            left: 20px;
             padding: 12px 24px;
             font-size: 12px;
             background: linear-gradient(145deg, #ff2d00 0%, #ff6b35 50%, #ffa500 100%);
@@ -52,7 +52,7 @@
             text-decoration: none;
             text-transform: uppercase;
             letter-spacing: 1px;
-            z-index: 1000;
+            z-index: 9999;
             transition: all 0.3s ease;
             box-shadow: 0 6px 20px rgba(255, 45, 0, 0.4);
             border: 2px solid rgba(255, 255, 255, 0.1);
@@ -359,16 +359,28 @@
                 font-size: 16px;
             }
         }
+
+        .help-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            border-radius: 20px;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+            position: relative;
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            animation: glow 2s infinite alternate;
+        }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1 class="help-title">Torre del Mago</h1>
-        <p class="help-subtitle">Guía de Juego Completa</p>
+    <a href="../html/index.html" class="back-btn">Volver</a>
+    <div class="help-container">
+        <h1 class="help-title">Ayuda</h1>
     </div>
     
-    <a href="login.html" class="back-btn">← Volver</a>
-
     <div class="main-container">
         <div class="sections-grid">
             <section class="help-section">

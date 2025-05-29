@@ -1028,14 +1028,14 @@ class Game {
             ctx.drawImage(
                 this.gemUISprite, 
                 20,         // X position
-                30,         // Y position (moved down from 10)
-                40,         // Width (increased from 30)
-                40          // Height (increased from 30)
+                30,         // Y position
+                60,         // Width (increased from 40)
+                60          // Height (increased from 40)
             );
         }
         
         // Draw gem counter with improved styling
-        ctx.font = "bold 28px 'Arial Rounded MT Bold', 'Arial Black', sans-serif"; // Increased font size
+        ctx.font = "bold 32px 'Arial Rounded MT Bold', 'Arial Black', sans-serif"; // Increased font size
         ctx.fillStyle = "#FFD700"; // Gold color
         ctx.textAlign = "left";
         ctx.textBaseline = "middle";
@@ -1049,8 +1049,8 @@ class Game {
         // Position text centered vertically with the gem icon
         ctx.fillText(
             `${this.player.gems}`, 
-            70,  // X position (adjusted for bigger gem icon)
-            50   // Y position (centered with the new gem icon position)
+            90,  // X position (adjusted for bigger gem icon)
+            60   // Y position (centered with the new gem icon position)
         );
         
         // Reset shadow for other elements
@@ -1060,10 +1060,10 @@ class Game {
         for (let i = 0; i < this.player.lives; i++) {
             ctx.drawImage(
                 this.heartSprite, 
-                20 + i * 50, // X position (hearts are 50px apart, increased spacing)
-                80,         // Y position (moved down from 50)
-                40,         // Width (increased from 30)
-                40          // Height (increased from 30)
+                20 + i * 70, // X position (hearts are 70px apart, increased spacing)
+                120,        // Y position (moved down from 80 to 120 to add more space)
+                60,         // Width
+                60          // Height
             );
         }
 
@@ -1075,38 +1075,38 @@ class Game {
 
         // Fireball icon background
         ctx.fillStyle = isReady ? "rgba(255, 100, 0, 0.8)" : "rgba(100, 100, 100, 0.5)";
-        ctx.fillRect(20, 130, 40, 40); // Moved down and made bigger
+        ctx.fillRect(20, 200, 60, 60); // Moved down and made bigger (from 40x40 to 60x60)
 
         // Fireball icon
         ctx.fillStyle = isReady ? "orange" : "gray";
-        ctx.fillRect(22, 132, 36, 36); // Adjusted for bigger size
+        ctx.fillRect(24, 204, 52, 52); // Adjusted for bigger size
         ctx.fillStyle = isReady ? "red" : "darkgray";
-        ctx.fillRect(26, 136, 28, 28); // Adjusted for bigger size
+        ctx.fillRect(32, 212, 36, 36); // Adjusted for bigger size
 
         // Cooldown progress bar
         if (!isReady) {
             // Background bar
             ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
-            ctx.fillRect(20, 175, 40, 8); // Moved down and made wider
+            ctx.fillRect(20, 265, 60, 10); // Moved down and made wider
             
             // Progress bar
             ctx.fillStyle = "orange";
-            ctx.fillRect(20, 175, 40 * cooldownProgress, 8); // Adjusted for new size
+            ctx.fillRect(20, 265, 60 * cooldownProgress, 10); // Adjusted for new size
         }
 
         // Fireball ready text
         if (isReady) {
-            ctx.font = "12px Arial"; // Slightly bigger font
+            ctx.font = "bold 16px Arial"; // Bigger font
             ctx.fillStyle = "white";
             ctx.textAlign = "center";
-            ctx.fillText("E", 40, 190); // Adjusted position
+            ctx.fillText("E", 50, 280); // Adjusted position
         } else {
             // Show remaining time
             const remainingTime = Math.ceil((this.player.fireCooldown - timeSinceLastFire) / 1000);
-            ctx.font = "12px Arial"; // Slightly bigger font
+            ctx.font = "bold 16px Arial"; // Bigger font
             ctx.fillStyle = "white";
             ctx.textAlign = "center";
-            ctx.fillText(remainingTime + "s", 40, 190); // Adjusted position
+            ctx.fillText(remainingTime + "s", 50, 280); // Adjusted position
         }
 
         // Draw game over screen
