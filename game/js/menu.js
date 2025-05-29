@@ -166,6 +166,9 @@ function initMenu() {
 
     // Agregar evento click al botón
     startButton.addEventListener('click', startGame);
+    helpButton.addEventListener('click', () => {
+        window.location.href = '../html/help.html';
+    });
 
     // Agregar elementos al DOM
     secondaryButtons.appendChild(shop);
