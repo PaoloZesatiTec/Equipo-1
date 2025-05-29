@@ -234,6 +234,9 @@ class Player extends AnimatedObject {
         // Enter ladder mode if touching ladder AND pressing W or S
         if (bottomOnLadder && (keyState["w"] || keyState["s"]) && !this.isOnLadder) {
             this.isOnLadder = true;
+            // Center player on ladder when entering
+            const ladderX = Math.floor(this.position.x) + 0.5; // Center of the ladder cell
+            this.position.x = ladderX - (this.size.x / 2); // Adjust for player width
         }
         
         // Exit ladder mode only if no longer touching ladder with bottom
@@ -248,23 +251,18 @@ class Player extends AnimatedObject {
             // On ladder: vertical movement is controlled by keys
             this.velocity.y = 0;
             if (keyState["w"]) {
-                // Center player on ladder
-                const ladderX = Math.floor(this.position.x) + 0.5; // Center of the ladder cell
-                this.position.x = ladderX - (this.size.x / 2); // Adjust for player width
-                
                 // Check if there's a wall directly above before moving up
                 let upwardPosition = this.position.plus(new Vec(0, -0.1));
                 if (!level.contact(upwardPosition, this.size, 'wall')) {
                     this.velocity.y = -0.008;
+                    // Keep player centered on ladder while moving up
+                    const ladderX = Math.floor(this.position.x) + 0.5;
+                    this.position.x = ladderX - (this.size.x / 2);
                     if (!this.isHurt && !this.isAttacking) {
                         this.setMageAnimation('climb');
                     }
                 }
             } else if (keyState["s"]) {
-                // Center player on ladder when moving down too
-                const ladderX = Math.floor(this.position.x) + 0.5;
-                this.position.x = ladderX - (this.size.x / 2);
-                
                 // Check if there's a wall directly below before moving down
                 let downwardPosition = this.position.plus(new Vec(0, 0.1));
                 if (!level.contact(downwardPosition, this.size, 'wall')) {
@@ -274,9 +272,6 @@ class Player extends AnimatedObject {
                     }
                 }
             } else if (this.isOnLadder && !this.isHurt && !this.isAttacking) {
-                // Center player on ladder even when not moving
-                const ladderX = Math.floor(this.position.x) + 0.5;
-                this.position.x = ladderX - (this.size.x / 2);
                 // Idle on ladder
                 this.setMageAnimation('idle');
             }
@@ -1250,8 +1245,8 @@ function handleKeyDown(event) {
     if (event.key == 's') game.player.crouch();
     if (event.key == 'e') game.player.fireFireball();
     if (event.key == ' ') {
-        // Only allow jumping if on ground
-        if (game.player.isOnGround(game.level)) {
+        // Simplified jumping logic - allow jumping if not already jumping and velocity is low
+        if (!game.player.isJumping && game.player.velocity.y >= -0.001) {
             game.player.velocity.y = initialJumpSpeed;
             game.player.isJumping = true;
             
