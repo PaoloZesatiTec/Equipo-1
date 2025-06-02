@@ -1,9 +1,10 @@
 // Level Generator for Roguelike Platformer
 
 class LevelGenerator {
-    constructor(width = 30, height = 60) {
+    constructor(width = 30, height = 60, levelNumber = 1) {
         this.width = width;
         this.height = height;
+        this.levelNumber = levelNumber; // Add level number tracking
         this.minPlatformLength = 4;
         this.maxPlatformLength = 7;
         this.jumpDistance = 3; // Reasonable jump distance
@@ -328,12 +329,14 @@ class LevelGenerator {
     }
 
     addPortal() {
-        // Find the highest platform for portal placement
+        // Find the highest platform for portal/princess placement
+        // Use princess for level 4, portal for other levels
+        const endingChar = this.levelNumber === 4 ? 'R' : 'P';
 
         for (let y = 1; y < 10; y++) {
             for (let x = 1; x < this.width - 1; x++) {
                 if (this.grid[y][x] === '#' && this.grid[y - 1][x] === '.') {
-                    this.grid[y - 1][x] = 'P';
+                    this.grid[y - 1][x] = endingChar;
                     return;
                 }
             }
@@ -347,7 +350,7 @@ class LevelGenerator {
                 this.grid[portalY][portalX + i] = '#';
             }
         }
-        this.grid[portalY - 1][portalX] = 'P';
+        this.grid[portalY - 1][portalX] = endingChar;
     }
 
     gridToString() {
@@ -357,9 +360,10 @@ class LevelGenerator {
 
 // Generate levels with all fixes applied
 const GAME_LEVELS = [
-    new LevelGenerator(28, 60).generate(),
-    new LevelGenerator(28, 60).generate(),
-    new LevelGenerator(28, 60).generate(), // Add Level 3
+    new LevelGenerator(28, 60, 1).generate(),
+    new LevelGenerator(28, 60, 2).generate(),
+    new LevelGenerator(28, 60, 3).generate(), // Add Level 3
+    new LevelGenerator(28, 60, 4).generate(), // Add Level 4 (Final Boss) - will use Princess
 ];
 
 

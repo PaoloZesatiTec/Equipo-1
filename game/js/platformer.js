@@ -18,6 +18,114 @@ const gravity = 0.000045;
 let cameraY = 0; // New variable for vertical camera scrolling
 let keyState = {}; // For climbing
 
+// Lava class for the final level
+class Lava {
+    constructor(levelHeight) {
+        this.height = 0; // Start below the first floor (changed from 0.5)
+        this.maxHeight = levelHeight - 10; // Don't go all the way to top
+        this.riseSpeed = 0.0006; // Increased from 0.0001 to 0.0002 (2x faster)
+        this.levelHeight = levelHeight;
+        this.active = false; // Only active on level 4
+        this.delayTimer = 0; // Timer for the initial delay
+        this.delayDuration = 2000; // 2 seconds delay before starting to rise
+        this.hasStartedRising = false; // Track if lava has started rising
+    }
+
+    update(deltaTime, currentLevel) {
+        if (currentLevel === 4 && this.active) {
+            if (!this.hasStartedRising) {
+                // Count down the delay timer
+                this.delayTimer += deltaTime;
+                if (this.delayTimer >= this.delayDuration) {
+                    this.hasStartedRising = true;
+                }
+            } else {
+                // Start rising after delay
+                this.height += this.riseSpeed * deltaTime;
+                if (this.height > this.maxHeight) {
+                    this.height = this.maxHeight;
+                }
+            }
+        }
+    }
+
+    checkCollision(player) {
+        if (this.active && player.position.y + player.size.y >= this.levelHeight - this.height) {
+            return true; // Player touched lava
+        }
+        return false;
+    }
+
+    draw(ctx, scale, levelWidth, levelHeight) {
+        if (!this.active) return;
+        
+        const lavaY = (levelHeight - this.height) * scale;
+        const lavaHeight = this.height * scale;
+        
+        // Always show lava pool below the ground level for visual effect
+        const basePoolHeight = 100; // Height of the base lava pool in pixels
+        const poolY = levelHeight * scale; // Start from the bottom of the level
+        
+        // Draw the base lava pool below ground level - using same colors as rising lava
+        const poolGradient = ctx.createLinearGradient(0, poolY, 0, poolY + basePoolHeight);
+        poolGradient.addColorStop(0, '#FF4500'); // Orange red at top (same as rising lava)
+        poolGradient.addColorStop(0.5, '#FF6347'); // Tomato in middle (same as rising lava)
+        poolGradient.addColorStop(1, '#DC143C'); // Crimson at bottom (same as rising lava)
+        
+        ctx.fillStyle = poolGradient;
+        ctx.fillRect(0, poolY, levelWidth * scale, basePoolHeight);
+        
+        // Add bubbling effect to the base pool
+        const time = Date.now() * 0.003;
+        for (let i = 0; i < 8; i++) {
+            const x = (Math.sin(time + i * 0.8) * 0.5 + 0.5) * levelWidth * scale;
+            const bubbleY = poolY + Math.sin(time * 1.5 + i) * 15 + 20;
+            
+            ctx.fillStyle = '#FF6347'; // Tomato bubbles
+            ctx.beginPath();
+            ctx.arc(x, bubbleY, 2 + Math.sin(time + i) * 1.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // Draw the rising lava if it's above ground level
+        if (this.height > 0) {
+            // Create lava gradient for rising portion
+            const gradient = ctx.createLinearGradient(0, lavaY, 0, lavaY + lavaHeight);
+            gradient.addColorStop(0, '#FF4500'); // Orange red at top
+            gradient.addColorStop(0.5, '#FF6347'); // Tomato in middle  
+            gradient.addColorStop(1, '#DC143C'); // Crimson at bottom
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, lavaY, levelWidth * scale, lavaHeight);
+            
+            // Add lava bubbling effect for rising lava
+            const activeTime = Date.now() * 0.005;
+            for (let i = 0; i < 10; i++) {
+                const x = (Math.sin(activeTime + i) * 0.5 + 0.5) * levelWidth * scale;
+                const bubbleY = lavaY + Math.sin(activeTime * 2 + i) * 10;
+                
+                ctx.fillStyle = '#FFD700'; // Gold bubbles
+                ctx.beginPath();
+                ctx.arc(x, bubbleY, 3 + Math.sin(activeTime + i) * 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+    }
+
+    reset() {
+        this.height = 0; // Reset to start below the first floor (changed from 0.5)
+        this.active = false;
+        this.delayTimer = 0; // Reset the delay timer
+        this.hasStartedRising = false; // Reset the rising flag
+    }
+
+    activate() {
+        this.active = true;
+        this.delayTimer = 0; // Reset delay timer when activated
+        this.hasStartedRising = false; // Reset rising flag when activated
+    }
+}
+
 class Player extends AnimatedObject {
     constructor(color, width, height, x, y, type, powerUps = {}) {
         // Make hitbox even smaller - reducing height and width further
@@ -32,7 +140,7 @@ class Player extends AnimatedObject {
         
         this.velocity = new Vec(0.0, 0.0);
         this.gems = 0;
-        this.lives = 2; // Changed from 3 to 2
+        this.lives = 2; // Changed back to 2 base lives
         this.invulnerable = false;
         this.invulnerableTimer = 0;
         this.isDead = false;
@@ -60,7 +168,7 @@ class Player extends AnimatedObject {
         } else if (this.lifeUpgradeLevel === 1) {
             this.lives = 3;
         } else {
-            this.lives = 2; // Base lives
+            this.lives = 2; // Base lives back to 2
         }
 
         // Horizontal hitbox: narrower than the player's main hitbox, defined in Level constructor
@@ -195,7 +303,7 @@ class Player extends AnimatedObject {
         }
     }
 
-    update(level, deltaTime) {
+    update(level, deltaTime, actors = []) {
         if (this.isDead) return;
 
         // Handle delayed fireball creation during attack
@@ -300,7 +408,7 @@ class Player extends AnimatedObject {
         // --- Horizontal movement ---
         let newXPosition = this.position.plus(new Vec(velX * deltaTime, 0));
         
-        // Always check for horizontal wall collision, even on ladder
+        // Check for horizontal wall collision only
         let horizontalCollision = false;
         if (this.horizontalHitbox) {
             let hitboxX = newXPosition.plus(this.horizontalHitbox.offset);
@@ -316,7 +424,7 @@ class Player extends AnimatedObject {
         // --- Vertical movement ---
         let newYPosition = this.position.plus(new Vec(0, velY * deltaTime));
 
-        // When on ladder, only check for ceiling/floor collisions, not walls
+        // When on ladder, only check for ceiling/floor collisions
         if (this.isOnLadder) {
             // Check for ceiling/floor collisions using main hitbox
             let verticalCollision = level.contact(newYPosition, this.size, 'wall');
@@ -327,7 +435,7 @@ class Player extends AnimatedObject {
             }
         } else {
             // Normal collision check when not on ladder
-            // Check for both walls and ladders as solid surfaces
+            // Check for walls and ladders only
             if (level.contact(newYPosition, this.size, 'wall') || 
                 (level.contact(newYPosition, this.size, 'ladder') && velY > 0)) {
                 this.velocity.y = 0;
@@ -560,6 +668,51 @@ class Portal extends AnimatedObject {
     }
 }
 
+class Princess extends AnimatedObject {
+    constructor(x, y) {
+        super("pink", 1.5, 1.5, x, y, "princess"); // Same hitbox size as portal
+        
+        // Set up sprite animation for the princess (32x32 sprite sheet, 4 frames in 1 row)
+        this.setSprite('../assets/figure/Princess/princess.png', new Rect(0, 0, 32, 32));
+        this.sheetCols = 4; // 4 columns (frames) in 1 row
+        
+        // Start princess animation - 4 frames total, looping
+        this.setAnimation(0, 3, true, 300); // Frames 0-3, looping, 300ms per frame
+    }
+
+    update(level, deltaTime) {
+        // Update animation frame
+        this.updateFrame(deltaTime);
+    }
+
+    draw(ctx, scale) {
+        // Draw the animated princess sprite
+        if (this.spriteImage && this.spriteRect) {
+            const spriteScale = 3.0; // Same scale as portal for consistency
+            const offsetX = (this.size.x * (spriteScale - 1)) / 2; // Center the larger sprite horizontally
+            const offsetY = (this.size.y * (spriteScale - 1)) / 2 + this.size.y * 1.5; // Move sprite higher above the platform
+            
+            ctx.drawImage(this.spriteImage,
+                          this.spriteRect.x * this.spriteRect.width,
+                          this.spriteRect.y * this.spriteRect.height,
+                          this.spriteRect.width, this.spriteRect.height,
+                          (this.position.x - offsetX) * scale, 
+                          (this.position.y - offsetY) * scale, // Adjusted Y position to be well above platform
+                          this.size.x * scale * spriteScale, 
+                          this.size.y * scale * spriteScale);
+        } else {
+            // Fallback to pink rectangle if sprite isn't loaded
+            ctx.fillStyle = this.color; 
+            ctx.fillRect(
+                this.position.x * scale,
+                this.position.y * scale,
+                this.size.x * scale,
+                this.size.y * scale
+            );
+        }
+    }
+}
+
 class Level {
     constructor(plan) {
         let rows = plan.trim().split('\n').map(l => [...l]);
@@ -608,6 +761,12 @@ class Level {
                 if (item.label === "spawner"){
                     let spawner = new BarrelSpawner (x,y);
                     this.actors.push(spawner);
+                    return "empty";
+                }
+
+                if (item.label === "princess"){
+                    let princess = new Princess(x, y);
+                    this.actors.push(princess);
                     return "empty";
                 }
 
@@ -674,6 +833,9 @@ class Level {
         } else if (levelNumber === 3) {
             // Level 3: Lava/Obsidian block
             this.drawLavaObsidianBlock(ctx, drawX, drawY, blockSize);
+        } else if (levelNumber === 4) {
+            // Level 4: Molten lava cubes
+            this.drawMoltenLavaBlock(ctx, drawX, drawY, blockSize);
         }
         
         // Re-enable anti-aliasing
@@ -803,6 +965,66 @@ class Level {
         }
     }
 
+    drawMoltenLavaBlock(ctx, x, y, size) {
+        const pixelSize = size / 16; // 16x16 pixel block
+        
+        // Use position as seed for consistent random patterns
+        const seed = (x / size) * 1000 + (y / size);
+        
+        // Add time-based animation for flowing lava effect
+        const time = Date.now() * 0.001;
+        const animOffset = Math.sin(time + seed * 0.1) * 0.5 + 0.5;
+        
+        // Draw molten rock base (dark red-orange)
+        ctx.fillStyle = "#8B0000"; // Dark red
+        ctx.fillRect(x, y, size, size);
+        
+        // Add molten texture with bright orange (deterministic but animated)
+        ctx.fillStyle = "#FF4500"; // Orange red
+        for (let i = 0; i < 12; i++) {
+            const px = x + (Math.floor((seed + i * 11 + animOffset * 2) % 16)) * pixelSize;
+            const py = y + (Math.floor((seed + i * 13) % 16)) * pixelSize;
+            ctx.fillRect(px, py, pixelSize, pixelSize);
+        }
+        
+        // Add bright lava flows
+        ctx.fillStyle = "#FF6347"; // Tomato
+        // Flowing horizontal streams
+        const flowY1 = y + pixelSize * Math.floor(4 + animOffset * 3);
+        const flowY2 = y + pixelSize * Math.floor(10 + animOffset * 2);
+        ctx.fillRect(x + pixelSize * 2, flowY1, pixelSize * 12, pixelSize);
+        ctx.fillRect(x + pixelSize * 1, flowY2, pixelSize * 14, pixelSize);
+        
+        // Flowing vertical streams
+        const flowX1 = x + pixelSize * Math.floor(5 + animOffset * 4);
+        const flowX2 = x + pixelSize * Math.floor(11 + animOffset * 3);
+        ctx.fillRect(flowX1, y + pixelSize * 2, pixelSize, pixelSize * 12);
+        ctx.fillRect(flowX2, y + pixelSize * 1, pixelSize, pixelSize * 14);
+        
+        // Add super bright lava core
+        ctx.fillStyle = "#FFD700"; // Gold
+        ctx.fillRect(x + pixelSize * 6, y + pixelSize * 6, pixelSize * 4, pixelSize * 4);
+        
+        // Add animated hot spots
+        ctx.fillStyle = "#FFFF00"; // Yellow
+        for (let i = 0; i < 6; i++) {
+            const px = x + (Math.floor((seed + i * 17 + animOffset * 5) % 16)) * pixelSize;
+            const py = y + (Math.floor((seed + i * 19 + animOffset * 3) % 16)) * pixelSize;
+            ctx.fillRect(px, py, pixelSize, pixelSize);
+        }
+        
+        // Add white-hot center spots
+        ctx.fillStyle = "#FFFFFF"; // White hot
+        for (let i = 0; i < 3; i++) {
+            const px = x + (Math.floor((seed + i * 23 + animOffset * 7) % 16)) * pixelSize;
+            const py = y + (Math.floor((seed + i * 29 + animOffset * 4) % 16)) * pixelSize;
+            if (px >= x + pixelSize * 4 && px <= x + pixelSize * 12 && 
+                py >= y + pixelSize * 4 && py <= y + pixelSize * 12) {
+                ctx.fillRect(px, py, pixelSize, pixelSize);
+            }
+        }
+    }
+
     addBackgroundFloor(x, y) {
         let floor = levelChars['.'];
         let floorActor = new GameObject("transparent", 1, 1, x, y, floor.label);
@@ -902,6 +1124,11 @@ const levelChars = {
         objClass: Portal,
         label: "portal",
         sprite: null
+    },
+    "R": {
+        objClass: Princess,
+        label: "princess",
+        sprite: null
     }
 }
 
@@ -917,7 +1144,13 @@ class Game {
         this.gameOver = false;
         this.gameWon = false;
         this.currentLevel = levelNumber; // Track current level
-        this.totalLevels = 3; // Updated to 3 total levels
+        this.totalLevels = 4; // Updated to 4 total levels
+        
+        // Initialize lava system
+        this.lava = new Lava(level.height);
+        if (levelNumber === 4) {
+            this.lava.activate();
+        }
         
         // Shop system
         this.shop = new Shop();
@@ -964,6 +1197,18 @@ class Game {
         this.transitionImages[3].onerror = () => {
             console.error("Failed to load level 3 transition image");
         };
+        
+        // Load level 4 transition image
+        this.transitionImages[4] = new Image();
+        this.transitionImagesLoaded[4] = false;
+        this.transitionImages[4].src = '../assets/figure/Transition/level4transition.png';
+        this.transitionImages[4].onload = () => {
+            console.log("Level 4 transition image loaded successfully!");
+            this.transitionImagesLoaded[4] = true;
+        };
+        this.transitionImages[4].onerror = () => {
+            console.error("Failed to load level 4 transition image");
+        };
 
         // Load level background image based on level number
         this.backgroundImage = new Image();
@@ -975,6 +1220,8 @@ class Game {
             this.backgroundImage.src = '../assets/stages/Map-2/map-2.png';
         } else if (levelNumber === 3) {
             this.backgroundImage.src = '../assets/stages/Map-3/map_3.png';
+        } else if (levelNumber === 4) {
+            this.backgroundImage.src = '../assets/stages/Map-Final Boss/final_level.png';
         }
         
         
@@ -1045,6 +1292,19 @@ class Game {
             return; // Don't update game during transition
         }
 
+        // Update lava system
+        this.lava.update(deltaTime, this.currentLevel);
+        
+        // Check lava collision
+        if (this.lava.checkCollision(this.player)) {
+            // Lava instantly kills - force death
+            this.player.lives = 0;
+            this.player.die();
+            this.isDeathFading = true;
+            this.deathFadeTimer = 0;
+            return;
+        }
+
         this.player.update(this.level, deltaTime);
 
         // Update all actors
@@ -1065,17 +1325,18 @@ class Game {
                     this.player.gems += 1;
                     this.actors = this.actors.filter(item => item !== actor);
                 } else if (actor.type === 'enemy' || actor.type === 'barrel' || actor.type === 'minotaur') {
-                    this.player.loseLife();
-                    // Optional: push player away from enemy
-                    const pushDirection = this.player.position.x < actor.position.x ? -1 : 1;
-                    this.player.position = this.player.position.plus(new Vec(pushDirection * 0.5, -0.5));
-                    
-                    // Check for game over - start death fade instead of immediately opening shop
-                    if (this.player.lives <= 0) {
-                        this.isDeathFading = true;
-                        this.deathFadeTimer = 0;
+                    // Only apply damage if player is not invulnerable
+                    if (!this.player.invulnerable && !this.player.isDead) {
+                        this.player.loseLife();
+                        
+                        // Check for game over - start death fade instead of immediately opening shop
+                        if (this.player.lives <= 0) {
+                            this.isDeathFading = true;
+                            this.deathFadeTimer = 0;
+                        }
                     }
-                } else if (actor.type === 'portal') {
+                    // No physical collision or knockback - player can move freely through enemies when invulnerable
+                } else if (actor.type === 'portal' || actor.type === 'princess') {
                     // Check if this is the last level
                     if (this.currentLevel >= this.totalLevels) {
                         // Final level completed - end the game
@@ -1120,7 +1381,7 @@ class Game {
         let nextLevelPlan;
         if (typeof LevelGenerator !== 'undefined') {
             // Use LevelGenerator to create a fresh random layout
-            const generator = new LevelGenerator(28, 60);
+            const generator = new LevelGenerator(28, 60, this.nextLevelNumber);
             nextLevelPlan = generator.generate();
             console.log(`Generated new random layout for level ${this.nextLevelNumber}`);
         } else {
@@ -1135,6 +1396,7 @@ class Game {
         
         // Preserve player stats but reset position and state
         const playerGems = this.player.gems;
+        const playerLives = this.player.lives; // Preserve current lives
         const playerPowerUps = {
             hasFastFireball: this.player.hasFastFireball,
             hasExtraLife: this.player.hasExtraLife,
@@ -1147,22 +1409,22 @@ class Game {
         this.player = nextLevel.player;
         this.actors = [...nextLevel.actors];
         
+        // Reset lava system and activate for level 4
+        this.lava.reset();
+        if (this.currentLevel === 4) {
+            this.lava.activate();
+        }
+        
         // Restore player stats and power-ups
         this.player.gems = playerGems;
+        this.player.lives = playerLives; // Restore the preserved lives
         this.player.hasFastFireball = playerPowerUps.hasFastFireball;
         this.player.hasExtraLife = playerPowerUps.hasExtraLife;
         this.player.lifeUpgradeLevel = playerPowerUps.lifeUpgradeLevel;
         
-        // Apply power-ups
+        // Apply power-ups (but don't override lives)
         if (this.player.hasFastFireball) {
             this.player.fireCooldown = 7000; // 7 seconds
-        }
-        if (this.player.hasExtraLife) {
-            this.player.lives = 4;
-        } else if (this.player.lifeUpgradeLevel === 1) {
-            this.player.lives = 3;
-        } else {
-            this.player.lives = 2; // Base lives
         }
         
         // Update background for the new level
@@ -1178,6 +1440,9 @@ class Game {
         } else if (this.currentLevel === 3) {
             this.backgroundImage.src = '../assets/stages/Map-3/map_3.png';
             console.log('Loading level 3 background: ../assets/stages/Map-3/map_3.png');
+        } else if (this.currentLevel === 4) {
+            this.backgroundImage.src = '../assets/stages/Map-Final Boss/final_level.png';
+            console.log('Loading level 4 background: ../assets/stages/Map-Final Boss/final_level.png');
         }
         
         this.backgroundImage.onload = () => {
@@ -1237,7 +1502,7 @@ class Game {
         let newLevel1Plan;
         if (typeof LevelGenerator !== 'undefined') {
             // Use LevelGenerator to create a fresh random layout for level 1
-            const generator = new LevelGenerator(28, 60);
+            const generator = new LevelGenerator(28, 60, 1);
             newLevel1Plan = generator.generate();
         } else {
             // Fallback to existing level 1 if LevelGenerator is not available
@@ -1252,6 +1517,9 @@ class Game {
         this.level = newLevel;
         this.player = newLevel.player;
         this.actors = [...newLevel.actors];
+        
+        // Reset lava system (deactivated for level 1)
+        this.lava.reset();
         
         // Restore player gems and purchased power-ups
         this.player.gems = playerGems;
@@ -1268,7 +1536,7 @@ class Game {
         } else if (this.player.lifeUpgradeLevel === 1) {
             this.player.lives = 3;
         } else {
-            this.player.lives = 2; // Base lives
+            this.player.lives = 2; // Base lives back to 2
         }
         
         // Set player state
@@ -1399,6 +1667,9 @@ class Game {
         if (!this.player.invulnerable || Math.floor(Date.now() / 100) % 2) {
             this.player.draw(ctx, scale);
         }
+        
+        // Draw lava (on top of everything else in the game world)
+        this.lava.draw(ctx, scale, this.level.width, this.level.height);
 
         ctx.restore();
 
@@ -2053,7 +2324,7 @@ function gameStart() {
     // Generate a random level 1 for the start of the game
     let level1Plan;
     if (typeof LevelGenerator !== 'undefined') {
-        const generator = new LevelGenerator(28, 60);
+        const generator = new LevelGenerator(28, 60, 1);
         level1Plan = generator.generate();
     } else {
         // Fallback to static level 1 if LevelGenerator is not available
@@ -2120,7 +2391,7 @@ function handleKeyDown(event) {
         // Generate a new random level 1 for restart
         let level1Plan;
         if (typeof LevelGenerator !== 'undefined') {
-            const generator = new LevelGenerator(28, 60);
+            const generator = new LevelGenerator(28, 60, 1);
             level1Plan = generator.generate();
         } else {
             // Fallback to static level 1 if LevelGenerator is not available
@@ -2179,6 +2450,10 @@ function updateCanvas(frameTime) {
         } else if (game && game.currentLevel === 3) {
             // Level 3: Lava/volcanic theme
             ctx.fillStyle = "#2F1B14"; // Dark brown/volcanic
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+        } else if (game && game.currentLevel === 4) {
+            // Level 4: Final boss theme
+            ctx.fillStyle = "#1C1C1C"; // Dark gray
             ctx.fillRect(0, 0, canvasWidth, canvasHeight);
         } else {
             // Default fallback

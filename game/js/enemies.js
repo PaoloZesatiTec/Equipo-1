@@ -304,7 +304,6 @@ class BarrelSpawner extends GameObject {
     constructor(x, y) {
         super("transparent", 1, 1, x, y, "spawner");
         this.spawnTimer = Math.random()*3000;
-        this.spawnInterval = 10000; // Spawn a barrel every 2 seconds
         this.maxBarrels = 15; // Maximum number of barrels this spawner can have
         this.activeBarrels = [];
     }
@@ -313,11 +312,38 @@ class BarrelSpawner extends GameObject {
         // Update spawn timer
         this.spawnTimer += deltaTime;
 
+        // Dynamic spawn interval based on current level
+        let spawnInterval;
+        if (game && game.currentLevel) {
+            switch (game.currentLevel) {
+                case 1:
+                    spawnInterval = 10000; // 10 seconds for level 1
+                    break;
+                case 2:
+                    spawnInterval = 9000;  // 9 seconds for level 2
+                    break;
+                case 3:
+                    spawnInterval = 8000;  // 8 seconds for level 3
+                    break;
+                case 4:
+                    spawnInterval = 7000;  // 7 seconds for level 4
+                    break;
+                default:
+                    spawnInterval = 10000; // Default to 10 seconds
+                    break;
+            }
+        } else {
+            spawnInterval = 10000; // Fallback to 10 seconds
+        }
+
         // Clean up destroyed barrels from our tracking list
-        //this.activeBarrels = this.activeBarrels.filter(barrel => level.actors.includes(barrel));
+        this.activeBarrels = this.activeBarrels.filter(barrel => {
+            // Check if barrel still exists in the game actors array
+            return game.actors.includes(barrel);
+        });
 
         // Check if it's time to spawn a new barrel
-        if (this.spawnTimer >= this.spawnInterval && this.activeBarrels.length < this.maxBarrels) {
+        if (this.spawnTimer >= spawnInterval && this.activeBarrels.length < this.maxBarrels) {
             // Create new barrel
             const barrel = new Barrel("brown", 1, 1, this.position.x, this.position.y, "barrel");
             this.activeBarrels.push(barrel);
