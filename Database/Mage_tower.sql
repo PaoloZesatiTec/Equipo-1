@@ -80,19 +80,16 @@ CREATE TABLE Estadistica_partida (
     FOREIGN KEY (id_jugador) REFERENCES Jugador(id_jugador)
 ) engine = InnoDB DEFAULT CHARSET = utf8mb4 ;
 
-CREATE OR REPLACE VIEW vista_resumen_partida AS
+CREATE VIEW partidas_simple AS
 SELECT 
-  p.id_partida,
-  j.nombre AS jugador,
-  p.fecha_inicio,
-  p.fecha_fin,
-  p.duracion,
-  p.nivel_maximo_alcanzado,
-  p.experiencia_ganada,
-  ep.enemigos_eliminados,
-  ep.powerups_usados
+    p.id_partida,
+    j.nombre,
+    p.fecha_inicio,
+    p.duracion,
+    p.nivel_maximo_alcanzado,
+    p.experiencia_ganada,
+    e.enemigos_eliminados,
+    e.powerups_usados
 FROM Partida p
 JOIN Jugador j ON p.id_jugador = j.id_jugador
-LEFT JOIN Estadistica_partida ep ON ep.id_partida = p.id_partida AND ep.id_jugador = j.id_jugador;
-
-
+JOIN Estadistica_partida e ON p.id_partida = e.id_partida;
