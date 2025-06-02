@@ -9,6 +9,11 @@
     </head>
 
     <body>
+        <div class="cloud cloud1"></div>
+        <div class="cloud cloud2"></div>
+        <div class="cloud cloud3"></div>
+        <div class="cloud cloud4"></div>
+        
         <header>
             <nav id="menu">
                 <div id="dropdownMenu">
@@ -44,10 +49,25 @@
             </div>
 
             <aside class="right-panel">
-                <section id="imagenes">
-                    <h2 class="panel-title">Power-ups</h2>
-                    <div class="powerups-container">
-                        <!-- Contenido de power-ups se agregará más tarde -->
+                <section id="game-stats">
+                    <h2 class="panel-title">Estado del Juego</h2>
+                    <div class="stats-container">
+                        <div class="stat-item">
+                            <h3>Muertes</h3>
+                            <p id="score">0</p>
+                        </div>
+                        <div class="stat-item">
+                            <h3>Nivel</h3>
+                            <p id="level">1</p>
+                        </div>
+                        <div class="stat-item">
+                            <h3>Vidas</h3>
+                            <div id="lives" class="lives-container">
+                                <img src="../assets/Items/Heart/heart.png" alt="Vida" class="life-icon">
+                                <img src="../assets/Items/Heart/heart.png" alt="Vida" class="life-icon">
+                                <img src="../assets/Items/Heart/heart.png" alt="Vida" class="life-icon">
+                            </div>
+                        </div>
                     </div>
                 </section>
             </aside>
