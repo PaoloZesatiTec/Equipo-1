@@ -1,0 +1,27 @@
+{
+  "name": "equipo-1",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PaoloZesatiTec/Equipo-1.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/PaoloZesatiTec/Equipo-1/issues"
+  },
+  "homepage": "https://github.com/PaoloZesatiTec/Equipo-1#readme",
+  "dependencies": {
+    "express": "^5.1.0",
+    "modules": "^0.4.0",
+    "node": "^22.16.0",
+    "nodemon": "^3.1.10",
+    "mysql2": "^3.11.5"
+  }
+}
+
