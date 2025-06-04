@@ -1327,13 +1327,13 @@ class Game {
                 } else if (actor.type === 'enemy' || actor.type === 'barrel' || actor.type === 'minotaur') {
                     // Only apply damage if player is not invulnerable
                     if (!this.player.invulnerable && !this.player.isDead) {
-                        this.player.loseLife();
-                        
+                    this.player.loseLife();
+                    
                         // Check for game over - start death fade instead of immediately opening shop
-                        if (this.player.lives <= 0) {
+                    if (this.player.lives <= 0) {
                             this.isDeathFading = true;
                             this.deathFadeTimer = 0;
-                        }
+                    }
                     }
                     // No physical collision or knockback - player can move freely through enemies when invulnerable
                 } else if (actor.type === 'portal' || actor.type === 'princess') {
@@ -1662,7 +1662,7 @@ class Game {
                     // Use custom wall drawing with level theme
                     actor.drawCustomWall(ctx, scale, actor.position.x, actor.position.y, this.currentLevel);
                 } else {
-                    actor.draw(ctx, scale);
+                actor.draw(ctx, scale);
                 }
             }
         }
