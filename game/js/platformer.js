@@ -140,7 +140,7 @@ class Player extends AnimatedObject {
         
         this.velocity = new Vec(0.0, 0.0);
         this.gems = 0;
-        this.lives = 2; // Changed back to 2 base lives
+        this.lives = 20; // Set to 20 for testing final level
         this.invulnerable = false;
         this.invulnerableTimer = 0;
         this.isDead = false;
@@ -157,18 +157,18 @@ class Player extends AnimatedObject {
         // Power-up flags
         this.hasFastFireball = powerUps.hasFastFireball || false; // Reduces cooldown to 7 seconds
         this.hasExtraLife = powerUps.hasExtraLife || false; // Starts with 4 lives instead of 3
-        this.lifeUpgradeLevel = powerUps.lifeUpgradeLevel || 0; // 0 = 2 lives, 1 = 3 lives, 2 = 4 lives
+        this.lifeUpgradeLevel = powerUps.lifeUpgradeLevel || 0; // 0 = 20 lives, 1 = 21 lives, 2 = 22 lives
 
         // Apply power-ups if purchased
         if (this.hasFastFireball) {
             this.fireCooldown = 7000; // 7 seconds
         }
         if (this.hasExtraLife) {
-            this.lives = 4;
+            this.lives = 22; // Extra lives on top of base 20
         } else if (this.lifeUpgradeLevel === 1) {
-            this.lives = 3;
+            this.lives = 21; // One extra life
         } else {
-            this.lives = 2; // Base lives back to 2
+            this.lives = 20; // Base lives for testing
         }
 
         // Horizontal hitbox: narrower than the player's main hitbox, defined in Level constructor
@@ -503,7 +503,7 @@ class Player extends AnimatedObject {
     isOnGround(level) {
         // Check if there's a wall or ladder directly below the player
         // Use a larger offset to account for floating point precision issues
-        const testPosition = this.position.plus(new Vec(0, 0.05)); // Increased from 0.01 to 0.05
+        const testPosition = this.position.plus(new Vec(0, 0.025)); // Increased from 0.01 to 0.05
         return level.contact(testPosition, this.size, 'wall') || level.contact(testPosition, this.size, 'ladder');
     }
 
@@ -1311,9 +1311,18 @@ class Game {
         for (let actor of this.actors) {
             if (actor.type === 'minotaur') {
                 actor.update(this.level, deltaTime, this.player);
-            } else if (actor.type === 'barrel' && actor.position.y > this.level.height - 2){
-                this.actors = this.actors.filter(item => item !== actor);
-            }else{
+            } else if (actor.type === 'barrel') {
+                // Check if barrel should be destroyed (when they reach bottom platform area)
+                // Bottom platforms are typically at level.height - 1, so barrels sitting on them would be at level.height - 2
+                const shouldDestroy = actor.position.y >= this.level.height - 3;
+                
+                if (shouldDestroy) {
+                    console.log(`Destroying barrel at bottom: y=${actor.position.y}, level.height=${this.level.height}`);
+                    this.actors = this.actors.filter(item => item !== actor);
+                    continue; // Skip updating this barrel since it's being removed
+                }
+                actor.update(this.level, deltaTime);
+            } else {
                 actor.update(this.level, deltaTime);
             }
         }
@@ -1532,11 +1541,11 @@ class Game {
             this.player.fireCooldown = 7000; // 7 seconds
         }
         if (this.player.hasExtraLife) {
-            this.player.lives = 4;
+            this.player.lives = 22; // Extra lives on top of base 20
         } else if (this.player.lifeUpgradeLevel === 1) {
-            this.player.lives = 3;
+            this.player.lives = 21; // One extra life
         } else {
-            this.player.lives = 2; // Base lives back to 2
+            this.player.lives = 20; // Base lives for testing
         }
         
         // Set player state
@@ -1887,21 +1896,21 @@ class Shop {
         const lifeItem = this.items[1]; // Life Upgrade item
         
         if (player.hasExtraLife) {
-            // Player already has max lives (4)
+            // Player already has max lives (22)
             lifeItem.name = "Life Upgrade";
-            lifeItem.description = "Maximum lives reached (4)";
+            lifeItem.description = "Maximum lives reached (22)";
             lifeItem.cost = 0;
             lifeItem.purchased = true;
         } else if (player.lifeUpgradeLevel === 1) {
-            // Player has 3 lives, can upgrade to 4
+            // Player has 21 lives, can upgrade to 22
             lifeItem.name = "Extra Life";
-            lifeItem.description = "Upgrade to 4 lives";
+            lifeItem.description = "Upgrade to 22 lives";
             lifeItem.cost = 200;
             lifeItem.purchased = false;
         } else {
-            // Player has 2 lives, can upgrade to 3
+            // Player has 20 lives, can upgrade to 21
             lifeItem.name = "Life Upgrade";
-            lifeItem.description = "Upgrade to 3 lives";
+            lifeItem.description = "Upgrade to 21 lives";
             lifeItem.cost = 50;
             lifeItem.purchased = false;
         }
@@ -2365,22 +2374,7 @@ function handleKeyDown(event) {
     if (event.key == 'd') game.player.startMovement("right");
     if (event.key == 's') game.player.crouch();
     if (event.key == 'e') game.player.fireFireball();
-    if (event.key == ' ') {
-        // Simplified jumping logic - allow jumping if not already jumping and velocity is low
-        if (!game.player.isJumping && game.player.velocity.y >= -0.001) {
-            game.player.velocity.y = initialJumpSpeed;
-            game.player.isJumping = true;
-            
-            if (game.player.isOnLadder) {
-                game.player.exitingLadder = true;
-                game.player.isOnLadder = false;
-            }
-            
-            if (!game.player.isHurt && !game.player.isAttacking) {
-                game.player.setMageAnimation('jump');
-            }
-        }
-    }
+    // Jump handling is now done in Player.update() method with proper ground checking
     
     // Restart game when R is pressed and game is over or won
     if (event.key == 'r' && (game.gameOver || game.gameWon)) {
