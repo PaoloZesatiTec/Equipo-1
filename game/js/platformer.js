@@ -140,7 +140,7 @@ class Player extends AnimatedObject {
         
         this.velocity = new Vec(0.0, 0.0);
         this.gems = 0;
-        this.lives = 20; // Set to 20 for testing final level
+        this.lives = 2; // Back to original 2 base lives
         this.invulnerable = false;
         this.invulnerableTimer = 0;
         this.isDead = false;
@@ -156,19 +156,28 @@ class Player extends AnimatedObject {
 
         // Power-up flags
         this.hasFastFireball = powerUps.hasFastFireball || false; // Reduces cooldown to 7 seconds
-        this.hasExtraLife = powerUps.hasExtraLife || false; // Starts with 4 lives instead of 3
-        this.lifeUpgradeLevel = powerUps.lifeUpgradeLevel || 0; // 0 = 20 lives, 1 = 21 lives, 2 = 22 lives
+        this.hasExtraLife = powerUps.hasExtraLife || false; // No longer used
+        this.lifeUpgradeLevel = powerUps.lifeUpgradeLevel || 0; // 0 = 2 lives, 1 = 3 lives, 2 = 4 lives, 3 = 5 lives
 
         // Apply power-ups if purchased
         if (this.hasFastFireball) {
             this.fireCooldown = 7000; // 7 seconds
         }
-        if (this.hasExtraLife) {
-            this.lives = 22; // Extra lives on top of base 20
-        } else if (this.lifeUpgradeLevel === 1) {
-            this.lives = 21; // One extra life
-        } else {
-            this.lives = 20; // Base lives for testing
+        
+        // Apply life upgrades based on level
+        switch (this.lifeUpgradeLevel) {
+            case 1:
+                this.lives = Math.max(this.lives, 3); // First upgrade: 2 -> 3 lives
+                break;
+            case 2:
+                this.lives = Math.max(this.lives, 4); // Second upgrade: 3 -> 4 lives
+                break;
+            case 3:
+                this.lives = Math.max(this.lives, 5); // Third upgrade: 4 -> 5 lives
+                break;
+            default:
+                this.lives = Math.max(this.lives, 2); // Base lives
+                break;
         }
 
         // Horizontal hitbox: narrower than the player's main hitbox, defined in Level constructor
@@ -1436,6 +1445,22 @@ class Game {
             this.player.fireCooldown = 7000; // 7 seconds
         }
         
+        // Apply life upgrades based on level
+        switch (this.player.lifeUpgradeLevel) {
+            case 1:
+                this.player.lives = Math.max(this.player.lives, 3); // Ensure at least 3 lives
+                break;
+            case 2:
+                this.player.lives = Math.max(this.player.lives, 4); // Ensure at least 4 lives
+                break;
+            case 3:
+                this.player.lives = Math.max(this.player.lives, 5); // Ensure at least 5 lives
+                break;
+            default:
+                this.player.lives = Math.max(this.player.lives, 2); // Ensure at least 2 lives
+                break;
+        }
+        
         // Update background for the new level
         this.backgroundImage = new Image();
         this.backgroundLoaded = false;
@@ -1540,12 +1565,21 @@ class Game {
         if (this.player.hasFastFireball) {
             this.player.fireCooldown = 7000; // 7 seconds
         }
-        if (this.player.hasExtraLife) {
-            this.player.lives = 22; // Extra lives on top of base 20
-        } else if (this.player.lifeUpgradeLevel === 1) {
-            this.player.lives = 21; // One extra life
-        } else {
-            this.player.lives = 20; // Base lives for testing
+        
+        // Apply life upgrades based on level
+        switch (this.player.lifeUpgradeLevel) {
+            case 1:
+                this.player.lives = 3; // First upgrade: 2 -> 3 lives
+                break;
+            case 2:
+                this.player.lives = 4; // Second upgrade: 3 -> 4 lives
+                break;
+            case 3:
+                this.player.lives = 5; // Third upgrade: 4 -> 5 lives
+                break;
+            default:
+                this.player.lives = 2; // Base lives
+                break;
         }
         
         // Set player state
@@ -1895,24 +1929,36 @@ class Shop {
     updateLifeUpgradeItem(player) {
         const lifeItem = this.items[1]; // Life Upgrade item
         
-        if (player.hasExtraLife) {
-            // Player already has max lives (22)
-            lifeItem.name = "Life Upgrade";
-            lifeItem.description = "Maximum lives reached (22)";
-            lifeItem.cost = 0;
-            lifeItem.purchased = true;
-        } else if (player.lifeUpgradeLevel === 1) {
-            // Player has 21 lives, can upgrade to 22
-            lifeItem.name = "Extra Life";
-            lifeItem.description = "Upgrade to 22 lives";
-            lifeItem.cost = 200;
-            lifeItem.purchased = false;
-        } else {
-            // Player has 20 lives, can upgrade to 21
-            lifeItem.name = "Life Upgrade";
-            lifeItem.description = "Upgrade to 21 lives";
-            lifeItem.cost = 50;
-            lifeItem.purchased = false;
+        switch (player.lifeUpgradeLevel) {
+            case 0:
+                // Player has 2 lives, can upgrade to 3 for 30 gems
+                lifeItem.name = "Life Upgrade I";
+                lifeItem.description = "Upgrade to 3 lives (2 -> 3)";
+                lifeItem.cost = 30;
+                lifeItem.purchased = false;
+                break;
+            case 1:
+                // Player has 3 lives, can upgrade to 4 for 60 gems
+                lifeItem.name = "Life Upgrade II";
+                lifeItem.description = "Upgrade to 4 lives (3 -> 4)";
+                lifeItem.cost = 60;
+                lifeItem.purchased = false;
+                break;
+            case 2:
+                // Player has 4 lives, can upgrade to 5 for 90 gems
+                lifeItem.name = "Life Upgrade III";
+                lifeItem.description = "Upgrade to 5 lives (4 -> 5)";
+                lifeItem.cost = 90;
+                lifeItem.purchased = false;
+                break;
+            case 3:
+            default:
+                // Player has max lives (5)
+                lifeItem.name = "Life Upgrade";
+                lifeItem.description = "Maximum lives reached (5)";
+                lifeItem.cost = 0;
+                lifeItem.purchased = true;
+                break;
         }
     }
 
@@ -1960,15 +2006,21 @@ class Shop {
             if (item.name === "Fast Fireball") {
                 player.hasFastFireball = true;
                 player.fireCooldown = 7000; // 7 seconds
-            } else if (item.name === "Life Upgrade" || item.name === "Extra Life") {
-                if (player.lifeUpgradeLevel === 0) {
-                    // Upgrade from 2 to 3 lives
-                    player.lifeUpgradeLevel = 1;
-                    player.lives = 3;
-                } else if (player.lifeUpgradeLevel === 1) {
-                    // Upgrade from 3 to 4 lives
-                    player.hasExtraLife = true;
-                    player.lives = 4;
+            } else if (item.name.startsWith("Life Upgrade")) {
+                // Upgrade the life level and apply immediately
+                player.lifeUpgradeLevel++;
+                
+                // Apply the new life count based on upgrade level
+                switch (player.lifeUpgradeLevel) {
+                    case 1:
+                        player.lives = 3; // First upgrade: 2 -> 3 lives
+                        break;
+                    case 2:
+                        player.lives = 4; // Second upgrade: 3 -> 4 lives
+                        break;
+                    case 3:
+                        player.lives = 5; // Third upgrade: 4 -> 5 lives
+                        break;
                 }
             }
             
