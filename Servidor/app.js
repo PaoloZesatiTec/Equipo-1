@@ -184,6 +184,62 @@ app.post("/api/login", async (req, res)=>{
 });
 //----------------------------------------------------------------------------------------------
 
+app.get("/api/gamestats", async (req, res)=>{
+    let connection = null;
+    try{
+        connection = await ConnectDB();
+        const id_partida = req.query.id_partida ? parseInt(req.query.id_partida) : null;
+
+        if (!id_partida) {
+            return res.status(400).json({
+                success: false,
+                message: 'Se requiere el ID de la partida',
+                error: 'MISSING_GAME_ID'
+            });
+        }
+
+        // Usamos la vista Estadisticas_part que ya tiene toda la información necesaria
+        const statsQuery = `
+            SELECT * FROM Estadisticas_part 
+            WHERE id_partida = ?
+        `;
+
+        const [stats] = await connection.execute(statsQuery, [id_partida]);
+
+        if (stats.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'No se encontró la partida especificada',
+                error: 'GAME_NOT_FOUND'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Estadísticas de la partida obtenidas exitosamente',
+            data: stats[0]  // Retornamos el primer resultado ya que es una partida específica
+        });
+
+    } catch (error) {
+        console.error('Error al obtener estadísticas de la partida:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error interno del servidor',
+            error: error.message
+        });
+    } finally {
+        if (connection) {
+            try {
+                await connection.end();
+                console.log('Conexión a DB cerrada correctamente');
+            } catch (closeError) {
+                console.error('Error al cerrar conexión', closeError);
+            }
+        }
+    }
+});
+
+
 
 
 app.listen(PORT, () => {
