@@ -278,15 +278,22 @@ class LevelGenerator {
                     // Double check the spot is empty
                     if (this.grid[enemyY][randomX] === '.') {
                         const enemyType = Math.random();
-                        if (enemyType >= 0.5) {
-                            this.grid[enemyY][randomX] = 'E'; // Regular enemy
+                        
+                        // Level 1: Only orcs (no minotaurs, no barrels)
+                        // Barrels come only from spawners
+                        if (this.levelNumber === 1) {
+                            this.grid[enemyY][randomX] = 'E'; // Regular enemy (orc) only
                             //console.log(`Placed Enemy at (${randomX}, ${enemyY}) on platform ${index}`);
-                        } else if (enemyType < 0.6) {
-                            this.grid[enemyY][randomX] = 'M'; // Minotaur
-                            //console.log(`Placed Minotaur at (${randomX}, ${enemyY}) on platform ${index}`);
                         } else {
-                            this.grid[enemyY][randomX] = 'B'; // Barrel
-                            //console.log(`Placed Barrel at (${randomX}, ${enemyY}) on platform ${index}`);
+                            // Level 2+: Orcs and minotaurs (no barrels)
+                            // Barrels come only from spawners
+                            if (enemyType >= 0.5) {
+                                this.grid[enemyY][randomX] = 'E'; // Regular enemy (orc)
+                                //console.log(`Placed Enemy at (${randomX}, ${enemyY}) on platform ${index}`);
+                            } else {
+                                this.grid[enemyY][randomX] = 'M'; // Minotaur
+                                //console.log(`Placed Minotaur at (${randomX}, ${enemyY}) on platform ${index}`);
+                            }
                         }
                     } else {
                         console.log(`Spot (${randomX}, ${enemyY}) on platform ${index} was not empty: ${this.grid[enemyY][randomX]}`);
