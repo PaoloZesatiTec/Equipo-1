@@ -1451,21 +1451,8 @@ class Game {
             this.player.fireCooldown = 7000; // 7 seconds
         }
         
-        // Apply life upgrades based on level
-        switch (this.player.lifeUpgradeLevel) {
-            case 1:
-                this.player.lives = Math.max(this.player.lives, 3); // Ensure at least 3 lives
-                break;
-            case 2:
-                this.player.lives = Math.max(this.player.lives, 4); // Ensure at least 4 lives
-                break;
-            case 3:
-                this.player.lives = Math.max(this.player.lives, 5); // Ensure at least 5 lives
-                break;
-            default:
-                this.player.lives = Math.max(this.player.lives, 2); // Ensure at least 2 lives
-                break;
-        }
+        // Note: Life upgrade logic removed from here - lives should be preserved exactly as they were
+        // The upgrade effects are only applied when purchasing upgrades or respawning from death
         
         // Update background for the new level
         this.backgroundImage = new Image();
