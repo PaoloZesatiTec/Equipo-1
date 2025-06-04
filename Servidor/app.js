@@ -3,6 +3,7 @@ import express from 'express'
 import mysql from 'mysql2/promise'
 import fs from 'fs'
 import path from 'path'
+import { error } from 'console'
 
 
 const app = express()
@@ -114,7 +115,7 @@ app.get('/', (req, res) => {
         }
     }
 });
-//----------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
 //Login
 
 app.post("/api/login", async (req, res)=>{
@@ -182,7 +183,8 @@ app.post("/api/login", async (req, res)=>{
         }
     }
 });
-//----------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+//View gamestats
 
 app.get("/api/gamestats", async (req, res)=>{
     let connection = null;
@@ -238,7 +240,53 @@ app.get("/api/gamestats", async (req, res)=>{
         }
     }
 });
+//--------------------------------------------------------------------------------------------------
 
+app.post("/api/newgame", async(req, res)=>{
+    let connection = null;
+    try{
+        const { id_jugador } = req.body;
+        if (!id_jugador) {
+            return res.status(400).json({
+                success : false,
+                message : 'ID de jugador es requerido',
+                error : 'MISSING_PLAYER_ID'
+            });
+        }
+        connection = await ConnectDB();
+
+        const insertQuery = `
+        INSERT INTO PARTIDA (id_jugador)
+        VALUES(?)
+        `;
+        
+        const [ result ] = await connection.execute(insertQuery, [ id_jugador ]);
+
+        res.status(201).json({
+            succes : true,
+            message : 'Partida iniciada correctamente',
+            id_partida : result.insertId
+        })
+    }catch(error){
+        console.error('Error al iniciar la partida: ', error);
+        res.status(500).json({
+            succes : false,
+            message : 'Error interno en el servidor',
+            error : error.message
+        });
+    }finally{
+        if (connection) {
+            try {
+                await connection.end();
+                console.log('Conexión a DB cerrada correctamente');
+            } catch (closeError) {
+                console.error('Error al cerrar conexión', closeError);
+            }
+        }
+    }
+    
+
+});
 
 
 
