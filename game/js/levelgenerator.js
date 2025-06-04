@@ -317,20 +317,36 @@ class LevelGenerator {
     }
 
     addSpawners(){
-        let OS = '#';     //OS = object searching
-        let SG = 0;       //SG = Spawners generated
-
-        for (let y = 1; y < 10; y++) {
-            for (let x = 1; x < this.width - 1; x++){
-                if(this.grid[y][x] === OS && this.grid[y - 1][x] === '.'){
-                    if(SG<3 && OS == '#'){
-                        this.grid[y - 1][x] = 'S';
-                        OS = '.';
-                        SG++;
-                    }else if (SG < 3 && OS == '.'){
-                        OS = '#';
-                    }else{return;}
+        // First, find the highest platform in the level
+        let highestPlatformY = this.height - 1; // Start from bottom
+        
+        for (let y = 1; y < this.height - 1; y++) {
+            for (let x = 1; x < this.width - 1; x++) {
+                if (this.grid[y][x] === '#' && this.grid[y - 1][x] === '.') {
+                    // Found a platform with empty space above
+                    highestPlatformY = y;
+                    break; // Found the highest platform, break out of both loops
                 }
+            }
+            if (highestPlatformY === y) break; // Break outer loop too
+        }
+        
+        // Place spawners 3-4 units above the highest platform
+        const spawnerY = Math.max(0, highestPlatformY - 12);
+        let SG = 0; // Spawners generated
+        
+        // Place up to 3 spawners horizontally across the level above the highest platform
+        const spacing = Math.floor(this.width / 4); // Divide width into 4 sections for 3 spawners
+        
+        for (let i = 1; i <= 3 && SG < 3; i++) {
+            const spawnerX = Math.min(spacing * i, this.width - 2);
+            
+            // Make sure the position is valid and empty
+            if (spawnerY >= 0 && spawnerY < this.height && 
+                spawnerX >= 1 && spawnerX < this.width - 1 &&
+                this.grid[spawnerY][spawnerX] === '.') {
+                this.grid[spawnerY][spawnerX] = 'S';
+                SG++;
             }
         }
     }

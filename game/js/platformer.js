@@ -1801,7 +1801,7 @@ class Game {
             ctx.fillRect(20, 175, 40 * cooldownProgress, 8); // Adjusted for new size
         }
 
-        // Fireball ready text
+        // Draw fireball ready text
         if (isReady) {
             ctx.font = "12px Arial"; // Slightly bigger font
             ctx.fillStyle = "white";
@@ -1904,6 +1904,82 @@ class Game {
             
             ctx.restore();
         }
+    }
+
+    // Method to draw barrel spawner information
+    drawBarrelSpawnerInfo(ctx, canvasWidth, canvasHeight) {
+        // Find all barrel spawners
+        const spawners = this.actors.filter(actor => actor.type === 'spawner');
+        
+        if (spawners.length === 0) return;
+
+        ctx.save();
+        
+        // Background for spawner info
+        const infoWidth = 180;
+        const infoHeight = 100;
+        const infoX = canvasWidth - infoWidth - 10;
+        const infoY = 10;
+        
+        // Semi-transparent background
+        ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+        ctx.fillRect(infoX, infoY, infoWidth, infoHeight);
+        
+        // Border
+        ctx.strokeStyle = "#FFD700";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(infoX, infoY, infoWidth, infoHeight);
+        
+        // Title
+        ctx.font = "bold 14px Arial";
+        ctx.fillStyle = "#FFD700";
+        ctx.textAlign = "center";
+        ctx.fillText("BARREL SPAWNERS", infoX + infoWidth/2, infoY + 20);
+        
+        // Get spawn interval for current level
+        let spawnInterval;
+        switch (this.currentLevel) {
+            case 1:
+                spawnInterval = 10000; // 10 seconds
+                break;
+            case 2:
+                spawnInterval = 9000;  // 9 seconds
+                break;
+            case 3:
+                spawnInterval = 8000;  // 8 seconds
+                break;
+            case 4:
+                spawnInterval = 7000;  // 7 seconds
+                break;
+            default:
+                spawnInterval = 10000;
+                break;
+        }
+        
+        // Display spawner information
+        ctx.font = "12px Arial";
+        ctx.fillStyle = "white";
+        ctx.textAlign = "left";
+        
+        spawners.forEach((spawner, index) => {
+            const yPos = infoY + 40 + (index * 20);
+            
+            // Timer information only
+            const timeUntilSpawn = Math.max(0, spawnInterval - spawner.spawnTimer);
+            const secondsLeft = Math.ceil(timeUntilSpawn / 1000);
+            
+            if (timeUntilSpawn <= 0) {
+                ctx.fillStyle = "#FF4444"; // Red when ready to spawn
+                ctx.fillText(`Spawner ${index + 1}: Ready!`, infoX + 10, yPos);
+            } else {
+                ctx.fillStyle = "#AAAAAA"; // Gray when counting down
+                ctx.fillText(`Spawner ${index + 1}: ${secondsLeft}s`, infoX + 10, yPos);
+            }
+            
+            ctx.fillStyle = "white"; // Reset color for next spawner
+        });
+        
+        ctx.restore();
     }
 
 }
