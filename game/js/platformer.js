@@ -1327,13 +1327,13 @@ class Game {
                 } else if (actor.type === 'enemy' || actor.type === 'barrel' || actor.type === 'minotaur') {
                     // Only apply damage if player is not invulnerable
                     if (!this.player.invulnerable && !this.player.isDead) {
-                        this.player.loseLife();
-                        
+                    this.player.loseLife();
+                    
                         // Check for game over - start death fade instead of immediately opening shop
-                        if (this.player.lives <= 0) {
+                    if (this.player.lives <= 0) {
                             this.isDeathFading = true;
                             this.deathFadeTimer = 0;
-                        }
+                    }
                     }
                     // No physical collision or knockback - player can move freely through enemies when invulnerable
                 } else if (actor.type === 'portal' || actor.type === 'princess') {
@@ -1409,6 +1409,12 @@ class Game {
         this.player = nextLevel.player;
         this.actors = [...nextLevel.actors];
         
+        // Update level counter in UI
+        const levelElement = document.getElementById('level');
+        if (levelElement) {
+            levelElement.textContent = this.currentLevel;
+        }
+        
         // Reset lava system and activate for level 4
         this.lava.reset();
         if (this.currentLevel === 4) {
@@ -1451,7 +1457,6 @@ class Game {
         };
         
         this.backgroundImage.onerror = (e) => {
-            console.error(`Failed to load level ${this.currentLevel} background image: ${this.backgroundImage.src}`);
             console.error('Error details:', e);
         };
         
@@ -1517,6 +1522,12 @@ class Game {
         this.level = newLevel;
         this.player = newLevel.player;
         this.actors = [...newLevel.actors];
+        
+        // Update level counter in UI
+        const levelElement = document.getElementById('level');
+        if (levelElement) {
+            levelElement.textContent = this.currentLevel;
+        }
         
         // Reset lava system (deactivated for level 1)
         this.lava.reset();
@@ -1651,7 +1662,7 @@ class Game {
                     // Use custom wall drawing with level theme
                     actor.drawCustomWall(ctx, scale, actor.position.x, actor.position.y, this.currentLevel);
                 } else {
-                    actor.draw(ctx, scale);
+                actor.draw(ctx, scale);
                 }
             }
         }
