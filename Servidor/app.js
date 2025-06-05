@@ -241,6 +241,7 @@ app.get("/api/gamestats", async (req, res)=>{
     }
 });
 //--------------------------------------------------------------------------------------------------
+//Start new game
 
 app.post("/api/newgame", async(req, res)=>{
     let connection = null;
@@ -287,6 +288,125 @@ app.post("/api/newgame", async(req, res)=>{
     
 
 });
+//--------------------------------------------------------------------------------------------------
+//adding the stats like time and exp of said game
+
+app.patch("/api/newgame/:id", async (req, res)=>{
+    let connection = null;
+    try{
+        const id_partida = parseInt (req.params.id);
+        const {nivel_maximo_alcanzado, duracion, vida, experiencia_ganada} = req.body;
+
+        if (!id_partida){
+            return res.status(400).json({
+                succes : false,
+                message : 'Id de partida requerido',
+                error : 'MISSING_GAME_ID'
+            });
+        }
+
+        connection = await ConnectDB();
+
+        const updateQuery = `
+        UPDATE Partida
+        SET
+            fecha_fin = NOW(),
+            nivel_maximo_alcanzado = ?,
+            duracion = ?,
+            vida = ?,
+            experiencia_ganada = ?
+        WHERE id_partida = ?
+        `;
+
+        await connection.execute(updateQuery, [
+            nivel_maximo_alcanzado,
+            duracion,
+            vida,
+            experiencia_ganada,
+            id_partida
+        ]);
+
+        res.status (200).json({
+            succes : true,
+            message : 'Partida actualizada correctamente'
+        });
+
+    } catch (error){
+        console.error('Error al finalizar partida: ', error);
+        res.status(500).json({
+            succes : false,
+            message : 'Error interno en el servidor',
+            error : error.message
+        });
+        
+    }finally{
+        if (connection) {
+            try {
+                await connection.end();
+                console.log('Conexión a DB cerrada correctamente');
+            } catch (closeError) {
+                console.error('Error al cerrar conexión', closeError);
+            }
+        }
+    }
+    
+});
+//--------------------------------------------------------------------------------------------------
+//Adding analytics stats of game
+
+app.post("/api/substats", async(req, res)=>{
+    let connection = null;
+    try{
+        const  {id_partida, id_jugador, enemigos_eliminados, powerups_usados} = req.body;
+        if(!id_partida||!id_jugador){
+            return res.status(400).json({
+                succes : false,
+                message : 'Se requiere el id de partida y de jugador',
+                error : "MISSING_REQUIRED_FIELDS"
+            });
+        }
+
+            connection = await ConnectDB();
+            const insertQuery = `
+            INSERT INTO Estadistica_partida (id_partida, id_jugador, enemigos_eliminados, powerups_usados)
+            VALUES (?,?,?,?)
+            `;
+
+            await connection.execute(insertQuery, [
+                id_partida,
+                id_jugador,
+                enemigos_eliminados ?? 0,
+                powerups_usados ?? 0
+            ]);
+
+            res.status(201).json({
+                succes : true,
+                message : "Datos agregados exitosamente!"
+            });
+        
+    } catch(error){
+        console.error("Error al insertar las estadísticas: ", error);
+
+        if(error.code === "ER_DUP_ENTRY"){
+            return res.status(409).json({
+                succes : false,
+                message : "Ya existen estadísticas para esta partida y jugador",
+                error : "DUPLICATE_ENTRY"
+            });
+        }
+    }finally{
+        if (connection) {
+            try {
+                await connection.end();
+                console.log('Conexión a DB cerrada correctamente');
+            } catch (closeError) {
+                console.error('Error al cerrar conexión', closeError);
+            }
+        }
+    }
+});
+//--------------------------------------------------------------------------------------------------
+
 
 
 
