@@ -1170,6 +1170,9 @@ class Game {
         this.totalLevels = 4;
         this.deathCount = 0;
         
+        // Pause system
+        this.isPaused = false;
+        
         // Initialize lava system
         this.lava = new Lava(level.height);
         if (levelNumber === 4) {
@@ -1275,6 +1278,9 @@ class Game {
 
     update(deltaTime) {
         if (this.gameWon) return;
+        
+        // Don't update game when paused
+        if (this.isPaused) return;
         
         // Handle shop state
         if (this.showShop && !this.shopFadeIn) {
@@ -1395,6 +1401,46 @@ class Game {
                obj1.position.x + obj1.size.x > obj2.position.x &&
                obj1.position.y < obj2.position.y + obj2.size.y &&
                obj1.position.y + obj1.size.y > obj2.position.y;
+    }
+
+    // Pause system methods
+    togglePause() {
+        this.isPaused = !this.isPaused;
+        console.log(this.isPaused ? "Game Paused" : "Game Resumed");
+    }
+
+    quitToMenu() {
+        // Reset all game state completely
+        this.isPaused = false;
+        this.gameOver = false;
+        this.gameWon = false;
+        this.showShop = false;
+        this.isTransitioning = false;
+        this.isDeathFading = false;
+        
+        // Reset camera and frame timing
+        cameraY = 0;
+        frameStart = undefined;
+        
+        // Generate a new random level 1 for complete restart
+        let level1Plan;
+        if (typeof LevelGenerator !== 'undefined') {
+            const generator = new LevelGenerator(28, 60, 1);
+            level1Plan = generator.generate();
+        } else {
+            // Fallback to static level 1 if LevelGenerator is not available
+            level1Plan = GAME_LEVELS[0];
+        }
+        
+        // Create completely new game instance from level 1
+        game = new Game('playing', new Level(level1Plan), 1);
+        
+        // Show the menu from menu.js
+        if (typeof showMenu === 'function') {
+            showMenu();
+        } else {
+            console.error('showMenu function not found');
+        }
     }
 
     // Method to start level transition
@@ -1915,6 +1961,59 @@ class Game {
             
             ctx.restore();
         }
+        
+        // Draw pause menu if game is paused
+        if (this.isPaused) {
+            this.drawPauseMenu(ctx, canvasWidth, canvasHeight);
+        }
+    }
+
+    // Method to draw pause menu
+    drawPauseMenu(ctx, canvasWidth, canvasHeight) {
+        ctx.save();
+        
+        // Semi-transparent overlay
+        ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+        
+        // Pause menu background
+        const menuWidth = 400;
+        const menuHeight = 300;
+        const menuX = (canvasWidth - menuWidth) / 2;
+        const menuY = (canvasHeight - menuHeight) / 2;
+        
+        // Create gradient background for menu
+        const gradient = ctx.createLinearGradient(menuX, menuY, menuX, menuY + menuHeight);
+        gradient.addColorStop(0, "#2C3E50");
+        gradient.addColorStop(1, "#34495E");
+        
+        ctx.fillStyle = gradient;
+        ctx.fillRect(menuX, menuY, menuWidth, menuHeight);
+        
+        // Menu border
+        ctx.strokeStyle = "#F39C12";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(menuX, menuY, menuWidth, menuHeight);
+        
+        // Title
+        ctx.font = "bold 48px Arial";
+        ctx.fillStyle = "#F39C12";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("PAUSED", canvasWidth / 2, menuY + 80);
+        
+        // Instructions
+        ctx.font = "24px Arial";
+        ctx.fillStyle = "#ECF0F1";
+        ctx.fillText("Press P to Resume", canvasWidth / 2, menuY + 150);
+        ctx.fillText("Press Q to Quit to Menu", canvasWidth / 2, menuY + 190);
+        
+        // Additional decorative elements
+        ctx.font = "16px Arial";
+        ctx.fillStyle = "#BDC3C7";
+        ctx.fillText("Game Progress is Saved", canvasWidth / 2, menuY + 240);
+        
+        ctx.restore();
     }
 
     // Method to draw barrel spawner information
@@ -2508,6 +2607,22 @@ function setEventListeners() {
 function handleKeyDown(event) {
     keyState[event.key] = true;
 
+    // Handle pause functionality
+    if (event.key === 'p' || event.key === 'P') {
+        if (!game.showShop && !game.gameOver && !game.gameWon && !game.isTransitioning) {
+            game.togglePause();
+        }
+        return;
+    }
+
+    // Handle quit to menu when paused
+    if (event.key === 'q' || event.key === 'Q') {
+        if (game.isPaused) {
+            game.quitToMenu();
+        }
+        return;
+    }
+
     // Handle shop navigation
     if (game.showShop) {
         if (event.key === 'w') {
@@ -2518,6 +2633,11 @@ function handleKeyDown(event) {
             game.handleShopPurchase();
         }
         return; // Don't process other keys while shop is open
+    }
+
+    // Don't process movement keys when paused
+    if (game.isPaused) {
+        return;
     }
 
     if (event.key == 'a') game.player.startMovement("left");
