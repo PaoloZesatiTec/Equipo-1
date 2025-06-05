@@ -26,7 +26,7 @@ function initMenu() {
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        background-color: rgba(0, 0, 0, 0.9);
+        background-color: rgba(0, 0, 0, 0.7);
         z-index: 1000;
         border: 4px solid #ffd700;
         animation: borderGlow 2s infinite;

@@ -18,10 +18,10 @@
             <nav id="menu">
                 <div id="dropdownMenu">
                     <a href="/">Inicio</a>
-                    <a href="../html/help.html">Ayuda</a>
-                    <a href="../html/creditos.html">Creditos</a>
-                    <a href="../html/estadisticas.html">Estadísticas</a>
-                    <a href="../html/Info.html">Acerca de</a>
+                    <a href="/help">Ayuda</a>
+                    <a href="/creditos">Creditos</a>
+                    <a href="/estadisticas">Estadísticas</a>
+                    <a href="/info">Acerca de</a>
                 </div>
             </nav>
         </header>
@@ -73,6 +73,10 @@
             </div>
 
             <aside class="right-panel">
+                <section id="welcome-message">
+                    <h2 class="panel-title">¡Bienvenido!</h2>
+                    <p id="user-greeting" style="text-align: center; color: #ffd700; font-size: 1.2em; margin: 10px 0;"></p>
+                </section>
                 <section id="game-stats">
                     <h2 class="panel-title">Estado del Juego</h2>
                     <div class="stats-container">
@@ -99,6 +103,49 @@
         <script src="../js/enemies.js"></script>
         <script src="../js/levelgenerator.js"></script>
         <script src="../js/platformer.js"></script>
-        <script src="../js/menu.js"></script> 
+        <script src="../js/menu.js"></script>
+        <script>
+            // Verificar si el usuario está autenticado
+            document.addEventListener('DOMContentLoaded', () => {
+                const playerId = localStorage.getItem('playerId');
+                const playerName = localStorage.getItem('playerName');
+
+                if (!playerId || !playerName) {
+                    // Si no hay datos de sesión, redirigir al login
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                // Mostrar saludo al usuario
+                const userGreeting = document.getElementById('user-greeting');
+                userGreeting.textContent = `¡Hola ${playerName}!`;
+
+                // Si está autenticado, mostrar el nombre del jugador en el header
+                const menu = document.getElementById('dropdownMenu');
+                const playerInfo = document.createElement('div');
+                playerInfo.style.cssText = `
+                    color: #ffd700;
+                    padding: 10px;
+                    text-align: center;
+                    border-bottom: 1px solid #ffd700;
+                    margin-bottom: 10px;
+                `;
+                playerInfo.textContent = `Jugador: ${playerName}`;
+                menu.insertBefore(playerInfo, menu.firstChild);
+
+                // Agregar botón de cerrar sesión
+                const logoutLink = document.createElement('a');
+                logoutLink.href = '#';
+                logoutLink.textContent = 'Cerrar Sesión';
+                logoutLink.style.color = '#ff2d00';
+                logoutLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    localStorage.removeItem('playerId');
+                    localStorage.removeItem('playerName');
+                    window.location.href = 'login.html';
+                });
+                menu.appendChild(logoutLink);
+            });
+        </script>
     </body>
 </html>

@@ -152,9 +152,9 @@
             <form class="login-form">
                 <input type="text" class="login-input" placeholder="Usuario" required autocomplete="username">
                 <input type="password" class="login-input" placeholder="Contraseña" required autocomplete="current-password">
-                <button type="submit" class="login-btn" href="index.html">Entrar</button>
+                <button type="submit" class="login-btn">Entrar</button>
             </form>
-            <a href="register.html" class="register-link">¿No tienes cuenta? Registrate</a>
+            <a href="/register" class="register-link">¿No tienes cuenta? Registrate</a>
             <div class="login-footer">© 2025 Mage Tower | Todos los derechos reservados</div>
         </div>
     </div>
@@ -175,6 +175,43 @@
             currentFrame = (currentFrame + 1) % attackFrames.length;
             mageAttack.src = attackFrames[currentFrame];
         }, 150);
+
+        // Manejo del formulario de login
+        document.querySelector('.login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.querySelector('input[placeholder="Usuario"]').value;
+            const password = document.querySelector('input[placeholder="Contraseña"]').value;
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        nombre: username,
+                        password_jugador: password
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Guardar el ID del jugador en localStorage
+                    localStorage.setItem('playerId', data.data.id_jugador);
+                    localStorage.setItem('playerName', data.data.nombre);
+                    
+                    // Redirigir al juego
+                    window.location.href = 'index.html';
+                } else {
+                    alert(data.message || 'Error en el inicio de sesión');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al conectar con el servidor');
+            }
+        });
     </script>
 </body>
 </html>
