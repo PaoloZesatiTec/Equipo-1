@@ -351,15 +351,20 @@ class Player extends AnimatedObject {
             }
         }
 
-        // Handle jumping - only allow jump when on ground
-        if (keyState[" "] && !this.wasSpacePressed && this.isOnGround(level)) {
+        // Handle jumping - improved ground detection and jump logic
+        const isGrounded = this.isOnGround(level);
+        if (keyState[" "] && isGrounded && !this.isJumping) {
             this.velocity.y = initialJumpSpeed;
             this.isJumping = true;
             if (!this.isHurt && !this.isAttacking) {
                 this.setMageAnimation('jump');
             }
         }
-        this.wasSpacePressed = keyState[" "];
+
+        // Reset isJumping if player is on ground and has no upward velocity
+        if (this.isJumping && isGrounded && this.velocity.y >= 0) {
+            this.isJumping = false;
+        }
 
         // Simplified ladder system: activate when touching ladder AND pressing W or S
         let wasOnLadder = this.isOnLadder;
@@ -456,11 +461,6 @@ class Player extends AnimatedObject {
             }
         }
 
-        // Reset isJumping if player is on ground and has no upward velocity
-        if (this.isJumping && this.isOnGround(level) && this.velocity.y >= 0) {
-            this.isJumping = false;
-        }
-
         // Update animation state based on movement
         if (!this.isHurt && !this.isAttacking) {
             if (this.isJumping) {
@@ -512,8 +512,14 @@ class Player extends AnimatedObject {
     isOnGround(level) {
         // Check if there's a wall or ladder directly below the player
         // Use a larger offset to account for floating point precision issues
-        const testPosition = this.position.plus(new Vec(0, 0.025)); // Increased from 0.01 to 0.05
-        return level.contact(testPosition, this.size, 'wall') || level.contact(testPosition, this.size, 'ladder');
+        const testPosition = this.position.plus(new Vec(0, 0.05)); // Increased offset for better ground detection
+        const isOnWall = level.contact(testPosition, this.size, 'wall');
+        const isOnLadder = level.contact(testPosition, this.size, 'ladder');
+        
+        // Also check if we're very close to the ground (within 0.05 units)
+        const isVeryCloseToGround = Math.abs(this.position.y - Math.floor(this.position.y)) < 0.05;
+        
+        return isOnWall || isOnLadder || isVeryCloseToGround;
     }
 
     // Method to check if only the bottom part of the player is touching a ladder
@@ -629,6 +635,14 @@ class Player extends AnimatedObject {
         this.isJumping = false;
         this.isCrouching = false;
         this.isOnLadder = false;
+        
+        // Incrementar contador de muertes cuando el jugador muere
+        game.deathCount++;
+        // Actualizar el panel de estadísticas
+        const scoreElement = document.getElementById('score');
+        if (scoreElement) {
+            scoreElement.textContent = game.deathCount;
+        }
     }
 }
 
@@ -1152,8 +1166,9 @@ class Game {
         this.actors = [...level.actors];
         this.gameOver = false;
         this.gameWon = false;
-        this.currentLevel = levelNumber; // Track current level
-        this.totalLevels = 4; // Updated to 4 total levels
+        this.currentLevel = levelNumber;
+        this.totalLevels = 4;
+        this.deathCount = 0;
         
         // Initialize lava system
         this.lava = new Lava(level.height);
@@ -1168,15 +1183,15 @@ class Game {
         // Death fade transition
         this.isDeathFading = false;
         this.deathFadeTimer = 0;
-        this.deathFadeDuration = 2000; // 2 seconds fade
+        this.deathFadeDuration = 2000;
         this.shopFadeIn = false;
         this.shopFadeTimer = 0;
-        this.shopFadeDuration = 1500; // 1.5 seconds to fade in shop
+        this.shopFadeDuration = 1500;
         
         // Transition state properties
         this.isTransitioning = false;
         this.transitionTimer = 0;
-        this.transitionDuration = 3000; // 3 seconds
+        this.transitionDuration = 3000;
         this.nextLevelNumber = null;
         
         // Load transition images
@@ -1233,14 +1248,12 @@ class Game {
             this.backgroundImage.src = '../assets/stages/Map-Final Boss/final_level.png';
         }
         
-        
         this.backgroundImage.onload = () => {
-            //console.log("Image dimensions:", this.backgroundImage.width, "x", this.backgroundImage.height);
             this.backgroundLoaded = true;
         };
         
         this.backgroundImage.onerror = (e) => {
-            console.error(`Failed to load level ${levelNumber} background image. Please check the browser console for details.`);
+            console.error(`Failed to load level ${levelNumber} background image.`);
         };
 
         // Load UI sprites
@@ -1250,6 +1263,10 @@ class Game {
         // Add gem UI sprite
         this.gemUISprite = new Image();
         this.gemUISprite.src = '../assets/Items/Gems/Gem_UI/gem.png';
+        
+        // Add fireball UI sprite
+        this.fireballUISprite = new Image();
+        this.fireballUISprite.src = '../assets/Items/Fire_ball_icon/fireball.png';
         
         this.labelGems = new TextLabel(80, 30, "30px Arial", "black");
 
@@ -1327,7 +1344,7 @@ class Game {
                 
                 if (shouldDestroy) {
                     console.log(`Destroying barrel at bottom: y=${actor.position.y}, level.height=${this.level.height}`);
-                    this.actors = this.actors.filter(item => item !== actor);
+                this.actors = this.actors.filter(item => item !== actor);
                     continue; // Skip updating this barrel since it's being removed
                 }
                 actor.update(this.level, deltaTime);
@@ -1750,42 +1767,49 @@ class Game {
         // Reset shadow for other elements
         ctx.shadowColor = "transparent";
         
-        // Draw hearts based on player's lives - moved down and made bigger
+        // Draw hearts based on player's lives
         for (let i = 0; i < this.player.lives; i++) {
             ctx.drawImage(
                 this.heartSprite, 
-                20 + i * 50, // X position (hearts are 50px apart, increased spacing)
-                80,         // Y position (moved down from 50)
-                40,         // Width (increased from 30)
-                40          // Height (increased from 30)
+                20 + i * 50,
+                80,
+                40,
+                40
             );
         }
 
-        // Draw fireball cooldown indicator - moved down and made bigger
+        // Draw fireball cooldown indicator
         const now = performance.now();
         const timeSinceLastFire = now - this.player.lastFireTime;
         const cooldownProgress = Math.min(timeSinceLastFire / this.player.fireCooldown, 1);
         const isReady = cooldownProgress >= 1;
 
-        // Fireball icon background
-        ctx.fillStyle = isReady ? "rgba(255, 100, 0, 0.8)" : "rgba(100, 100, 100, 0.5)";
-        ctx.fillRect(20, 130, 40, 40); // Moved down and made bigger
-
-        // Fireball icon
-        ctx.fillStyle = isReady ? "orange" : "gray";
-        ctx.fillRect(22, 132, 36, 36); // Adjusted for bigger size
-        ctx.fillStyle = isReady ? "red" : "darkgray";
-        ctx.fillRect(26, 136, 28, 28); // Adjusted for bigger size
+        // Draw fireball icon
+        if (this.fireballUISprite.complete) {
+            ctx.save();
+            if (!isReady) {
+                // Aplicar efecto gris cuando está en cooldown
+                ctx.globalAlpha = 0.5;
+            }
+            ctx.drawImage(
+                this.fireballUISprite,
+                22,
+                132,
+                36,
+                36
+            );
+            ctx.restore();
+        }
 
         // Cooldown progress bar
         if (!isReady) {
             // Background bar
             ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
-            ctx.fillRect(20, 175, 40, 8); // Moved down and made wider
+            ctx.fillRect(20, 175, 40, 8);
             
             // Progress bar
             ctx.fillStyle = "orange";
-            ctx.fillRect(20, 175, 40 * cooldownProgress, 8); // Adjusted for new size
+            ctx.fillRect(20, 175, 40 * cooldownProgress, 8);
         }
 
         // Draw fireball ready text
