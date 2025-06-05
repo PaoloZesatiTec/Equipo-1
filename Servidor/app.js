@@ -3,6 +3,7 @@ import express from 'express'
 import mysql from 'mysql2/promise'
 import fs from 'fs'
 import path from 'path'
+import { error } from 'console'
 
 
 const app = express()
@@ -114,7 +115,7 @@ app.get('/', (req, res) => {
         }
     }
 });
-//----------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
 //Login
 
 app.post("/api/login", async (req, res)=>{
@@ -182,7 +183,230 @@ app.post("/api/login", async (req, res)=>{
         }
     }
 });
-//----------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+//View gamestats
+
+app.get("/api/gamestats", async (req, res)=>{
+    let connection = null;
+    try{
+        connection = await ConnectDB();
+        const id_partida = req.query.id_partida ? parseInt(req.query.id_partida) : null;
+
+        if (!id_partida) {
+            return res.status(400).json({
+                success: false,
+                message: 'Se requiere el ID de la partida',
+                error: 'MISSING_GAME_ID'
+            });
+        }
+
+        // Usamos la vista Estadisticas_part que ya tiene toda la información necesaria
+        const statsQuery = `
+            SELECT * FROM Estadisticas_part 
+            WHERE id_partida = ?
+        `;
+
+        const [stats] = await connection.execute(statsQuery, [id_partida]);
+
+        if (stats.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'No se encontró la partida especificada',
+                error: 'GAME_NOT_FOUND'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Estadísticas de la partida obtenidas exitosamente',
+            data: stats[0]  // Retornamos el primer resultado ya que es una partida específica
+        });
+
+    } catch (error) {
+        console.error('Error al obtener estadísticas de la partida:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error interno del servidor',
+            error: error.message
+        });
+    } finally {
+        if (connection) {
+            try {
+                await connection.end();
+                console.log('Conexión a DB cerrada correctamente');
+            } catch (closeError) {
+                console.error('Error al cerrar conexión', closeError);
+            }
+        }
+    }
+});
+//--------------------------------------------------------------------------------------------------
+//Start new game
+
+app.post("/api/newgame", async(req, res)=>{
+    let connection = null;
+    try{
+        const { id_jugador } = req.body;
+        if (!id_jugador) {
+            return res.status(400).json({
+                success : false,
+                message : 'ID de jugador es requerido',
+                error : 'MISSING_PLAYER_ID'
+            });
+        }
+        connection = await ConnectDB();
+
+        const insertQuery = `
+        INSERT INTO PARTIDA (id_jugador)
+        VALUES(?)
+        `;
+        
+        const [ result ] = await connection.execute(insertQuery, [ id_jugador ]);
+
+        res.status(201).json({
+            succes : true,
+            message : 'Partida iniciada correctamente',
+            id_partida : result.insertId
+        })
+    }catch(error){
+        console.error('Error al iniciar la partida: ', error);
+        res.status(500).json({
+            succes : false,
+            message : 'Error interno en el servidor',
+            error : error.message
+        });
+    }finally{
+        if (connection) {
+            try {
+                await connection.end();
+                console.log('Conexión a DB cerrada correctamente');
+            } catch (closeError) {
+                console.error('Error al cerrar conexión', closeError);
+            }
+        }
+    }
+    
+
+});
+//--------------------------------------------------------------------------------------------------
+//adding the stats like time and exp of said game
+
+app.patch("/api/newgame/:id", async (req, res)=>{
+    let connection = null;
+    try{
+        const id_partida = parseInt (req.params.id);
+        const {nivel_maximo_alcanzado, duracion, vida, experiencia_ganada} = req.body;
+
+        if (!id_partida){
+            return res.status(400).json({
+                succes : false,
+                message : 'Id de partida requerido',
+                error : 'MISSING_GAME_ID'
+            });
+        }
+
+        connection = await ConnectDB();
+
+        const updateQuery = `
+        UPDATE Partida
+        SET
+            fecha_fin = NOW(),
+            nivel_maximo_alcanzado = ?,
+            duracion = ?,
+            vida = ?,
+            experiencia_ganada = ?
+        WHERE id_partida = ?
+        `;
+
+        await connection.execute(updateQuery, [
+            nivel_maximo_alcanzado,
+            duracion,
+            vida,
+            experiencia_ganada,
+            id_partida
+        ]);
+
+        res.status (200).json({
+            succes : true,
+            message : 'Partida actualizada correctamente'
+        });
+
+    } catch (error){
+        console.error('Error al finalizar partida: ', error);
+        res.status(500).json({
+            succes : false,
+            message : 'Error interno en el servidor',
+            error : error.message
+        });
+        
+    }finally{
+        if (connection) {
+            try {
+                await connection.end();
+                console.log('Conexión a DB cerrada correctamente');
+            } catch (closeError) {
+                console.error('Error al cerrar conexión', closeError);
+            }
+        }
+    }
+    
+});
+//--------------------------------------------------------------------------------------------------
+//Adding analytics stats of game
+
+app.post("/api/substats", async(req, res)=>{
+    let connection = null;
+    try{
+        const  {id_partida, id_jugador, enemigos_eliminados, powerups_usados} = req.body;
+        if(!id_partida||!id_jugador){
+            return res.status(400).json({
+                succes : false,
+                message : 'Se requiere el id de partida y de jugador',
+                error : "MISSING_REQUIRED_FIELDS"
+            });
+        }
+
+            connection = await ConnectDB();
+            const insertQuery = `
+            INSERT INTO Estadistica_partida (id_partida, id_jugador, enemigos_eliminados, powerups_usados)
+            VALUES (?,?,?,?)
+            `;
+
+            await connection.execute(insertQuery, [
+                id_partida,
+                id_jugador,
+                enemigos_eliminados ?? 0,
+                powerups_usados ?? 0
+            ]);
+
+            res.status(201).json({
+                succes : true,
+                message : "Datos agregados exitosamente!"
+            });
+        
+    } catch(error){
+        console.error("Error al insertar las estadísticas: ", error);
+
+        if(error.code === "ER_DUP_ENTRY"){
+            return res.status(409).json({
+                succes : false,
+                message : "Ya existen estadísticas para esta partida y jugador",
+                error : "DUPLICATE_ENTRY"
+            });
+        }
+    }finally{
+        if (connection) {
+            try {
+                await connection.end();
+                console.log('Conexión a DB cerrada correctamente');
+            } catch (closeError) {
+                console.error('Error al cerrar conexión', closeError);
+            }
+        }
+    }
+});
+//--------------------------------------------------------------------------------------------------
+
 
 
 
