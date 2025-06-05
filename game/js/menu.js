@@ -171,7 +171,7 @@ function initMenu() {
     });
 
     // Agregar elementos al DOM
-    secondaryButtons.appendChild(shop);
+    
     secondaryButtons.appendChild(helpButton);
     menuContainer.appendChild(logoImg);
     menuContainer.appendChild(startButton);
