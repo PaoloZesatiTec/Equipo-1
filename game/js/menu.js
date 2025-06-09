@@ -26,7 +26,7 @@ function initMenu() {
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        background-color: rgba(0, 0, 0, 0.9);
+        background-color: rgba(0, 0, 0, 0.7);
         z-index: 1000;
         border: 4px solid #ffd700;
         animation: borderGlow 2s infinite;
@@ -78,11 +78,11 @@ function initMenu() {
         align-items: center;
     `;
 
-    // Crear botón de Tienda
-    shop = document.createElement('button');
-    shop.id = 'shop';
-    shop.textContent = 'Tienda';
-    shop.style.cssText = `
+    // Crear botón de estadisticas
+    statsButton = document.createElement('button');
+    statsButton.id = 'shop';
+    statsButton.textContent = 'Estadisticas';
+    statsButton.style.cssText = `
         padding: 20px 40px;
         margin-top: 40px;
         font-size: 24px;
@@ -95,7 +95,7 @@ function initMenu() {
         transition: all 0.3s ease;
         animation: buttonGlow 2s infinite;
     `;
-    // Crear botón de inicio
+    // Crear botón de ayuda
     helpButton = document.createElement('button');
     helpButton.id = 'helpButton';
     helpButton.textContent = 'Ayuda';
@@ -171,10 +171,11 @@ function initMenu() {
     });
 
     // Agregar elementos al DOM
-    secondaryButtons.appendChild(shop);
+    
     secondaryButtons.appendChild(helpButton);
     menuContainer.appendChild(logoImg);
     menuContainer.appendChild(startButton);
+    menuContainer.appendChild(statsButton);
     menuContainer.appendChild(secondaryButtons);
 
     canvasWrapper.appendChild(menuContainer);

@@ -14,35 +14,27 @@ class Barrel extends AnimatedObject {
     }
 
     update(level, deltaTime) {
-        let Rndm = Math.random();
-
-        // Comprueba colisión
-        let TouchingFloor = level.contact(this.position, this.size, "wall");
-        //console.log("floor:", TouchingFloor);
-
-
-
+        // Apply gravity first
+        let TouchingFloor = level.contact(this.position.plus(new Vec(0, 0.05)), this.size, "wall");
+        
         if (!TouchingFloor) {
             this.velocity.y += gravity * deltaTime;
             this.Falling = true;
-        }else{
+        } else {
             this.velocity.y = 0;
-            if(this.Falling){
-                if (Rndm <=.5){
+            if (this.Falling) {
+                // Random chance to change direction when landing
+                if (Math.random() <= 0.5) {
                     this.velocity.x *= -1;
                     this.direction *= -1;
                 }
                 this.Falling = false;
             }
         }
-        
 
-
+        // Calculate next horizontal position
         let nextX = this.position.x + this.velocity.x * deltaTime;
-        let nextY = this.position.y + this.velocity.y * deltaTime;
         
-
-
         // Check if next position would be within bounds
         if (nextX < 0 || nextX > level.width - this.size.x) {
             this.velocity.x *= -1;
@@ -50,12 +42,32 @@ class Barrel extends AnimatedObject {
             return;
         }
 
-        let newPos = new Vec(nextX, nextY);
+        let newXPos = new Vec(nextX, this.position.y);
 
+        // Check for wall collision only (allow falling off platforms)
+        let wallHit = level.contact(newXPos, this.size, "wall");
 
-            this.updateFrame(deltaTime);
-           this.position = newPos;
+        if (wallHit) {
+            // Only reverse direction if hitting a wall, not at platform edges
+            this.velocity.x *= -1;
+            this.direction *= -1;
+        } else {
+            this.position.x = nextX;
+        }
 
+        // Handle vertical movement separately
+        let nextY = this.position.y + this.velocity.y * deltaTime;
+        let newYPos = new Vec(this.position.x, nextY);
+        
+        // Check for vertical collision
+        let verticalCollision = level.contact(newYPos, this.size, "wall");
+        if (!verticalCollision) {
+            this.position.y = nextY;
+        } else {
+            this.velocity.y = 0;
+        }
+
+        this.updateFrame(deltaTime);
     }
 
     draw(ctx, scale) {

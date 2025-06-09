@@ -4,40 +4,31 @@ import mysql from 'mysql2/promise'
 import fs from 'fs'
 import path from 'path'
 import { error } from 'console'
+import { fileURLToPath } from 'url'
 
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 const app = express()
 const PORT = 3000
 
+// Middleware
 app.use(express.json())
-app.use(express.static('../game'))
-app.use(express.static('../game/html'))
-app.use(express.static('../game/css'))
-app.use(express.static('../game/js'))
+app.use(express.urlencoded({ extended: true }))
 
-
-let itemsCatalog = []
-let nextId = 1
-
-app.get('/', (req, res) => {
-    res.sendFile(path.resolve('../game/html/index.html'));
-  });
-  
-
-
-  async function ConnectDB(){
+// Función de conexión a la base de datos
+async function ConnectDB() {
     return await mysql.createConnection({
-      host: "localhost",
-      user: "DataBase",
-      password: 'DataBase123',
-      database: 'mage_db',
-  });
+        host: "localhost",
+        user: "DataBase",
+        password: 'DataBase123',
+        database: 'mage_db',
+    });
 }
 
-//--------------------------------------------------------------------------------------------------
-// Registro
-
-  app.post("/api/createplayer", async (req, res) => {
+// Rutas API
+app.post("/api/createplayer", async (req, res) => {
+    console.log('Received request:', req.body); // Debug log
     let connection = null;
 
     try {
@@ -76,34 +67,20 @@ app.get('/', (req, res) => {
         }
 
         const insertQuery = 'INSERT INTO jugador (nombre, password_jugador) VALUES (?, ?)';
-
         const [result] = await connection.execute(insertQuery, [nombre, password_jugador]);
-
-        console.log(result.insertId,"result");
-
 
         res.status(201).json({
             success: true,
             message: 'Jugador registrado!',
-            data: 0  
+            data: result.insertId
         });
     } catch (error) {
         console.error('Error al registrar jugador: ', error);
-
-        if (error.code === 'ER_DUP_ENTRY') {
-            res.status(409).json({
-                success: false,
-                message: 'Ya existe un jugador con esas credenciales',
-                error: 'DUPLICATE_ENTRY'
-            });
-        }
-        else {
-            res.status(500).json({
-                success: false,
-                message: 'Error interno del servidor',
-                error: error.message
-            });
-        }
+        res.status(500).json({
+            success: false,
+            message: 'Error interno del servidor',
+            error: error.message
+        });
     } finally {
         if (connection) {
             try {
@@ -115,8 +92,61 @@ app.get('/', (req, res) => {
         }
     }
 });
+
+// Configurar rutas estáticas usando rutas absolutas
+const gamePath = path.join(__dirname, '..', 'game');
+app.use(express.static(gamePath));
+
+// Rutas para las páginas HTML
+app.get('/', (req, res) => {
+    res.sendFile(path.join(gamePath, 'html', 'index.html'));
+});
+
+app.get('/index', (req, res) => {
+    res.sendFile(path.join(gamePath, 'html', 'index.html'));
+});
+
+app.get('/index.html', (req, res) => {
+    res.sendFile(path.join(gamePath, 'html', 'index.html'));
+});
+
+app.get('/login', (req, res) => {
+    res.sendFile(path.join(gamePath, 'html', 'login.html'));
+});
+
+app.get('/register', (req, res) => {
+    res.sendFile(path.join(gamePath, 'html', 'register.html'));
+});
+
+// Manejar rutas con .html
+app.get('/login.html', (req, res) => {
+    res.sendFile(path.join(gamePath, 'html', 'login.html'));
+});
+
+app.get('/register.html', (req, res) => {
+    res.sendFile(path.join(gamePath, 'html', 'register.html'));
+});
+
+let itemsCatalog = []
+let nextId = 1
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(gamePath, 'html', 'index.html'));
+  });
+  
+
+
+  async function ConnectDB(){
+    return await mysql.createConnection({
+      host: "localhost",
+      user: "DataBase",
+      password: 'DataBase123',
+      database: 'mage_db',
+  });
+}
+
 //--------------------------------------------------------------------------------------------------
-//Login
+// Login
 
 app.post("/api/login", async (req, res)=>{
 

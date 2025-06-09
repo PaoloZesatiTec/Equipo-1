@@ -121,8 +121,53 @@
             <input type="password" class="register-input" placeholder="Repite la contraseña" required autocomplete="new-password">
             <button type="submit" class="register-btn">Registrarse</button>
         </form>
-        <a href="login.html" class="register-link">¿Ya tienes cuenta? Inicia sesión</a>
+        <a href="/login" class="register-link">¿Ya tienes cuenta? Inicia sesión</a>
         <div class="register-footer">© 2025 Mage Tower | Todos los derechos reservados</div>
     </div>
+    <script>
+        document.querySelector('.register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.querySelector('input[placeholder="Usuario"]').value;
+            const password = document.querySelector('input[placeholder="Contraseña"]').value;
+            const confirmPassword = document.querySelector('input[placeholder="Repite la contraseña"]').value;
+
+            // Validar que las contraseñas coincidan
+            if (password !== confirmPassword) {
+                alert('Las contraseñas no coinciden');
+                return;
+            }
+
+            try {
+                console.log('Enviando petición...'); // Debug log
+                const response = await fetch('http://localhost:3000/api/createplayer', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        nombre: username,
+                        password_jugador: password
+                    })
+                });
+
+                console.log('Respuesta recibida:', response); // Debug log
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Error en el registro');
+                }
+
+                const data = await response.json();
+                console.log('Datos recibidos:', data); // Debug log
+                alert('¡Registro exitoso!');
+                window.location.href = '/login';
+            } catch (error) {
+                console.error('Error completo:', error); // Debug log
+                alert(error.message || 'Error al conectar con el servidor');
+            }
+        });
+    </script>
 </body>
 </html> 

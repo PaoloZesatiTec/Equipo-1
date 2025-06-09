@@ -143,7 +143,7 @@ class Player extends AnimatedObject {
         
         this.velocity = new Vec(0.0, 0.0);
         this.gems = 0;
-        this.lives = 2; // Changed back to 2 base lives
+        this.lives = 2; // Back to original 2 base lives
         this.invulnerable = false;
         this.invulnerableTimer = 0;
         this.isDead = false;
@@ -159,19 +159,28 @@ class Player extends AnimatedObject {
 
         // Power-up flags
         this.hasFastFireball = powerUps.hasFastFireball || false; // Reduces cooldown to 7 seconds
-        this.hasExtraLife = powerUps.hasExtraLife || false; // Starts with 4 lives instead of 3
-        this.lifeUpgradeLevel = powerUps.lifeUpgradeLevel || 0; // 0 = 2 lives, 1 = 3 lives, 2 = 4 lives
+        this.hasExtraLife = powerUps.hasExtraLife || false; // No longer used
+        this.lifeUpgradeLevel = powerUps.lifeUpgradeLevel || 0; // 0 = 2 lives, 1 = 3 lives, 2 = 4 lives, 3 = 5 lives
 
         // Apply power-ups if purchased
         if (this.hasFastFireball) {
             this.fireCooldown = 7000; // 7 seconds
         }
-        if (this.hasExtraLife) {
-            this.lives = 4;
-        } else if (this.lifeUpgradeLevel === 1) {
-            this.lives = 3;
-        } else {
-            this.lives = 2; // Base lives back to 2
+        
+        // Apply life upgrades based on level
+        switch (this.lifeUpgradeLevel) {
+            case 1:
+                this.lives = Math.max(this.lives, 3); // First upgrade: 2 -> 3 lives
+                break;
+            case 2:
+                this.lives = Math.max(this.lives, 4); // Second upgrade: 3 -> 4 lives
+                break;
+            case 3:
+                this.lives = Math.max(this.lives, 5); // Third upgrade: 4 -> 5 lives
+                break;
+            default:
+                this.lives = Math.max(this.lives, 2); // Base lives
+                break;
         }
 
         // Horizontal hitbox: narrower than the player's main hitbox, defined in Level constructor
@@ -345,15 +354,20 @@ class Player extends AnimatedObject {
             }
         }
 
-        // Handle jumping - only allow jump when on ground
-        if (keyState[" "] && !this.wasSpacePressed && this.isOnGround(level)) {
+        // Handle jumping - improved ground detection and jump logic
+        const isGrounded = this.isOnGround(level);
+        if (keyState[" "] && isGrounded && !this.isJumping) {
             this.velocity.y = initialJumpSpeed;
             this.isJumping = true;
             if (!this.isHurt && !this.isAttacking) {
                 this.setMageAnimation('jump');
             }
         }
-        this.wasSpacePressed = keyState[" "];
+
+        // Reset isJumping if player is on ground and has no upward velocity
+        if (this.isJumping && isGrounded && this.velocity.y >= 0) {
+            this.isJumping = false;
+        }
 
         // Simplified ladder system: activate when touching ladder AND pressing W or S
         let wasOnLadder = this.isOnLadder;
@@ -450,11 +464,6 @@ class Player extends AnimatedObject {
             }
         }
 
-        // Reset isJumping if player is on ground and has no upward velocity
-        if (this.isJumping && this.isOnGround(level) && this.velocity.y >= 0) {
-            this.isJumping = false;
-        }
-
         // Update animation state based on movement
         if (!this.isHurt && !this.isAttacking) {
             if (this.isJumping) {
@@ -506,8 +515,14 @@ class Player extends AnimatedObject {
     isOnGround(level) {
         // Check if there's a wall or ladder directly below the player
         // Use a larger offset to account for floating point precision issues
-        const testPosition = this.position.plus(new Vec(0, 0.05)); // Increased from 0.01 to 0.05
-        return level.contact(testPosition, this.size, 'wall') || level.contact(testPosition, this.size, 'ladder');
+        const testPosition = this.position.plus(new Vec(0, 0.05)); // Increased offset for better ground detection
+        const isOnWall = level.contact(testPosition, this.size, 'wall');
+        const isOnLadder = level.contact(testPosition, this.size, 'ladder');
+        
+        // Also check if we're very close to the ground (within 0.05 units)
+        const isVeryCloseToGround = Math.abs(this.position.y - Math.floor(this.position.y)) < 0.05;
+        
+        return isOnWall || isOnLadder || isVeryCloseToGround;
     }
 
     // Method to check if only the bottom part of the player is touching a ladder
@@ -623,6 +638,14 @@ class Player extends AnimatedObject {
         this.isJumping = false;
         this.isCrouching = false;
         this.isOnLadder = false;
+        
+        // Incrementar contador de muertes cuando el jugador muere
+        game.deathCount++;
+        // Actualizar el panel de estadísticas
+        const scoreElement = document.getElementById('score');
+        if (scoreElement) {
+            scoreElement.textContent = game.deathCount;
+        }
 
         const partidaEndTime = Date.now();
         const duracion_part = Math.floor((partidaEndTime - this.partidaStartTime) / 1000);
@@ -1167,8 +1190,12 @@ class Game {
         this.actors = [...level.actors];
         this.gameOver = false;
         this.gameWon = false;
-        this.currentLevel = levelNumber; // Track current level
-        this.totalLevels = 4; // Updated to 4 total levels
+        this.currentLevel = levelNumber;
+        this.totalLevels = 4;
+        this.deathCount = 0;
+        
+        // Pause system
+        this.isPaused = false;
         
         // Initialize lava system
         this.lava = new Lava(level.height);
@@ -1183,15 +1210,15 @@ class Game {
         // Death fade transition
         this.isDeathFading = false;
         this.deathFadeTimer = 0;
-        this.deathFadeDuration = 2000; // 2 seconds fade
+        this.deathFadeDuration = 2000;
         this.shopFadeIn = false;
         this.shopFadeTimer = 0;
-        this.shopFadeDuration = 1500; // 1.5 seconds to fade in shop
+        this.shopFadeDuration = 1500;
         
         // Transition state properties
         this.isTransitioning = false;
         this.transitionTimer = 0;
-        this.transitionDuration = 3000; // 3 seconds
+        this.transitionDuration = 3000;
         this.nextLevelNumber = null;
         
         // Load transition images
@@ -1248,14 +1275,12 @@ class Game {
             this.backgroundImage.src = '../assets/stages/Map-Final Boss/final_level.png';
         }
         
-        
         this.backgroundImage.onload = () => {
-            //console.log("Image dimensions:", this.backgroundImage.width, "x", this.backgroundImage.height);
             this.backgroundLoaded = true;
         };
         
         this.backgroundImage.onerror = (e) => {
-            console.error(`Failed to load level ${levelNumber} background image. Please check the browser console for details.`);
+            console.error(`Failed to load level ${levelNumber} background image.`);
         };
 
         // Load UI sprites
@@ -1266,6 +1291,10 @@ class Game {
         this.gemUISprite = new Image();
         this.gemUISprite.src = '../assets/Items/Gems/Gem_UI/gem.png';
         
+        // Add fireball UI sprite
+        this.fireballUISprite = new Image();
+        this.fireballUISprite.src = '../assets/Items/Fire_ball_icon/fireball.png';
+        
         this.labelGems = new TextLabel(80, 30, "30px Arial", "black");
 
         console.log(`############ LEVEL ${levelNumber} START ###################`);
@@ -1273,6 +1302,9 @@ class Game {
 
     update(deltaTime) {
         if (this.gameWon) return;
+        
+        // Don't update game when paused
+        if (this.isPaused) return;
         
         // Handle shop state
         if (this.showShop && !this.shopFadeIn) {
@@ -1335,9 +1367,18 @@ class Game {
         for (let actor of this.actors) {
             if (actor.type === 'minotaur') {
                 actor.update(this.level, deltaTime, this.player);
-            } else if (actor.type === 'barrel' && actor.position.y > this.level.height - 2){
+            } else if (actor.type === 'barrel') {
+                // Check if barrel should be destroyed (when they reach bottom platform area)
+                // Bottom platforms are typically at level.height - 1, so barrels sitting on them would be at level.height - 2
+                const shouldDestroy = actor.position.y >= this.level.height - 3;
+                
+                if (shouldDestroy) {
+                    console.log(`Destroying barrel at bottom: y=${actor.position.y}, level.height=${this.level.height}`);
                 this.actors = this.actors.filter(item => item !== actor);
-            }else{
+                    continue; // Skip updating this barrel since it's being removed
+                }
+                actor.update(this.level, deltaTime);
+            } else {
                 actor.update(this.level, deltaTime);
             }
         }
@@ -1384,6 +1425,46 @@ class Game {
                obj1.position.x + obj1.size.x > obj2.position.x &&
                obj1.position.y < obj2.position.y + obj2.size.y &&
                obj1.position.y + obj1.size.y > obj2.position.y;
+    }
+
+    // Pause system methods
+    togglePause() {
+        this.isPaused = !this.isPaused;
+        console.log(this.isPaused ? "Game Paused" : "Game Resumed");
+    }
+
+    quitToMenu() {
+        // Reset all game state completely
+        this.isPaused = false;
+        this.gameOver = false;
+        this.gameWon = false;
+        this.showShop = false;
+        this.isTransitioning = false;
+        this.isDeathFading = false;
+        
+        // Reset camera and frame timing
+        cameraY = 0;
+        frameStart = undefined;
+        
+        // Generate a new random level 1 for complete restart
+        let level1Plan;
+        if (typeof LevelGenerator !== 'undefined') {
+            const generator = new LevelGenerator(28, 60, 1);
+            level1Plan = generator.generate();
+        } else {
+            // Fallback to static level 1 if LevelGenerator is not available
+            level1Plan = GAME_LEVELS[0];
+        }
+        
+        // Create completely new game instance from level 1
+        game = new Game('playing', new Level(level1Plan), 1);
+        
+        // Show the menu from menu.js
+        if (typeof showMenu === 'function') {
+            showMenu();
+        } else {
+            console.error('showMenu function not found');
+        }
     }
 
     // Method to start level transition
@@ -1456,6 +1537,9 @@ class Game {
         if (this.player.hasFastFireball) {
             this.player.fireCooldown = 7000; // 7 seconds
         }
+        
+        // Note: Life upgrade logic removed from here - lives should be preserved exactly as they were
+        // The upgrade effects are only applied when purchasing upgrades or respawning from death
         
         // Update background for the new level
         this.backgroundImage = new Image();
@@ -1567,12 +1651,21 @@ class Game {
         if (this.player.hasFastFireball) {
             this.player.fireCooldown = 7000; // 7 seconds
         }
-        if (this.player.hasExtraLife) {
-            this.player.lives = 4;
-        } else if (this.player.lifeUpgradeLevel === 1) {
-            this.player.lives = 3;
-        } else {
-            this.player.lives = 2; // Base lives back to 2
+        
+        // Apply life upgrades based on level
+        switch (this.player.lifeUpgradeLevel) {
+            case 1:
+                this.player.lives = 3; // First upgrade: 2 -> 3 lives
+                break;
+            case 2:
+                this.player.lives = 4; // Second upgrade: 3 -> 4 lives
+                break;
+            case 3:
+                this.player.lives = 5; // Third upgrade: 4 -> 5 lives
+                break;
+            default:
+                this.player.lives = 2; // Base lives
+                break;
         }
         
         // Set player state
@@ -1745,45 +1838,52 @@ class Game {
         // Reset shadow for other elements
         ctx.shadowColor = "transparent";
         
-        // Draw hearts based on player's lives - moved down and made bigger
+        // Draw hearts based on player's lives
         for (let i = 0; i < this.player.lives; i++) {
             ctx.drawImage(
                 this.heartSprite, 
-                20 + i * 50, // X position (hearts are 50px apart, increased spacing)
-                80,         // Y position (moved down from 50)
-                40,         // Width (increased from 30)
-                40          // Height (increased from 30)
+                20 + i * 50,
+                80,
+                40,
+                40
             );
         }
 
-        // Draw fireball cooldown indicator - moved down and made bigger
+        // Draw fireball cooldown indicator
         const now = performance.now();
         const timeSinceLastFire = now - this.player.lastFireTime;
         const cooldownProgress = Math.min(timeSinceLastFire / this.player.fireCooldown, 1);
         const isReady = cooldownProgress >= 1;
 
-        // Fireball icon background
-        ctx.fillStyle = isReady ? "rgba(255, 100, 0, 0.8)" : "rgba(100, 100, 100, 0.5)";
-        ctx.fillRect(20, 130, 40, 40); // Moved down and made bigger
-
-        // Fireball icon
-        ctx.fillStyle = isReady ? "orange" : "gray";
-        ctx.fillRect(22, 132, 36, 36); // Adjusted for bigger size
-        ctx.fillStyle = isReady ? "red" : "darkgray";
-        ctx.fillRect(26, 136, 28, 28); // Adjusted for bigger size
+        // Draw fireball icon
+        if (this.fireballUISprite.complete) {
+            ctx.save();
+            if (!isReady) {
+                // Aplicar efecto gris cuando está en cooldown
+                ctx.globalAlpha = 0.5;
+            }
+            ctx.drawImage(
+                this.fireballUISprite,
+                22,
+                132,
+                36,
+                36
+            );
+            ctx.restore();
+        }
 
         // Cooldown progress bar
         if (!isReady) {
             // Background bar
             ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
-            ctx.fillRect(20, 175, 40, 8); // Moved down and made wider
+            ctx.fillRect(20, 175, 40, 8);
             
             // Progress bar
             ctx.fillStyle = "orange";
-            ctx.fillRect(20, 175, 40 * cooldownProgress, 8); // Adjusted for new size
+            ctx.fillRect(20, 175, 40 * cooldownProgress, 8);
         }
 
-        // Fireball ready text
+        // Draw fireball ready text
         if (isReady) {
             ctx.font = "12px Arial"; // Slightly bigger font
             ctx.fillStyle = "white";
@@ -1886,6 +1986,135 @@ class Game {
             
             ctx.restore();
         }
+        
+        // Draw pause menu if game is paused
+        if (this.isPaused) {
+            this.drawPauseMenu(ctx, canvasWidth, canvasHeight);
+        }
+    }
+
+    // Method to draw pause menu
+    drawPauseMenu(ctx, canvasWidth, canvasHeight) {
+        ctx.save();
+        
+        // Semi-transparent overlay
+        ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+        
+        // Pause menu background
+        const menuWidth = 400;
+        const menuHeight = 300;
+        const menuX = (canvasWidth - menuWidth) / 2;
+        const menuY = (canvasHeight - menuHeight) / 2;
+        
+        // Create gradient background for menu
+        const gradient = ctx.createLinearGradient(menuX, menuY, menuX, menuY + menuHeight);
+        gradient.addColorStop(0, "#2C3E50");
+        gradient.addColorStop(1, "#34495E");
+        
+        ctx.fillStyle = gradient;
+        ctx.fillRect(menuX, menuY, menuWidth, menuHeight);
+        
+        // Menu border
+        ctx.strokeStyle = "#F39C12";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(menuX, menuY, menuWidth, menuHeight);
+        
+        // Title
+        ctx.font = "bold 48px Arial";
+        ctx.fillStyle = "#F39C12";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("PAUSED", canvasWidth / 2, menuY + 80);
+        
+        // Instructions
+        ctx.font = "24px Arial";
+        ctx.fillStyle = "#ECF0F1";
+        ctx.fillText("Press P to Resume", canvasWidth / 2, menuY + 150);
+        ctx.fillText("Press Q to Quit to Menu", canvasWidth / 2, menuY + 190);
+        
+        // Additional decorative elements
+        ctx.font = "16px Arial";
+        ctx.fillStyle = "#BDC3C7";
+        ctx.fillText("Game Progress is Saved", canvasWidth / 2, menuY + 240);
+        
+        ctx.restore();
+    }
+
+    // Method to draw barrel spawner information
+    drawBarrelSpawnerInfo(ctx, canvasWidth, canvasHeight) {
+        // Find all barrel spawners
+        const spawners = this.actors.filter(actor => actor.type === 'spawner');
+        
+        if (spawners.length === 0) return;
+
+        ctx.save();
+        
+        // Background for spawner info
+        const infoWidth = 180;
+        const infoHeight = 100;
+        const infoX = canvasWidth - infoWidth - 10;
+        const infoY = 10;
+        
+        // Semi-transparent background
+        ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+        ctx.fillRect(infoX, infoY, infoWidth, infoHeight);
+        
+        // Border
+        ctx.strokeStyle = "#FFD700";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(infoX, infoY, infoWidth, infoHeight);
+        
+        // Title
+        ctx.font = "bold 14px Arial";
+        ctx.fillStyle = "#FFD700";
+        ctx.textAlign = "center";
+        ctx.fillText("BARREL SPAWNERS", infoX + infoWidth/2, infoY + 20);
+        
+        // Get spawn interval for current level
+        let spawnInterval;
+        switch (this.currentLevel) {
+            case 1:
+                spawnInterval = 10000; // 10 seconds
+                break;
+            case 2:
+                spawnInterval = 9000;  // 9 seconds
+                break;
+            case 3:
+                spawnInterval = 8000;  // 8 seconds
+                break;
+            case 4:
+                spawnInterval = 7000;  // 7 seconds
+                break;
+            default:
+                spawnInterval = 10000;
+                break;
+        }
+        
+        // Display spawner information
+        ctx.font = "12px Arial";
+        ctx.fillStyle = "white";
+        ctx.textAlign = "left";
+        
+        spawners.forEach((spawner, index) => {
+            const yPos = infoY + 40 + (index * 20);
+            
+            // Timer information only
+            const timeUntilSpawn = Math.max(0, spawnInterval - spawner.spawnTimer);
+            const secondsLeft = Math.ceil(timeUntilSpawn / 1000);
+            
+            if (timeUntilSpawn <= 0) {
+                ctx.fillStyle = "#FF4444"; // Red when ready to spawn
+                ctx.fillText(`Spawner ${index + 1}: Ready!`, infoX + 10, yPos);
+            } else {
+                ctx.fillStyle = "#AAAAAA"; // Gray when counting down
+                ctx.fillText(`Spawner ${index + 1}: ${secondsLeft}s`, infoX + 10, yPos);
+            }
+            
+            ctx.fillStyle = "white"; // Reset color for next spawner
+        });
+        
+        ctx.restore();
     }
 
 }
@@ -1922,24 +2151,36 @@ class Shop {
     updateLifeUpgradeItem(player) {
         const lifeItem = this.items[1]; // Life Upgrade item
         
-        if (player.hasExtraLife) {
-            // Player already has max lives (4)
-            lifeItem.name = "Life Upgrade";
-            lifeItem.description = "Maximum lives reached (4)";
-            lifeItem.cost = 0;
-            lifeItem.purchased = true;
-        } else if (player.lifeUpgradeLevel === 1) {
-            // Player has 3 lives, can upgrade to 4
-            lifeItem.name = "Extra Life";
-            lifeItem.description = "Upgrade to 4 lives";
-            lifeItem.cost = 200;
-            lifeItem.purchased = false;
-        } else {
-            // Player has 2 lives, can upgrade to 3
-            lifeItem.name = "Life Upgrade";
-            lifeItem.description = "Upgrade to 3 lives";
-            lifeItem.cost = 50;
-            lifeItem.purchased = false;
+        switch (player.lifeUpgradeLevel) {
+            case 0:
+                // Player has 2 lives, can upgrade to 3 for 30 gems
+                lifeItem.name = "Life Upgrade I";
+                lifeItem.description = "Upgrade to 3 lives (2 -> 3)";
+                lifeItem.cost = 30;
+                lifeItem.purchased = false;
+                break;
+            case 1:
+                // Player has 3 lives, can upgrade to 4 for 60 gems
+                lifeItem.name = "Life Upgrade II";
+                lifeItem.description = "Upgrade to 4 lives (3 -> 4)";
+                lifeItem.cost = 60;
+                lifeItem.purchased = false;
+                break;
+            case 2:
+                // Player has 4 lives, can upgrade to 5 for 90 gems
+                lifeItem.name = "Life Upgrade III";
+                lifeItem.description = "Upgrade to 5 lives (4 -> 5)";
+                lifeItem.cost = 90;
+                lifeItem.purchased = false;
+                break;
+            case 3:
+            default:
+                // Player has max lives (5)
+                lifeItem.name = "Life Upgrade";
+                lifeItem.description = "Maximum lives reached (5)";
+                lifeItem.cost = 0;
+                lifeItem.purchased = true;
+                break;
         }
     }
 
@@ -1987,15 +2228,21 @@ class Shop {
             if (item.name === "Fast Fireball") {
                 player.hasFastFireball = true;
                 player.fireCooldown = 7000; // 7 seconds
-            } else if (item.name === "Life Upgrade" || item.name === "Extra Life") {
-                if (player.lifeUpgradeLevel === 0) {
-                    // Upgrade from 2 to 3 lives
-                    player.lifeUpgradeLevel = 1;
-                    player.lives = 3;
-                } else if (player.lifeUpgradeLevel === 1) {
-                    // Upgrade from 3 to 4 lives
-                    player.hasExtraLife = true;
-                    player.lives = 4;
+            } else if (item.name.startsWith("Life Upgrade")) {
+                // Upgrade the life level and apply immediately
+                player.lifeUpgradeLevel++;
+                
+                // Apply the new life count based on upgrade level
+                switch (player.lifeUpgradeLevel) {
+                    case 1:
+                        player.lives = 3; // First upgrade: 2 -> 3 lives
+                        break;
+                    case 2:
+                        player.lives = 4; // Second upgrade: 3 -> 4 lives
+                        break;
+                    case 3:
+                        player.lives = 5; // Third upgrade: 4 -> 5 lives
+                        break;
                 }
             }
             
@@ -2385,6 +2632,22 @@ function setEventListeners() {
 function handleKeyDown(event) {
     keyState[event.key] = true;
 
+    // Handle pause functionality
+    if (event.key === 'p' || event.key === 'P') {
+        if (!game.showShop && !game.gameOver && !game.gameWon && !game.isTransitioning) {
+            game.togglePause();
+        }
+        return;
+    }
+
+    // Handle quit to menu when paused
+    if (event.key === 'q' || event.key === 'Q') {
+        if (game.isPaused) {
+            game.quitToMenu();
+        }
+        return;
+    }
+
     // Handle shop navigation
     if (game.showShop) {
         if (event.key === 'w') {
@@ -2397,26 +2660,16 @@ function handleKeyDown(event) {
         return; // Don't process other keys while shop is open
     }
 
+    // Don't process movement keys when paused
+    if (game.isPaused) {
+        return;
+    }
+
     if (event.key == 'a') game.player.startMovement("left");
     if (event.key == 'd') game.player.startMovement("right");
     if (event.key == 's') game.player.crouch();
     if (event.key == 'e') game.player.fireFireball();
-    if (event.key == ' ') {
-        // Simplified jumping logic - allow jumping if not already jumping and velocity is low
-        if (!game.player.isJumping && game.player.velocity.y >= -0.001) {
-            game.player.velocity.y = initialJumpSpeed;
-            game.player.isJumping = true;
-            
-            if (game.player.isOnLadder) {
-                game.player.exitingLadder = true;
-                game.player.isOnLadder = false;
-            }
-            
-            if (!game.player.isHurt && !game.player.isAttacking) {
-                game.player.setMageAnimation('jump');
-            }
-        }
-    }
+    // Jump handling is now done in Player.update() method with proper ground checking
     
     // Restart game when R is pressed and game is over or won
     if (event.key == 'r' && (game.gameOver || game.gameWon)) {
