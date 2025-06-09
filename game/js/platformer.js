@@ -130,6 +130,9 @@ class Player extends AnimatedObject {
     constructor(color, width, height, x, y, type, powerUps = {}) {
         // Make hitbox even smaller - reducing height and width further
         super(color, 0.3, 1.3, x, y, type); // Even smaller hitbox (0.5 width, 1.3 height)
+
+        //Timestamps para la db
+        this.partidaStartTime = Date.now();
         
         // Store original position for proper centering
         this.originalX = x;
@@ -620,6 +623,27 @@ class Player extends AnimatedObject {
         this.isJumping = false;
         this.isCrouching = false;
         this.isOnLadder = false;
+
+        const partidaEndTime = Date.now();
+        const duracion_part = Math.floor((partidaEndTime - this.partidaStartTime) / 1000);
+        console.log(duracion_part);
+
+        const jugador = JSON.parse(localStorage.getItem('Jugador'));
+        const id_jugador = jugador?.id_jugador;
+        const id_partida = window.currentGameId;
+
+        if(id_jugador && id_partida){
+            Save_data({
+                id_partida,
+                id_jugador,
+                nivel : 3,//temp
+                duracion : duracion_part,
+                vida :0,
+                experiencia: player.gems,
+                enemigos: 10,
+                powerUps: 2
+            })
+        }
     }
 }
 
@@ -1521,6 +1545,7 @@ class Game {
         this.currentLevel = 1;
         this.level = newLevel;
         this.player = newLevel.player;
+        this.player.partidaStartTime = Date.now();
         this.actors = [...newLevel.actors];
         
         // Update level counter in UI
