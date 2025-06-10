@@ -10,6 +10,13 @@ let game;
 let player;
 let level;
 
+// Variables para estadísticas
+let gameTime = 0;
+let enemiesKilled = 0;
+let powerupsUsed = 0;
+let currentLevel = 1;
+let score = 0;
+
 let scale = 30;
 const walkSpeed = 0.006;
 const initialJumpSpeed = -0.014;
@@ -17,6 +24,67 @@ const gravity = 0.000045;
 
 let cameraY = 0; // New variable for vertical camera scrolling
 let keyState = {}; // For climbing
+
+// Función para enviar estadísticas al servidor
+async function sendGameStats(gameStats) {
+    try {
+        const playerId = localStorage.getItem('playerId');
+        if (!playerId) {
+            console.error('No hay ID de jugador disponible');
+            return;
+        }
+
+        // Crear nueva partida
+        const newGameResponse = await fetch('/api/newgame', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                id_jugador: playerId
+            })
+        });
+
+        const newGameData = await newGameResponse.json();
+        if (!newGameData.succes) {
+            throw new Error('Error al crear nueva partida');
+        }
+
+        const id_partida = newGameData.id_partida;
+
+        // Actualizar estadísticas principales
+        await fetch(`/api/newgame/${id_partida}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                nivel_maximo_alcanzado: gameStats.level,
+                duracion: gameStats.time,
+                vida: gameStats.health,
+                experiencia_ganada: gameStats.score
+            })
+        });
+
+        // Enviar estadísticas detalladas
+        await fetch('/api/substats', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                id_partida: id_partida,
+                id_jugador: playerId,
+                enemigos_eliminados: gameStats.enemiesKilled,
+                powerups_usados: gameStats.powerupsUsed
+            })
+        });
+
+        console.log('Estadísticas enviadas correctamente');
+    } catch (error) {
+        console.error('Error al enviar estadísticas:', error);
+    }
+}
 
 // Lava class for the final level
 class Lava {
@@ -313,6 +381,22 @@ class Player extends AnimatedObject {
     }
 
     update(level, deltaTime, actors = []) {
+        // Actualizar tiempo de juego
+        gameTime += deltaTime;
+
+        // Actualizar contador de muertes en el panel
+        const scoreElement = document.getElementById('score');
+        if (scoreElement) {
+            scoreElement.textContent = game.deathCount;
+        }
+
+        // Actualizar nivel en el panel
+        const levelElement = document.getElementById('level');
+        if (levelElement) {
+            levelElement.textContent = currentLevel;
+            console.log('Nivel actualizado en UI:', currentLevel); // Debug log
+        }
+
         if (this.isDead) return;
 
         // Handle delayed fireball creation during attack
@@ -628,21 +712,96 @@ class Player extends AnimatedObject {
     }
 
     die() {
-        this.isDead = true;
-        this.velocity = new Vec(0, 0);
-        this.stopMovement("left");
-        this.stopMovement("right");
-        this.isJumping = false;
-        this.isCrouching = false;
-        this.isOnLadder = false;
+        if (this.isDead) return;
         
-        // Incrementar contador de muertes cuando el jugador muere
-        game.deathCount++;
-        // Actualizar el panel de estadísticas
-        const scoreElement = document.getElementById('score');
-        if (scoreElement) {
-            scoreElement.textContent = game.deathCount;
-        }
+        this.isDead = true;
+        this.lives = 0;
+        this.health = 0;
+        
+        // Enviar estadísticas al servidor
+        const gameStats = {
+            level: currentLevel,
+            time: Math.floor(gameTime / 1000), // Convertir a segundos
+            health: this.health,
+            score: score,
+            enemiesKilled: enemiesKilled,
+            powerupsUsed: powerupsUsed
+        };
+        
+        console.log('Enviando estadísticas:', gameStats); // Debug log
+        
+        // Crear nueva partida
+        fetch('/api/newgame', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                id_jugador: localStorage.getItem('playerId')
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.succes) {
+                const id_partida = data.id_partida;
+                
+                // Actualizar estadísticas principales
+                return fetch(`/api/newgame/${id_partida}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        nivel_maximo_alcanzado: gameStats.level,
+                        duracion: gameStats.time,
+                        vida: gameStats.health,
+                        experiencia_ganada: gameStats.score
+                    })
+                });
+            }
+            throw new Error('Error al crear partida');
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.succes) {
+                // Enviar estadísticas detalladas
+                return fetch('/api/substats', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        id_partida: data.id_partida,
+                        id_jugador: localStorage.getItem('playerId'),
+                        enemigos_eliminados: gameStats.enemiesKilled,
+                        powerups_usados: gameStats.powerupsUsed
+                    })
+                });
+            }
+            throw new Error('Error al actualizar estadísticas');
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.succes) {
+                console.log('Estadísticas guardadas correctamente');
+            } else {
+                throw new Error('Error al guardar estadísticas detalladas');
+            }
+        })
+        .catch(error => {
+            console.error('Error al guardar estadísticas:', error);
+        });
+        
+        // Mostrar pantalla de game over
+        const gameOverScreen = document.createElement('div');
+        gameOverScreen.id = 'gameOverScreen';
+        gameOverScreen.innerHTML = `
+            <h2>Game Over</h2>
+            <p>Puntuación: ${score}</p>
+            <p>Nivel alcanzado: ${currentLevel}</p>
+            <button onclick="restartGame()">Reintentar</button>
+        `;
+        document.body.appendChild(gameOverScreen);
     }
 }
 
@@ -1397,10 +1556,24 @@ class Game {
 
     // Add collision detection method
     checkCollision(obj1, obj2) {
-        return obj1.position.x < obj2.position.x + obj2.size.x &&
+        // Verificar si hay colisión entre dos objetos
+        if (obj1.position.x < obj2.position.x + obj2.size.x &&
                obj1.position.x + obj1.size.x > obj2.position.x &&
                obj1.position.y < obj2.position.y + obj2.size.y &&
-               obj1.position.y + obj1.size.y > obj2.position.y;
+            obj1.position.y + obj1.size.y > obj2.position.y) {
+            
+            // Si es un enemigo y colisiona con un fireball, incrementar contador y eliminar ambos
+            if ((obj2.type === 'enemy' || obj2.type === 'minotaur' || obj2.type === 'barrel') && 
+                obj1.type === 'fireball') {
+                enemiesKilled++;
+                console.log('Enemigo eliminado. Total:', enemiesKilled);
+                // Eliminar tanto el fireball como el enemigo
+                game.actors = game.actors.filter(actor => actor !== obj1 && actor !== obj2);
+            }
+            
+            return true;
+        }
+        return false;
     }
 
     // Pause system methods
@@ -1452,7 +1625,6 @@ class Game {
 
     // Method to complete the transition and load next level
     completeTransition() {
-        
         // Reset camera position
         cameraY = 0;
         
@@ -1486,15 +1658,18 @@ class Game {
         
         // Update game state for next level
         this.currentLevel = this.nextLevelNumber;
+        currentLevel = this.nextLevelNumber; // Actualizar la variable global
+        
+        // Actualizar el nivel en el HTML
+        const levelElement = document.getElementById('level');
+        if (levelElement) {
+            levelElement.textContent = currentLevel;
+            console.log('Nivel actualizado en UI durante transición:', currentLevel);
+        }
+        
         this.level = nextLevel;
         this.player = nextLevel.player;
         this.actors = [...nextLevel.actors];
-        
-        // Update level counter in UI
-        const levelElement = document.getElementById('level');
-        if (levelElement) {
-            levelElement.textContent = this.currentLevel;
-        }
         
         // Reset lava system and activate for level 4
         this.lava.reset();
@@ -1514,9 +1689,6 @@ class Game {
             this.player.fireCooldown = 7000; // 7 seconds
         }
         
-        // Note: Life upgrade logic removed from here - lives should be preserved exactly as they were
-        // The upgrade effects are only applied when purchasing upgrades or respawning from death
-        
         // Update background for the new level
         this.backgroundImage = new Image();
         this.backgroundLoaded = false;
@@ -1535,21 +1707,10 @@ class Game {
             console.log('Loading level 4 background: ../assets/stages/Map-Final Boss/final_level.png');
         }
         
-        this.backgroundImage.onload = () => {
-            this.backgroundLoaded = true;
-            console.log(`Level ${this.currentLevel} background loaded successfully`);
-        };
-        
-        this.backgroundImage.onerror = (e) => {
-            console.error('Error details:', e);
-        };
-        
         // Reset transition state
         this.isTransitioning = false;
         this.transitionTimer = 0;
         this.nextLevelNumber = null;
-        
-        console.log(`Level ${this.currentLevel} loaded with ${playerGems} gems and ${this.player.lives} lives`);
     }
 
     // Method to advance to the next level (kept for compatibility, now just calls startTransition)
@@ -1603,15 +1764,18 @@ class Game {
         
         // Reset to level 1
         this.currentLevel = 1;
+        currentLevel = 1; // Actualizar la variable global
+        
+        // Actualizar el nivel en el HTML
+        const levelElement = document.getElementById('level');
+        if (levelElement) {
+            levelElement.textContent = currentLevel;
+            console.log('Nivel actualizado en UI durante reinicio:', currentLevel);
+        }
+        
         this.level = newLevel;
         this.player = newLevel.player;
         this.actors = [...newLevel.actors];
-        
-        // Update level counter in UI
-        const levelElement = document.getElementById('level');
-        if (levelElement) {
-            levelElement.textContent = this.currentLevel;
-        }
         
         // Reset lava system (deactivated for level 1)
         this.lava.reset();
@@ -1656,12 +1820,6 @@ class Game {
         this.backgroundImage = new Image();
         this.backgroundLoaded = false;
         this.backgroundImage.src = '../assets/Map1.jpg';
-        this.backgroundImage.onload = () => {
-            this.backgroundLoaded = true;
-        };
-        this.backgroundImage.onerror = (e) => {
-            console.error('Failed to load level 1 background image.');
-        };
     }
 
     draw(ctx, scale) {
@@ -2199,6 +2357,12 @@ class Shop {
             player.gems -= item.cost;
             item.purchased = true;
             
+            // Incrementar contador de power-ups usados
+            if (item.name === "Fast Fireball" || item.name.startsWith("Life Upgrade")) {
+                powerupsUsed++;
+                console.log('Power-up usado. Total:', powerupsUsed);
+            }
+            
             // Apply power-up immediately
             if (item.name === "Fast Fireball") {
                 player.hasFastFireball = true;
@@ -2539,7 +2703,18 @@ class Shop {
 }
 
 function main() {
-    window.onload = init;
+    // Inicializar variables globales
+    gameTime = 0;
+    enemiesKilled = 0;
+    powerupsUsed = 0;
+    currentLevel = 1;
+    score = 0;
+
+    // Inicializar el juego
+    init();
+    gameStart();
+    setEventListeners();
+    requestAnimationFrame(updateCanvas);
 }
 
 function init() {

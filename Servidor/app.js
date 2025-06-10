@@ -20,8 +20,8 @@ app.use(express.urlencoded({ extended: true }))
 async function ConnectDB() {
     return await mysql.createConnection({
         host: "localhost",
-        user: "DataBase",
-        password: 'DataBase123',
+        user: "root",
+        password: 'Capo0383',
         database: 'mage_db',
     });
 }
@@ -127,23 +127,20 @@ app.get('/register.html', (req, res) => {
     res.sendFile(path.join(gamePath, 'html', 'register.html'));
 });
 
+app.get('/stats.html', (req, res) => {
+    res.sendFile(path.join(gamePath, 'html', 'stats.html'));
+});
+
+app.get('/estadisticas', (req, res) => {
+    res.sendFile(path.join(gamePath, 'html', 'stats.html'));
+});
+
 let itemsCatalog = []
 let nextId = 1
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(gamePath, 'html', 'index.html'));
-  });
-  
-
-
-  async function ConnectDB(){
-    return await mysql.createConnection({
-      host: "localhost",
-      user: "DataBase",
-      password: 'DataBase123',
-      database: 'mage_db',
-  });
-}
+});
 
 //--------------------------------------------------------------------------------------------------
 // Login
@@ -216,44 +213,60 @@ app.post("/api/login", async (req, res)=>{
 //--------------------------------------------------------------------------------------------------
 //View gamestats
 
-app.get("/api/gamestats", async (req, res)=>{
+app.get("/api/gamestats", async (req, res) => {
     let connection = null;
-    try{
-        connection = await ConnectDB();
-        const id_partida = req.query.id_partida ? parseInt(req.query.id_partida) : null;
-
-        if (!id_partida) {
+    try {
+        const id_jugador = req.query.id_jugador;
+        
+        if (!id_jugador) {
             return res.status(400).json({
                 success: false,
-                message: 'Se requiere el ID de la partida',
-                error: 'MISSING_GAME_ID'
+                message: 'Se requiere el ID del jugador',
+                error: 'MISSING_PLAYER_ID'
             });
         }
 
-        // Usamos la vista Estadisticas_part que ya tiene toda la información necesaria
+        connection = await ConnectDB();
+
+        // Consulta para obtener estadísticas totales del jugador
         const statsQuery = `
-            SELECT * FROM Estadisticas_part 
-            WHERE id_partida = ?
+            SELECT 
+                COALESCE(COUNT(*), 0) as total_partidas,
+                COALESCE(MAX(nivel_maximo_alcanzado), 0) as nivel_maximo,
+                COALESCE(SUM(experiencia_ganada), 0) as experiencia_total,
+                COALESCE(SUM(duracion), 0) as tiempo_total,
+                COALESCE((
+                    SELECT SUM(enemigos_eliminados) 
+                    FROM Estadistica_partida 
+                    WHERE id_jugador = ?
+                ), 0) as total_enemigos_eliminados,
+                COALESCE((
+                    SELECT SUM(powerups_usados) 
+                    FROM Estadistica_partida 
+                    WHERE id_jugador = ?
+                ), 0) as total_powerups
+            FROM Partida 
+            WHERE id_jugador = ?
         `;
 
-        const [stats] = await connection.execute(statsQuery, [id_partida]);
+        const [stats] = await connection.execute(statsQuery, [id_jugador, id_jugador, id_jugador]);
 
-        if (stats.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: 'No se encontró la partida especificada',
-                error: 'GAME_NOT_FOUND'
-            });
-        }
-
+        // Siempre devolver estadísticas, incluso si son cero
         res.status(200).json({
             success: true,
-            message: 'Estadísticas de la partida obtenidas exitosamente',
-            data: stats[0]  // Retornamos el primer resultado ya que es una partida específica
+            message: 'Estadísticas obtenidas exitosamente',
+            data: stats[0] || {
+                total_partidas: 0,
+                nivel_maximo: 0,
+                experiencia_total: 0,
+                tiempo_total: 0,
+                total_enemigos_eliminados: 0,
+                total_powerups: 0
+            }
         });
 
     } catch (error) {
-        console.error('Error al obtener estadísticas de la partida:', error);
+        console.error('Error al obtener estadísticas:', error);
         res.status(500).json({
             success: false,
             message: 'Error interno del servidor',
