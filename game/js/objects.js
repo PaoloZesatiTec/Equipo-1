@@ -227,3 +227,125 @@ class Ladder extends GameObject {
         // No behavior needed for static ladders
     }
 }
+
+class Heart extends AnimatedObject {
+    constructor(color, width, height, x, y, type) {
+        // Use a 1x1 hitbox for the heart
+        super("red", 1, 1, x, y, "heart");
+        
+        // Load the heart sprite
+        this.sprite = new Image();
+        this.sprite.src = '../assets/Items/Heart/heart.png';
+        
+        // No animation for heart, it's just a static sprite
+        this.frameWidth = 32; // Assuming 32x32 heart sprite
+        this.frameHeight = 32;
+        
+        // Visual pulsing effect
+        this.pulseTimer = 0;
+        this.pulseSpeed = 2000; // 2 second pulse cycle
+    }
+    
+    update(level, deltaTime) {
+        super.update(deltaTime);
+        
+        // Update pulse timer for visual effect
+        this.pulseTimer += deltaTime;
+        if (this.pulseTimer >= this.pulseSpeed) {
+            this.pulseTimer = 0;
+        }
+    }
+    
+    draw(ctx, scale) {
+        // Calculate pulse effect for animation
+        const pulseProgress = this.pulseTimer / this.pulseSpeed;
+        const pulseScale = 1.0 + 0.2 * Math.sin(pulseProgress * Math.PI * 2);
+        
+        const x = this.position.x * scale;
+        const y = this.position.y * scale;
+        const baseSize = this.size.x * scale;
+        const size = baseSize * pulseScale;
+        
+        // Center the pulsing heart
+        const offsetX = (baseSize - size) / 2;
+        const offsetY = (baseSize - size) / 2;
+        
+        // Draw a simple but clear pixel heart - guaranteed to work
+        const heartX = x + offsetX;
+        const heartY = y + offsetY;
+        const pixelSize = size / 8; // 8x8 pixel heart
+        
+        // Disable smoothing for crisp pixels
+        ctx.imageSmoothingEnabled = false;
+        
+        // Define heart pattern (8x8 grid)
+        const heartPattern = [
+            [0,1,1,0,0,1,1,0],
+            [1,1,1,1,1,1,1,1],
+            [1,1,1,1,1,1,1,1],
+            [1,1,1,1,1,1,1,1],
+            [0,1,1,1,1,1,1,0],
+            [0,0,1,1,1,1,0,0],
+            [0,0,0,1,1,0,0,0],
+            [0,0,0,0,0,0,0,0]
+        ];
+        
+        // First draw black outline by drawing heart slightly larger in all directions
+        ctx.fillStyle = "#000000"; // Black outline
+        for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+                if (heartPattern[row][col] === 1) {
+                    // Draw outline pixels around each heart pixel
+                    for (let dx = -1; dx <= 1; dx++) {
+                        for (let dy = -1; dy <= 1; dy++) {
+                            if (dx !== 0 || dy !== 0) { // Don't draw on center
+                                ctx.fillRect(
+                                    heartX + col * pixelSize + dx,
+                                    heartY + row * pixelSize + dy,
+                                    pixelSize,
+                                    pixelSize
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Then draw the heart on top in red
+        ctx.fillStyle = "#DC143C"; // Crimson red
+        for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+                if (heartPattern[row][col] === 1) {
+                    ctx.fillRect(
+                        heartX + col * pixelSize,
+                        heartY + row * pixelSize,
+                        pixelSize,
+                        pixelSize
+                    );
+                }
+            }
+        }
+        
+        // Add highlights for 3D effect
+        ctx.fillStyle = "#FF6B6B"; // Light red highlights
+        const highlights = [
+            [1,2], [2,2], [5,2], [6,2], // Top highlights
+            [1,3], [5,3] // Side highlights
+        ];
+        
+        highlights.forEach(([row, col]) => {
+            if (heartPattern[row] && heartPattern[row][col] === 1) {
+                ctx.fillRect(
+                    heartX + col * pixelSize,
+                    heartY + row * pixelSize,
+                    pixelSize,
+                    pixelSize
+                );
+            }
+        });
+        
+        // Re-enable smoothing
+        ctx.imageSmoothingEnabled = true;
+    }
+}

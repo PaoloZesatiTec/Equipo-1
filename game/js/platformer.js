@@ -221,6 +221,20 @@ class Player extends AnimatedObject {
         };
     }
 
+    // Method to get player's maximum lives based on upgrade level
+    getMaxLives() {
+        switch (this.lifeUpgradeLevel) {
+            case 1:
+                return 3; // First upgrade: 3 lives
+            case 2:
+                return 4; // Second upgrade: 4 lives
+            case 3:
+                return 5; // Third upgrade: 5 lives
+            default:
+                return 2; // Base lives
+        }
+    }
+
     loadMageSprites() {
         // Load idle animation (14 frames)
         for (let i = 1; i <= 14; i++) {
@@ -793,6 +807,12 @@ class Level {
                     return "empty";
                 }
 
+                if (item.label === "heart"){
+                    let heart = new Heart("red", 1, 1, x, y, "heart");
+                    this.actors.push(heart);
+                    return "empty";
+                }
+
                 let actor = new item.objClass(color, 1, 1, x, y, item.label);
 
                 if (actor.type === "player") {
@@ -1152,6 +1172,11 @@ const levelChars = {
         objClass: Princess,
         label: "princess",
         sprite: null
+    },
+    "H": {
+        objClass: Heart,
+        label: "heart",
+        sprite: null
     }
 }
 
@@ -1365,6 +1390,16 @@ class Game {
                 if (actor.type === 'collectible' || actor.type === 'gem') {
                     this.player.gems += 1;
                     this.actors = this.actors.filter(item => item !== actor);
+                } else if (actor.type === 'heart') {
+                    // Heart pickup - only works if player is missing lives
+                    const maxLives = this.player.getMaxLives();
+                    if (this.player.lives < maxLives) {
+                        this.player.lives += 1;
+                        this.actors = this.actors.filter(item => item !== actor);
+                        console.log(`Heart collected! Lives: ${this.player.lives}/${maxLives}`);
+                    } else {
+                        console.log(`Heart ignored - already at max lives (${this.player.lives}/${maxLives})`);
+                    }
                 } else if (actor.type === 'enemy' || actor.type === 'barrel' || actor.type === 'minotaur') {
                     // Only apply damage if player is not invulnerable
                     if (!this.player.invulnerable && !this.player.isDead) {
