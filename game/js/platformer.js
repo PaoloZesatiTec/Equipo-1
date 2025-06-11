@@ -1399,6 +1399,7 @@ class Game {
         // Load level background image based on level number
         this.backgroundImage = new Image();
         this.backgroundLoaded = false;
+        this.backgroundError = false;
         
         if (levelNumber === 1) {
             this.backgroundImage.src = '../assets/Map1.jpg';
@@ -1411,11 +1412,15 @@ class Game {
         }
         
         this.backgroundImage.onload = () => {
+            console.log(`Level ${levelNumber} background loaded successfully`);
             this.backgroundLoaded = true;
+            this.backgroundError = false;
         };
         
         this.backgroundImage.onerror = (e) => {
             console.error(`Failed to load level ${levelNumber} background image.`);
+            this.backgroundError = true;
+            this.backgroundLoaded = false;
         };
 
         // Load UI sprites
@@ -2861,22 +2866,38 @@ function updateCanvas(frameTime) {
     }
     let deltaTime = frameTime - frameStart;
 
-    // Draw background image stretched to fill entire canvas
-    if (game && game.backgroundLoaded && game.backgroundImage && game.backgroundImage.complete) {
-        // Force the image to fill the entire canvas, stretching if necessary
+    // Clear the canvas first
+    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+    // Always draw background first, regardless of game state
+    if (game && game.backgroundImage) {
+        // Calculate aspect ratios
+        const canvasRatio = canvasWidth / canvasHeight;
+        const imageRatio = game.backgroundImage.width / game.backgroundImage.height;
+        
+        let drawWidth, drawHeight, offsetX = 0, offsetY = 0;
+        
+        if (imageRatio > canvasRatio) {
+            // Image is wider than canvas
+            drawHeight = canvasHeight;
+            drawWidth = drawHeight * imageRatio;
+            offsetX = (canvasWidth - drawWidth) / 2;
+        } else {
+            // Image is taller than canvas
+            drawWidth = canvasWidth;
+            drawHeight = drawWidth / imageRatio;
+            offsetY = (canvasHeight - drawHeight) / 2;
+        }
+        
+        // Draw the background image centered and scaled to cover the canvas
         ctx.drawImage(
             game.backgroundImage,
             0, 0,                    // Source position
-            game.backgroundImage.width, game.backgroundImage.height, // Source size (full image)
-            0, 0,                    // Destination position
-            canvasWidth, canvasHeight // Destination size (full canvas)
+            game.backgroundImage.width, game.backgroundImage.height, // Source size
+            offsetX, offsetY,        // Destination position
+            drawWidth, drawHeight    // Destination size
         );
     } else {
-        // Debug logging for background issues
-        if (game) {
-            console.log(`Background debug - Level: ${game.currentLevel}, Loaded: ${game.backgroundLoaded}, Image exists: ${!!game.backgroundImage}, Complete: ${game.backgroundImage ? game.backgroundImage.complete : 'N/A'}`);
-        }
-        
         // Fallback background color based on current level
         if (game && game.currentLevel === 1) {
             // Level 1: Green/brown nature theme
@@ -2901,6 +2922,7 @@ function updateCanvas(frameTime) {
         }
     }
     
+    // Then update and draw game elements
     if (game) {
         game.update(deltaTime);
         game.draw(ctx, scale);
