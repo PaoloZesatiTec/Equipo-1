@@ -15,7 +15,7 @@ Un juego de plataformas de acción 2D donde juegas como un mago hábil en una mi
 - **Animación de Sprites Profesional** con estética de arte pixelado
 - **Sistema de Recolección de Corazones** para restauración de salud
 - **Recolección de Gemas** para moneda de la tienda
-- **IA Avanzada de Enemigos** (enemigos básicos, minotauros, generadores de barriles)
+- **IA Avanzada de Enemigos** (enemigos básicos duendes, minotauros, generadores de barriles)
 
 ## 🚀 Inicio Rápido
 
@@ -48,7 +48,7 @@ Asegúrate de tener lo siguiente instalado en tu computadora:
    # Iniciar servicio MySQL
    mysql -u root -p
    
-   # Crear base de datos y tablas (ejecutar los comandos SQL de tu configuración de base de datos)
+   # Crear base de datos y tablas (ejecutar los comandos SQL de tu configuración de base de datos debes de configurar tus contraseñas dentro del app.js que estan en servidor y fuera)
    CREATE DATABASE mage_tower;
    USE mage_tower;
    
@@ -127,7 +127,7 @@ Asegúrate de tener lo siguiente instalado en tu computadora:
 
 #### Nivel 2: Reino del Cielo ☁️
 - **Tema**: Ambiente de cielo lleno de nubes
-- **Enemigos**: Dificultad aumentada con más minotauros
+- **Enemigos**: Dificultad aumentada con minotauros
 - **Enfoque**: Dominio del combate y gestión de enemigos
 
 #### Nivel 3: Reino Volcánico 🌋
@@ -142,20 +142,19 @@ Asegúrate de tener lo siguiente instalado en tu computadora:
 
 ### Tipos de Enemigos
 
-- **Enemigos Básicos**: Enemigos simples terrestres - evitar o derrotar con bolas de fuego
-- **Minotauros**: Enemigos más fuertes
-- **Generadores de Barriles**: Generan proyectiles de barriles rodantes periódicamente
+- **Enemigos Básicos**: Enemigos duendes terrestres - evitar o derrotar con bolas de fuego
+- **Minotauros**: Enemigos más fuertes que te embisten cuando te ven
 - **Barriles Rodantes**: Peligros proyectiles que caen desde arriba - ¡salta sobre ellos!
 
 ### Consejos para el Éxito
 
-1. **Recolectar Todo**: Las gemas son esenciales para las mejoras
+1. **Recolectar Todo**: Las gemas son esenciales para las mejoras de fireballs y vidas
 2. **Gestionar Tiempos de Espera**: Cronometrar el uso de bolas de fuego estratégicamente
 3. **Usar Escaleras**: El movimiento vertical es clave para evitar enemigos
-4. **Guardar Corazones**: Solo recoger corazones cuando falten vidas
+4. **Guardar Corazones**: Solo recoger corazones cuando falten vidas (ya que sino no se agregan las vidas)
 5. **Mejorar Sabiamente**: Las mejoras de vida proporcionan el mayor valor de supervivencia
 6. **Aprender Patrones**: Los movimientos de los enemigos son predecibles - usar esto a tu favor
-7. **Pausar Cuando Sea Necesario**: Usar P para pausar y planear tu próximo movimiento
+7. **Pausar Cuando Sea Necesario**: Usar P para pausar y planear tu próximo movimiento o regresar al menu
 
 ### Experiencia de Audio
 
