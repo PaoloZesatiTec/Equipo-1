@@ -32,6 +32,9 @@ class LevelGenerator {
         // Add enemies and collectibles
         this.populateLevel();
 
+        // Add one heart per level in the middle area
+        this.addHeart();
+
         this.addSpawners();
 
         // Add portal at the top
@@ -314,6 +317,31 @@ class LevelGenerator {
             }
         }
         
+    }
+
+    addHeart() {
+        // Find platforms in the middle vertical section of the level
+        const middleStartY = Math.floor(this.height * 0.3); // Start looking from 30% down
+        const middleEndY = Math.floor(this.height * 0.7);   // End looking at 70% down
+        
+        let validPlatforms = [];
+        
+        // Find all platforms in the middle area
+        for (let y = middleStartY; y < middleEndY; y++) {
+            for (let x = 1; x < this.width - 1; x++) {
+                if (this.grid[y][x] === '#' && this.grid[y - 1][x] === '.') {
+                    // Found a platform spot in the middle area
+                    validPlatforms.push({ x: x, y: y - 1 });
+                }
+            }
+        }
+        
+        // If we found valid platforms, place one heart
+        if (validPlatforms.length > 0) {
+            const randomIndex = Math.floor(Math.random() * validPlatforms.length);
+            const heartPosition = validPlatforms[randomIndex];
+            this.grid[heartPosition.y][heartPosition.x] = 'H';
+        }
     }
 
     addSpawners(){
