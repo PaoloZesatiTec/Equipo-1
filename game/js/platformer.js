@@ -373,6 +373,11 @@ class Player extends AnimatedObject {
             if (!this.isHurt && !this.isAttacking) {
                 this.setMageAnimation('jump');
             }
+            
+            // Play jump sound
+            if (window.soundManager) {
+                window.soundManager.playSound('jump');
+            }
         }
 
         // Reset isJumping if player is on ground and has no upward velocity
@@ -573,6 +578,11 @@ class Player extends AnimatedObject {
             this.attackStartTime = now;
             this.fireballFired = false;
             this.lastFireTime = now;
+            
+            // Play cast fire sound
+            if (window.soundManager) {
+                window.soundManager.playSound('castFire');
+            }
         }
     }
 
@@ -630,13 +640,19 @@ class Player extends AnimatedObject {
             this.invulnerable = true;
             this.invulnerableTimer = 2000; // 2 seconds of invulnerability (changed from 1500)
             
-            // Trigger hurt animation
-            this.isHurt = true;
-            this.hurtTimer = this.hurtDuration;
-            this.setMageAnimation('hurt');
-            
             if (this.lives <= 0) {
+                // Player is dying - only play dying sound, no taking damage sound
                 this.die();
+            } else {
+                // Player still has lives - play taking damage sound and hurt animation
+                if (window.soundManager) {
+                    window.soundManager.playSound('takingDamage');
+                }
+                
+                // Trigger hurt animation
+                this.isHurt = true;
+                this.hurtTimer = this.hurtDuration;
+                this.setMageAnimation('hurt');
             }
         }
     }
@@ -649,6 +665,11 @@ class Player extends AnimatedObject {
         this.isJumping = false;
         this.isCrouching = false;
         this.isOnLadder = false;
+        
+        // Play death sound and music sequence
+        if (window.soundManager) {
+            window.soundManager.playDeathSequence();
+        }
         
         // Incrementar contador de muertes cuando el jugador muere
         game.deathCount++;
@@ -1299,6 +1320,11 @@ class Game {
         this.labelGems = new TextLabel(80, 30, "30px Arial", "black");
 
         console.log(`############ LEVEL ${levelNumber} START ###################`);
+        
+        // Start level music
+        if (window.soundManager) {
+            window.soundManager.playLevelMusic(levelNumber);
+        }
     }
 
     update(deltaTime) {
@@ -1333,6 +1359,11 @@ class Game {
                 this.shop.openWithPlayer(this.player);
                 this.shopFadeIn = true;
                 this.shopFadeTimer = 0;
+                
+                // Play shop music
+                if (window.soundManager) {
+                    window.soundManager.playShopMusic();
+                }
             }
             return; // Don't update game during death fade
         }
@@ -1417,9 +1448,17 @@ class Game {
                     if (this.currentLevel >= this.totalLevels) {
                         // Final level completed - end the game
                         this.gameWon = true;
+                        // Play next level music for ending
+                        if (window.soundManager) {
+                            window.soundManager.playNextLevelTransition();
+                        }
                     } else {
                         // Start transition to next level
                         this.startTransition();
+                        // Play transition music
+                        if (window.soundManager) {
+                            window.soundManager.playNextLevelTransition();
+                        }
                     }
                 }
             }
@@ -1584,6 +1623,11 @@ class Game {
         this.transitionTimer = 0;
         this.nextLevelNumber = null;
         
+        // Start level music for the new level
+        if (window.soundManager) {
+            window.soundManager.playLevelMusic(this.currentLevel);
+        }
+        
         console.log(`Level ${this.currentLevel} loaded with ${playerGems} gems and ${this.player.lives} lives`);
     }
 
@@ -1602,6 +1646,12 @@ class Game {
             this.showShop = false;
             this.shopFadeIn = false;
             this.shopFadeTimer = 0;
+            
+            // Stop shop music and return to level 1 music
+            if (window.soundManager) {
+                window.soundManager.playLevelMusic(1);
+            }
+            
             this.restartFromLevel1();
         } else {
             // For other items, just attempt purchase but stay in shop
@@ -2625,6 +2675,12 @@ function gameStart() {
     }
     
     game = new Game('playing', new Level(level1Plan), 1); // Start with random level 1
+    
+    // Start level 1 music when game initially starts
+    if (window.soundManager) {
+        window.soundManager.playLevelMusic(1);
+    }
+    
     setEventListeners();
     updateCanvas(document.timeline.currentTime);
 }
@@ -2699,6 +2755,11 @@ function handleKeyDown(event) {
         
         // Create new game instance starting from random level 1
         game = new Game('playing', new Level(level1Plan), 1);
+        
+        // Start level 1 music when restarting with R key
+        if (window.soundManager) {
+            window.soundManager.playLevelMusic(1);
+        }
     }
 }
 
