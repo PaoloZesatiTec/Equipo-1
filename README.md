@@ -59,7 +59,7 @@ Asegúrate de tener lo siguiente instalado en tu computadora:
 
 4. **Configurar Conexión a Base de Datos:**
    - Actualizar credenciales de base de datos en `app.js` y `Servidor/app.js` si es necesario
-   - La conexión predeterminada asume MySQL ejecutándose en localhost:3306
+   - La conexión predeterminada asume MySQL ejecutándose en localhost:3000
 
 5. **Iniciar el Servidor del Juego:**
    ```bash
@@ -85,7 +85,7 @@ Asegúrate de tener lo siguiente instalado en tu computadora:
 | `A` / `D` | Moverse izquierda/derecha |
 | `W` / `S` | Subir/bajar escaleras |
 | `Espacio` | Saltar |
-| `X` | Lanzar Bola de Fuego |
+| `E` | Lanzar Bola de Fuego |
 | `P` | Pausar juego |
 | `Q` | Salir al menú (cuando está pausado) |
 
@@ -104,7 +104,7 @@ Asegúrate de tener lo siguiente instalado en tu computadora:
 
 #### Sistema de Salud
 - **Vidas Iniciales**: 2 vidas
-- **Vidas Máximas**: 6 vidas (con mejoras)
+- **Vidas Máximas**: 5 vidas (con mejoras)
 - **Invulnerabilidad**: Período de gracia de 2 segundos después de recibir daño
 - **Recolección de Corazones**: Restaurar 1 vida (solo cuando falte salud)
 
@@ -114,7 +114,7 @@ Asegúrate de tener lo siguiente instalado en tu computadora:
 - **Tipos de Mejoras**:
   - **Mejora de Vida Nivel 1**: Aumentar vidas máximas a 3 (Costo: gemas)
   - **Mejora de Vida Nivel 2**: Aumentar vidas máximas a 4 (Costo: gemas) 
-  - **Mejora de Vida Nivel 3**: Aumentar vidas máximas a 6 (Costo: gemas)
+  - **Mejora de Vida Nivel 3**: Aumentar vidas máximas a 5 (Costo: gemas)
   - **Bola de Fuego Rápida**: Reducir tiempo de espera de 10s a 7s (Costo: gemas)
   - **Continuar**: Regresar al Nivel 1 con mejoras actuales
 
@@ -143,7 +143,7 @@ Asegúrate de tener lo siguiente instalado en tu computadora:
 ### Tipos de Enemigos
 
 - **Enemigos Básicos**: Enemigos simples terrestres - evitar o derrotar con bolas de fuego
-- **Minotauros**: Enemigos más fuertes y agresivos con IA avanzada
+- **Minotauros**: Enemigos más fuertes
 - **Generadores de Barriles**: Generan proyectiles de barriles rodantes periódicamente
 - **Barriles Rodantes**: Peligros proyectiles que caen desde arriba - ¡salta sobre ellos!
 
@@ -246,8 +246,8 @@ El juego cuenta con música original y efectos de sonido:
 
 ## 👥 Equipo de Desarrollo
 
-- **Paolo Zesati** - Desarrollador Principal
-- **Efren** - Desarrollador
+- **Paolo Zesati** - Desarrollador
+- **Efren Chavez** - Desarrollador
 - **Juan Pablo Narchi** - Desarrollador
 
 ## 📄 Licencia
