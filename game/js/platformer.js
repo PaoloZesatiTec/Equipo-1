@@ -142,6 +142,7 @@ class Player extends AnimatedObject {
 
         //Tiempo de inicio
         this.partidaStartTime = Date.now();
+        enemiesKilled = 0;
         
         // Store original position for proper centering
         this.originalX = x;
@@ -703,16 +704,27 @@ class Player extends AnimatedObject {
 
         const partidaEndTime = Date.now();
         const duracion_part = Math.floor((partidaEndTime - this.partidaStartTime) / 1000);
-
+        const duracion_hms = secondsToHHMMSS(duracion_part);
         const id_jugador = parseInt(localStorage.getItem('playerId'));
         const id_partida = parseInt(localStorage.getItem('id_partida'));
+
+        console.log({
+            id_partida,
+            id_jugador,
+            nivel: game.currentLevel,
+            duracion: duracion_hms,
+            vida: this.lives,
+            experiencia: this.gems,
+            enemigos: enemiesKilled,
+            powerups: powerupsUsed
+        });
         
         if (id_jugador && id_partida) {
             Save_data({
                 id_partida,
                 id_jugador,
-                nivel : game.levelNumber,
-                duracion : duracion_part,
+                nivel : game.currentLevel,
+                duracion : duracion_hms,
                 vida : this.lives,
                 experiencia : this.gems,
                 enemigos : enemiesKilled,
@@ -1537,7 +1549,7 @@ class Game {
             // Si es un enemigo y colisiona con un fireball, incrementar contador y eliminar ambos
             if ((obj2.type === 'enemy' || obj2.type === 'minotaur' || obj2.type === 'barrel') && 
                 obj1.type === 'fireball') {
-                enemiesKilled++;
+                enemiesKilled++; // Use global variable instead of this.enemiesKilled
                 console.log('Enemigo eliminado. Total:', enemiesKilled);
                 // Eliminar tanto el fireball como el enemigo
                 game.actors = game.actors.filter(actor => actor !== obj1 && actor !== obj2);
@@ -1750,22 +1762,23 @@ class Game {
         currentLevel = 1;
         
         // Crear nueva partida
-        const id_jugador = localStorage.getItem('playerId');
-        if (id_jugador) {
+        const playerId = localStorage.getItem('playerId');
+        if (playerId) {
             fetch('/api/newgame', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    id_jugador: id_jugador
+                    id_jugador: playerId
                 })
             })
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
+                if (data.success && data.id_partida) {
                     localStorage.setItem('id_partida', data.id_partida);
-                }
+                    console.log('Nuevo id_partida:', data.id_partida);
+                }else console.log("No se pudo crear nuevo id partida");
             })
             .catch(error => {
                 console.error('Error al crear nueva partida:', error);

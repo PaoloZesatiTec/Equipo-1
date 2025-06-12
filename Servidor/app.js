@@ -450,8 +450,82 @@ app.post("/api/substats", async(req, res)=>{
 });
 //--------------------------------------------------------------------------------------------------
 
+// PATCH para actualizar estadísticas de partida
+app.patch("/api/substats", async (req, res) => {
+    let connection = null;
+    try {
+        const { id_partida, id_jugador, enemigos_eliminados, powerups_usados } = req.body;
+        console.log('PATCH /api/substats recibido:', req.body); // Debug log
 
+        if (!id_partida || !id_jugador) {
+            return res.status(400).json({
+                success: false,
+                message: 'Se requiere el id de partida y de jugador',
+                error: 'MISSING_REQUIRED_FIELDS'
+            });
+        }
 
+        connection = await ConnectDB();
+
+        // Construir query dinámico para solo actualizar campos enviados
+        let updates = [];
+        let values = [];
+
+        if (typeof enemigos_eliminados !== 'undefined') {
+            updates.push('enemigos_eliminados = ?');
+            values.push(enemigos_eliminados);
+        }
+        if (typeof powerups_usados !== 'undefined') {
+            updates.push('powerups_usados = ?');
+            values.push(powerups_usados);
+        }
+
+        if (updates.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'No hay campos para actualizar',
+                error: 'NO_FIELDS_TO_UPDATE'
+            });
+        }
+
+        values.push(id_partida, id_jugador);
+        const updateQuery = `UPDATE Estadistica_partida SET ${updates.join(', ')} WHERE id_partida = ? AND id_jugador = ?`;
+        console.log('Query de actualización:', updateQuery); // Debug log
+        console.log('Valores:', values); // Debug log
+
+        const [result] = await connection.execute(updateQuery, values);
+        console.log('Resultado de la actualización:', result); // Debug log
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'No se encontró la estadística para actualizar',
+                error: 'NOT_FOUND'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Estadística actualizada correctamente'
+        });
+    } catch (error) {
+        console.error('Error al actualizar estadísticas:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error interno del servidor',
+            error: error.message
+        });
+    } finally {
+        if (connection) {
+            try {
+                await connection.end();
+                console.log('Conexión a DB cerrada correctamente');
+            } catch (closeError) {
+                console.error('Error al cerrar conexión', closeError);
+            }
+        }
+    }
+});
 
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en http://localhost:${PORT}`);

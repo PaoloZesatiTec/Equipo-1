@@ -11,33 +11,82 @@ async function Save_data(
     enemigos, 
     powerups}
     ) {
-        console.log("Save data se llamó");
-    try{
-    await fetch(`/api/newgame/${id_partida}`,{
-        method : 'PATCH',
-        headers : {'Content-Type' : 'application/json'},
-        body : JSON.stringify({
-            nivel_maximo_alcanzado : nivel,
-            duracion,
-            vida,
-            experiencia_ganada : experiencia
-        })
-    });
-
-    await fetch(`/api/substats`, {
-        method : 'POST',
-        Headers: {'Content-Type' : 'application/json'},
-        body : JSON.stringify({
+        console.log("Save data se llamó con valores:", {
             id_partida,
             id_jugador,
-            enemigos_eliminados : enemigos,
-            powerups_usados :powerups
-        })
-    });
-    console.log('Datos finales enviados correctamente');
-    }catch(error){
-        console.error('Error al guardar las estadisticas', error);
+            nivel,
+            duracion,
+            vida,
+            experiencia,
+            enemigos,
+            powerups
+        });
+    try {
+        // First try to update game stats with PATCH
+        const gameStatsResponse = await fetch(`/api/newgame/${id_partida}`, {
+            method: 'PATCH',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                nivel_maximo_alcanzado: nivel,
+                duracion,
+                vida,
+                experiencia_ganada: experiencia
+            })
+        });
 
+        if (!gameStatsResponse.ok) {
+            throw new Error(`Error updating game stats: ${gameStatsResponse.status}`);
+        }
+
+        // Try to save substats with POST first
+        const postData = {
+            id_partida,
+            id_jugador,
+            enemigos_eliminados: enemigos,
+            powerups_usados: powerups
+        };
+        console.log('Sending POST data:', postData);
+        
+        let substatsResponse = await fetch(`/api/substats`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(postData)
+        });
+
+        // If POST returns 409, use PATCH instead
+        if (substatsResponse.status === 409) {
+            console.log('Stats already exist, updating with PATCH...');
+            const patchData = {
+                id_partida,
+                id_jugador,
+                enemigos_eliminados: enemigos,
+                powerups_usados: powerups
+            };
+            console.log('Sending PATCH data:', patchData);
+            
+            substatsResponse = await fetch(`/api/substats`, {
+                method: 'PATCH',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(patchData)
+            });
+
+            if (!substatsResponse.ok) {
+                const errorData = await substatsResponse.json();
+                console.error('PATCH response error:', errorData);
+                throw new Error(`Error updating substats: ${substatsResponse.status} - ${errorData.message || 'Unknown error'}`);
+            }
+
+            const responseData = await substatsResponse.json();
+            console.log('PATCH response:', responseData);
+        } else if (!substatsResponse.ok) {
+            throw new Error(`Error saving substats: ${substatsResponse.status}`);
+        }
+
+        console.log('Datos finales enviados correctamente');
+    } catch(error) {
+        console.error('Error al guardar las estadisticas:', error);
+        // You might want to show this error to the user in a non-intrusive way
+        // For example, you could add a small notification in the game UI
     }
 }
 
@@ -97,8 +146,13 @@ document.querySelector('.login-form').addEventListener('submit', async (e) => {
             });
 
             const newGameData = await newGameResponse.json();
-            if (newGameData.success) {
+            console.log('Respuesta de creación de partida:', newGameData);
+            if (newGameData.success && newGameData.id_partida) {
                 localStorage.setItem('id_partida', newGameData.id_partida);
+                console.log('id_partida guardado en localStorage:', newGameData.id_partida);            
+            }else{
+                console.log("No se pudo crear partida");
+                return;
             }
             
             // Redirigir al juego
@@ -156,4 +210,10 @@ async function sendGameStats(gameStats) {
     } catch (error) {
         console.error('Error al enviar estadísticas:', error);
     }
+}
+function secondsToHHMMSS(segundos) {
+    const h = Math.floor(segundos / 3600).toString().padStart(2, '0');
+    const m = Math.floor((segundos % 3600) / 60).toString().padStart(2, '0');
+    const s = Math.floor(segundos % 60).toString().padStart(2, '0');
+    return `${h}:${m}:${s}`;
 }
