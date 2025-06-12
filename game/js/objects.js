@@ -65,7 +65,8 @@ class Gem extends AnimatedObject {
 class Fireball extends GameObject {
     constructor(x, y, direction) {
         super("red", 0.5, 0.5, x, y, "fireball");
-        this.velocity = new Vec(direction * 0.02, 0); 
+        this.velocity = new Vec(direction * 0.01, 0);
+        this.direction = direction;
     }
 
     update(level, deltaTime) {
@@ -80,10 +81,13 @@ class Fireball extends GameObject {
         
         // Check for enemy collisions
         for (let actor of game.actors) {
-            if ((actor.type === 'enemy' || actor.type === 'minotaur' || actor.type === 'barrel') && 
-                this.checkCollision(actor)) {
-                // Remove both the fireball and the enemy
-                game.actors = game.actors.filter(item => item !== this && item !== actor);
+            if ((actor.type === 'enemy' || actor.type === 'minotaur' || actor.type === 'barrel') && this.checkCollision(actor)) {
+                console.log('Fireball collision detected with:', actor.type);
+                // Incrementar contador y eliminar ambos usando la función central
+                if (typeof game.checkCollision === 'function') {
+                    game.checkCollision(this, actor);
+                    console.log('Enemy eliminated. Current count:', enemiesKilled);
+                }
                 return;
             }
         }
