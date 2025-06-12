@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estadísticas - Mage Tower</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        .stats-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: rgba(0, 0, 0, 0.8);
+            border: 4px solid #ffd700;
+            border-radius: 10px;
+            color: #fff;
+        }
+
+        .stats-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #ffd700;
+            text-shadow: 0 0 10px #ffd700;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: rgba(255, 215, 0, 0.1);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 2px solid #ffd700;
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        }
+
+        .stat-title {
+            color: #ffd700;
+            font-size: 1.2em;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            text-align: center;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .back-button {
+            display: block;
+            width: 200px;
+            margin: 2rem auto;
+            padding: 1rem;
+            background: linear-gradient(90deg, #ff2d00 0%, #ff9900 50%, #fff700 100%);
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-family: 'Press Start 2P', cursive;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .back-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+
+        .no-stats {
+            text-align: center;
+            color: #ffd700;
+            font-size: 1.2em;
+            margin: 2rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="cloud cloud1"></div>
+    <div class="cloud cloud2"></div>
+    <div class="cloud cloud3"></div>
+    <div class="cloud cloud4"></div>
+
+    <header>
+        <nav id="menu">
+            <div id="dropdownMenu">
+                <a href="/">Inicio</a>
+                <a href="/help">Ayuda</a>
+                <a href="/creditos">Creditos</a>
+                <a href="/estadisticas">Estadísticas</a>
+                <a href="/info">Acerca de</a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <div class="stats-container">
+            <h1 class="stats-header">Estadísticas del Jugador</h1>
+            <div id="playerInfo" style="text-align: center; margin-bottom: 2rem; color: #ffd700;"></div>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h2 class="stat-title">Partidas Jugadas</h2>
+                    <div class="stat-value" id="gamesPlayed">0</div>
+                </div>
+                <div class="stat-card">
+                    <h2 class="stat-title">Nivel Más Alto</h2>
+                    <div class="stat-value" id="highestLevel">0</div>
+                </div>
+                <div class="stat-card">
+                    <h2 class="stat-title">Enemigos Eliminados</h2>
+                    <div class="stat-value" id="enemiesKilled">0</div>
+                </div>
+                <div class="stat-card">
+                    <h2 class="stat-title">Power-ups Usados</h2>
+                    <div class="stat-value" id="powerupsUsed">0</div>
+                </div>
+                <div class="stat-card">
+                    <h2 class="stat-title">Tiempo Total de Juego</h2>
+                    <div class="stat-value" id="totalTime">0h 0m</div>
+                </div>
+                <div class="stat-card">
+                    <h2 class="stat-title">Experiencia Total</h2>
+                    <div class="stat-value" id="totalExp">0</div>
+                </div>
+            </div>
+
+            <button class="back-button" onclick="window.location.href='/'">Volver al Juego</button>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const playerId = localStorage.getItem('playerId');
+            const playerName = localStorage.getItem('playerName');
+
+            console.log('ID del jugador:', playerId);
+            console.log('Nombre del jugador:', playerName);
+
+            if (!playerId || !playerName) {
+                console.error('No hay datos de sesión');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Mostrar información del jugador
+            document.getElementById('playerInfo').textContent = `Jugador: ${playerName}`;
+
+            try {
+                console.log('Solicitando estadísticas...');
+                // Obtener estadísticas del jugador
+                const response = await fetch(`/api/gamestats?id_jugador=${playerId}`);
+                console.log('Respuesta recibida:', response);
+                
+                const data = await response.json();
+                console.log('Datos recibidos:', data);
+
+                if (data.success) {
+                    const stats = data.data;
+                    console.log('Estadísticas:', stats);
+                    
+                    // Actualizar las estadísticas en la interfaz
+                    document.getElementById('gamesPlayed').textContent = stats.total_partidas || 0;
+                    document.getElementById('highestLevel').textContent = stats.nivel_maximo || 0;
+                    document.getElementById('enemiesKilled').textContent = stats.total_enemigos_eliminados || 0;
+                    document.getElementById('powerupsUsed').textContent = stats.total_powerups || 0;
+                    
+                    // Convertir tiempo total a formato legible
+                    const totalMinutes = Math.floor(stats.tiempo_total / 60) || 0;
+                    const hours = Math.floor(totalMinutes / 60);
+                    const minutes = totalMinutes % 60;
+                    document.getElementById('totalTime').textContent = `${hours}h ${minutes}m`;
+                    
+                    document.getElementById('totalExp').textContent = stats.experiencia_total || 0;
+                } else {
+                    console.error('Error en la respuesta:', data.message);
+                    showNoStats();
+                }
+            } catch (error) {
+                console.error('Error al cargar estadísticas:', error);
+                showNoStats();
+            }
+        });
+
+        function showNoStats() {
+            const statsGrid = document.querySelector('.stats-grid');
+            statsGrid.innerHTML = `
+                <div class="no-stats">
+                    No hay estadísticas disponibles todavía. ¡Juega algunas partidas para ver tus progresos!
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html> 

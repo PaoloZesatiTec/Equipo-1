@@ -169,6 +169,9 @@ function initMenu() {
     helpButton.addEventListener('click', () => {
         window.location.href = '../html/help.html';
     });
+    statsButton.addEventListener('click', () => {
+        window.location.href = '../html/stats.html';
+    });
 
     // Agregar elementos al DOM
     

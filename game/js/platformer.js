@@ -10,6 +10,13 @@ let game;
 let player;
 let level;
 
+// Variables para estadísticas
+//let gameTime = 0;
+let enemiesKilled = 0;
+let powerupsUsed = 0;
+let currentLevel = 1;
+let score = 0;
+
 let scale = 30;
 const walkSpeed = 0.006;
 const initialJumpSpeed = -0.014;
@@ -17,6 +24,8 @@ const gravity = 0.000045;
 
 let cameraY = 0; // New variable for vertical camera scrolling
 let keyState = {}; // For climbing
+
+
 
 // Lava class for the final level
 class Lava {
@@ -130,6 +139,9 @@ class Player extends AnimatedObject {
     constructor(color, width, height, x, y, type, powerUps = {}) {
         // Make hitbox even smaller - reducing height and width further
         super(color, 0.3, 1.3, x, y, type); // Even smaller hitbox (0.5 width, 1.3 height)
+
+        //Tiempo de inicio
+        this.partidaStartTime = Date.now();
         
         // Store original position for proper centering
         this.originalX = x;
@@ -327,6 +339,21 @@ class Player extends AnimatedObject {
     }
 
     update(level, deltaTime, actors = []) {
+        // Actualizar tiempo de juego
+        //gameTime += deltaTime;
+
+        // Actualizar contador de muertes en el panel
+        const scoreElement = document.getElementById('score');
+        if (scoreElement) {
+            scoreElement.textContent = game.deathCount;
+        }
+
+        // Actualizar nivel en el panel
+        const levelElement = document.getElementById('level');
+        if (levelElement) {
+            levelElement.textContent = currentLevel;
+        }
+
         if (this.isDead) return;
 
         // Handle delayed fireball creation during attack
@@ -657,7 +684,7 @@ class Player extends AnimatedObject {
         }
     }
 
-    die() {
+    die() {        
         this.isDead = true;
         this.velocity = new Vec(0, 0);
         this.stopMovement("left");
@@ -673,11 +700,36 @@ class Player extends AnimatedObject {
         
         // Incrementar contador de muertes cuando el jugador muere
         game.deathCount++;
-        // Actualizar el panel de estadísticas
-        const scoreElement = document.getElementById('score');
-        if (scoreElement) {
-            scoreElement.textContent = game.deathCount;
+
+        const partidaEndTime = Date.now();
+        const duracion_part = Math.floor((partidaEndTime - this.partidaStartTime) / 1000);
+
+        const id_jugador = parseInt(localStorage.getItem('playerId'));
+        const id_partida = parseInt(localStorage.getItem('id_partida'));
+        
+        if (id_jugador && id_partida) {
+            Save_data({
+                id_partida,
+                id_jugador,
+                nivel : game.levelNumber,
+                duracion : duracion_part,
+                vida : this.lives,
+                experiencia : this.gems,
+                enemigos : enemiesKilled,
+                powerups: powerupsUsed
+            });
         }
+
+        // Mostrar pantalla de game over
+        const gameOverScreen = document.createElement('div');
+        gameOverScreen.id = 'gameOverScreen';
+        gameOverScreen.innerHTML = `
+            <h2>Game Over</h2>
+            <p>Puntuación: ${this.gems}</p>
+            <p>Nivel alcanzado: ${game.levelNumber}</p>
+            <button onclick="restartGame()">Reintentar</button>
+        `;
+        document.body.appendChild(gameOverScreen);
     }
 }
 
@@ -1286,6 +1338,7 @@ class Game {
         // Load level background image based on level number
         this.backgroundImage = new Image();
         this.backgroundLoaded = false;
+        this.backgroundError = false;
         
         if (levelNumber === 1) {
             this.backgroundImage.src = '../assets/Map1.jpg';
@@ -1298,11 +1351,15 @@ class Game {
         }
         
         this.backgroundImage.onload = () => {
+            console.log(`Level ${levelNumber} background loaded successfully`);
             this.backgroundLoaded = true;
+            this.backgroundError = false;
         };
         
         this.backgroundImage.onerror = (e) => {
             console.error(`Failed to load level ${levelNumber} background image.`);
+            this.backgroundError = true;
+            this.backgroundLoaded = false;
         };
 
         // Load UI sprites
@@ -1471,10 +1528,24 @@ class Game {
 
     // Add collision detection method
     checkCollision(obj1, obj2) {
-        return obj1.position.x < obj2.position.x + obj2.size.x &&
+        // Verificar si hay colisión entre dos objetos
+        if (obj1.position.x < obj2.position.x + obj2.size.x &&
                obj1.position.x + obj1.size.x > obj2.position.x &&
                obj1.position.y < obj2.position.y + obj2.size.y &&
-               obj1.position.y + obj1.size.y > obj2.position.y;
+            obj1.position.y + obj1.size.y > obj2.position.y) {
+            
+            // Si es un enemigo y colisiona con un fireball, incrementar contador y eliminar ambos
+            if ((obj2.type === 'enemy' || obj2.type === 'minotaur' || obj2.type === 'barrel') && 
+                obj1.type === 'fireball') {
+                enemiesKilled++;
+                console.log('Enemigo eliminado. Total:', enemiesKilled);
+                // Eliminar tanto el fireball como el enemigo
+                game.actors = game.actors.filter(actor => actor !== obj1 && actor !== obj2);
+            }
+            
+            return true;
+        }
+        return false;
     }
 
     // Pause system methods
@@ -1526,7 +1597,6 @@ class Game {
 
     // Method to complete the transition and load next level
     completeTransition() {
-        
         // Reset camera position
         cameraY = 0;
         
@@ -1560,15 +1630,18 @@ class Game {
         
         // Update game state for next level
         this.currentLevel = this.nextLevelNumber;
+        currentLevel = this.nextLevelNumber; // Actualizar la variable global
+        
+        // Actualizar el nivel en el HTML
+        const levelElement = document.getElementById('level');
+        if (levelElement) {
+            levelElement.textContent = currentLevel;
+            console.log('Nivel actualizado en UI durante transición:', currentLevel);
+        }
+        
         this.level = nextLevel;
         this.player = nextLevel.player;
         this.actors = [...nextLevel.actors];
-        
-        // Update level counter in UI
-        const levelElement = document.getElementById('level');
-        if (levelElement) {
-            levelElement.textContent = this.currentLevel;
-        }
         
         // Reset lava system and activate for level 4
         this.lava.reset();
@@ -1588,9 +1661,6 @@ class Game {
             this.player.fireCooldown = 7000; // 7 seconds
         }
         
-        // Note: Life upgrade logic removed from here - lives should be preserved exactly as they were
-        // The upgrade effects are only applied when purchasing upgrades or respawning from death
-        
         // Update background for the new level
         this.backgroundImage = new Image();
         this.backgroundLoaded = false;
@@ -1608,15 +1678,6 @@ class Game {
             this.backgroundImage.src = '../assets/stages/Map-Final Boss/final_level.png';
             console.log('Loading level 4 background: ../assets/stages/Map-Final Boss/final_level.png');
         }
-        
-        this.backgroundImage.onload = () => {
-            this.backgroundLoaded = true;
-            console.log(`Level ${this.currentLevel} background loaded successfully`);
-        };
-        
-        this.backgroundImage.onerror = (e) => {
-            console.error('Error details:', e);
-        };
         
         // Reset transition state
         this.isTransitioning = false;
@@ -1675,11 +1736,9 @@ class Game {
         // Generate a completely new random level 1 layout
         let newLevel1Plan;
         if (typeof LevelGenerator !== 'undefined') {
-            // Use LevelGenerator to create a fresh random layout for level 1
             const generator = new LevelGenerator(28, 60, 1);
             newLevel1Plan = generator.generate();
         } else {
-            // Fallback to existing level 1 if LevelGenerator is not available
             newLevel1Plan = GAME_LEVELS[0];
         }
         
@@ -1688,15 +1747,41 @@ class Game {
         
         // Reset to level 1
         this.currentLevel = 1;
-        this.level = newLevel;
-        this.player = newLevel.player;
-        this.actors = [...newLevel.actors];
+        currentLevel = 1;
         
-        // Update level counter in UI
+        // Crear nueva partida
+        const id_jugador = localStorage.getItem('playerId');
+        if (id_jugador) {
+            fetch('/api/newgame', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    id_jugador: id_jugador
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    localStorage.setItem('id_partida', data.id_partida);
+                }
+            })
+            .catch(error => {
+                console.error('Error al crear nueva partida:', error);
+            });
+        }
+        
+        // Actualizar el nivel en el HTML
         const levelElement = document.getElementById('level');
         if (levelElement) {
-            levelElement.textContent = this.currentLevel;
+            levelElement.textContent = currentLevel;
         }
+        
+        this.level = newLevel;
+        this.player = newLevel.player;
+        this.player.partidaStartTime = Date.now();
+        this.actors = [...newLevel.actors];
         
         // Reset lava system (deactivated for level 1)
         this.lava.reset();
@@ -1741,12 +1826,6 @@ class Game {
         this.backgroundImage = new Image();
         this.backgroundLoaded = false;
         this.backgroundImage.src = '../assets/Map1.jpg';
-        this.backgroundImage.onload = () => {
-            this.backgroundLoaded = true;
-        };
-        this.backgroundImage.onerror = (e) => {
-            console.error('Failed to load level 1 background image.');
-        };
     }
 
     draw(ctx, scale) {
@@ -2284,6 +2363,12 @@ class Shop {
             player.gems -= item.cost;
             item.purchased = true;
             
+            // Incrementar contador de power-ups usados
+            if (item.name === "Fast Fireball" || item.name.startsWith("Life Upgrade")) {
+                powerupsUsed++;
+                console.log('Power-up usado. Total:', powerupsUsed);
+            }
+            
             // Apply power-up immediately
             if (item.name === "Fast Fireball") {
                 player.hasFastFireball = true;
@@ -2624,7 +2709,18 @@ class Shop {
 }
 
 function main() {
-    window.onload = init;
+    // Inicializar variables globales
+    //gameTime = 0;
+    enemiesKilled = 0;
+    powerupsUsed = 0;
+    currentLevel = 1;
+    score = 0;
+
+    // Inicializar el juego
+    init();
+    gameStart();
+    setEventListeners();
+    requestAnimationFrame(updateCanvas);
 }
 
 function init() {
@@ -2782,22 +2878,38 @@ function updateCanvas(frameTime) {
     }
     let deltaTime = frameTime - frameStart;
 
-    // Draw background image stretched to fill entire canvas
-    if (game && game.backgroundLoaded && game.backgroundImage && game.backgroundImage.complete) {
-        // Force the image to fill the entire canvas, stretching if necessary
+    // Clear the canvas first
+    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+    // Always draw background first, regardless of game state
+    if (game && game.backgroundImage) {
+        // Calculate aspect ratios
+        const canvasRatio = canvasWidth / canvasHeight;
+        const imageRatio = game.backgroundImage.width / game.backgroundImage.height;
+        
+        let drawWidth, drawHeight, offsetX = 0, offsetY = 0;
+        
+        if (imageRatio > canvasRatio) {
+            // Image is wider than canvas
+            drawHeight = canvasHeight;
+            drawWidth = drawHeight * imageRatio;
+            offsetX = (canvasWidth - drawWidth) / 2;
+        } else {
+            // Image is taller than canvas
+            drawWidth = canvasWidth;
+            drawHeight = drawWidth / imageRatio;
+            offsetY = (canvasHeight - drawHeight) / 2;
+        }
+        
+        // Draw the background image centered and scaled to cover the canvas
         ctx.drawImage(
             game.backgroundImage,
             0, 0,                    // Source position
-            game.backgroundImage.width, game.backgroundImage.height, // Source size (full image)
-            0, 0,                    // Destination position
-            canvasWidth, canvasHeight // Destination size (full canvas)
+            game.backgroundImage.width, game.backgroundImage.height, // Source size
+            offsetX, offsetY,        // Destination position
+            drawWidth, drawHeight    // Destination size
         );
     } else {
-        // Debug logging for background issues
-        if (game) {
-            console.log(`Background debug - Level: ${game.currentLevel}, Loaded: ${game.backgroundLoaded}, Image exists: ${!!game.backgroundImage}, Complete: ${game.backgroundImage ? game.backgroundImage.complete : 'N/A'}`);
-        }
-        
         // Fallback background color based on current level
         if (game && game.currentLevel === 1) {
             // Level 1: Green/brown nature theme
@@ -2822,6 +2934,7 @@ function updateCanvas(frameTime) {
         }
     }
     
+    // Then update and draw game elements
     if (game) {
         game.update(deltaTime);
         game.draw(ctx, scale);

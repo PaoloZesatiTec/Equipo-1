@@ -28,8 +28,8 @@
 
         <main class="game-layout">
             <aside class="left-panel">
-                <div class="logo-container">
-                    <img src="../assets/logo.svg" alt="Logo del juego" class="game-logo">
+                <div class="logo-container" style="max-width: 150px; margin: 0 auto;">
+                    <img src="../assets/logo.svg" alt="Logo del juego" class="game-logo" style="width: 100%; height: auto;">
                 </div>
                 <section id="instrucciones">
                     <h2 class="panel-title" style="font-size: 25px;">Controles</h2>
@@ -81,10 +81,6 @@
                     <h2 class="panel-title">Estado del Juego</h2>
                     <div class="stats-container">
                         <div class="stat-item">
-                            <h3>Muertes</h3>
-                            <p id="score">0</p>
-                        </div>
-                        <div class="stat-item">
                             <h3>Nivel</h3>
                             <p id="level">1</p>
                         </div>
@@ -103,8 +99,9 @@
         <script src="../js/enemies.js"></script>
         <script src="../js/sound_manager.js"></script>
         <script src="../js/levelgenerator.js"></script>
+        <script src="../js/Server_functions.js"></script>
         <script src="../js/platformer.js"></script>
-        <script src="../js/menu.js"></script>
+        <script src="../js/menu.js"></script> 
         <script>
             // Verificar si el usuario está autenticado
             document.addEventListener('DOMContentLoaded', () => {
