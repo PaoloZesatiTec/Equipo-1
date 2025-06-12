@@ -6,9 +6,9 @@
 
 ##### **Aviso de Derechos de Autor / Información del Autor**
 
-Paolo Zesati  
-Efren Chavez
-Juan Pablo Narchi  
+1. Paolo Zesati  
+2. Efren Chavez
+3. Juan Pablo Narchi  
 
 ##
 ## _Tabla de Contenidos_
