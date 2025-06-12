@@ -7,7 +7,7 @@
 ##### **Aviso de Derechos de Autor / Información del Autor**
 
 Paolo Zesati  
-Efren  
+Efren Chavez
 Juan Pablo Narchi  
 
 ##
@@ -79,7 +79,7 @@ Navegar a través de 4 niveles desafiantes para alcanzar y rescatar a la princes
 - **Gemas**: Moneda principal para compras en la tienda
 - **Corazones**: Objetos de restauración de salud (solo cuando falten vidas)
 - **Sistema de Tienda**: Accesible después de morir, ofrece tres tipos de mejoras:
-  - **Mejoras de Vida**: Aumentar salud máxima (Nivel 1: 3 vidas, Nivel 2: 4 vidas, Nivel 3: 6 vidas)
+  - **Mejoras de Vida**: Aumentar salud máxima (Nivel 1: 3 vidas, Nivel 2: 4 vidas, Nivel 3: 5 vidas)
   - **Bola de Fuego Rápida**: Reduce tiempo de espera de 10s a 7s
   - **Continuar**: Regresar al Nivel 1 con mejoras actuales
 
@@ -138,7 +138,7 @@ Los jugadores deberían sentirse:
 - `A` / `D` — Moverse izquierda/derecha
 - `W` / `S` — Subir/bajar escaleras
 - `Espacio` — Saltar
-- `X` — Lanzar Bola de Fuego
+- `E` — Lanzar Bola de Fuego
 - `P` — Pausar juego
 - `Q` — Salir al menú (cuando está pausado)
 - **Navegación de la Tienda**:
@@ -158,7 +158,7 @@ Los jugadores deberían sentirse:
 ### **Sistema de Combate**
 - **Proyectiles de Bolas de Fuego**: Proyectiles basados en física con tiempo de espera
 - **Sistema de Daño**: Reducción de salud con marcos de invulnerabilidad
-- **IA de Enemigos**: Patrones de patrulla e interacción con el jugador
+- **Enemigos**: Patrones de patrulla e interacción con el jugador
 
 ### **Generación de Niveles**
 - **Diseños Procedurales**: Colocación aleatoria de plataformas y enemigos
@@ -225,7 +225,7 @@ Los jugadores deberían sentirse:
 
 ### **Clases Principales**
 - **`Player`**: Personaje principal con salud, movimiento y combate
-- **`Enemy`**: Clase base de enemigo con IA y colisión
+- **`Enemy`**: Clase base de enemigo con colisión
 - **`Minotaur`**: Enemigo avanzado con comportamiento mejorado
 - **`BarrelSpawner`**: Crea proyectiles de barriles
 - **`Barrel`**: Obstáculos proyectiles rodantes
@@ -361,7 +361,7 @@ Este Documento de Diseño del Juego refleja el **estado implementado actual** de
 ✅ **Generación procedural de niveles**  
 ✅ **Sistema profesional de animación de sprites**  
 ✅ **Física robusta y detección de colisiones**  
-✅ **IA avanzada de enemigos y comportamiento**  
+✅ **Enemigos y comportamiento**  
 ✅ **Sistema completo de UI/UX**
 
 El juego está completo en características y representa una experiencia de plataformero 2D pulida y profesional.
