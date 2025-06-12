@@ -21,7 +21,7 @@ async function ConnectDB() {
     return await mysql.createConnection({
         host: "localhost",
         user: "root",
-        password: 'admin',
+        password: '',
         database: 'mage_db',
     });
 }
