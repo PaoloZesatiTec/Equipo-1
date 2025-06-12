@@ -11,7 +11,7 @@ let player;
 let level;
 
 // Variables para estadísticas
-let gameTime = 0;
+//let gameTime = 0;
 let enemiesKilled = 0;
 let powerupsUsed = 0;
 let currentLevel = 1;
@@ -25,66 +25,7 @@ const gravity = 0.000045;
 let cameraY = 0; // New variable for vertical camera scrolling
 let keyState = {}; // For climbing
 
-// Función para enviar estadísticas al servidor
-async function sendGameStats(gameStats) {
-    try {
-        const playerId = localStorage.getItem('playerId');
-        if (!playerId) {
-            console.error('No hay ID de jugador disponible');
-            return;
-        }
 
-        // Crear nueva partida
-        const newGameResponse = await fetch('/api/newgame', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                id_jugador: playerId
-            })
-        });
-
-        const newGameData = await newGameResponse.json();
-        if (!newGameData.succes) {
-            throw new Error('Error al crear nueva partida');
-        }
-
-        const id_partida = newGameData.id_partida;
-
-        // Actualizar estadísticas principales
-        await fetch(`/api/newgame/${id_partida}`, {
-            method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                nivel_maximo_alcanzado: gameStats.level,
-                duracion: gameStats.time,
-                vida: gameStats.health,
-                experiencia_ganada: gameStats.score
-            })
-        });
-
-        // Enviar estadísticas detalladas
-        await fetch('/api/substats', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                id_partida: id_partida,
-                id_jugador: playerId,
-                enemigos_eliminados: gameStats.enemiesKilled,
-                powerups_usados: gameStats.powerupsUsed
-            })
-        });
-
-        console.log('Estadísticas enviadas correctamente');
-    } catch (error) {
-        console.error('Error al enviar estadísticas:', error);
-    }
-}
 
 // Lava class for the final level
 class Lava {
@@ -198,6 +139,9 @@ class Player extends AnimatedObject {
     constructor(color, width, height, x, y, type, powerUps = {}) {
         // Make hitbox even smaller - reducing height and width further
         super(color, 0.3, 1.3, x, y, type); // Even smaller hitbox (0.5 width, 1.3 height)
+
+        //Tiempo de inicio
+        this.partidaStartTime = Date.now();
         
         // Store original position for proper centering
         this.originalX = x;
@@ -382,7 +326,7 @@ class Player extends AnimatedObject {
 
     update(level, deltaTime, actors = []) {
         // Actualizar tiempo de juego
-        gameTime += deltaTime;
+        //gameTime += deltaTime;
 
         // Actualizar contador de muertes en el panel
         const scoreElement = document.getElementById('score');
@@ -394,7 +338,6 @@ class Player extends AnimatedObject {
         const levelElement = document.getElementById('level');
         if (levelElement) {
             levelElement.textContent = currentLevel;
-            console.log('Nivel actualizado en UI:', currentLevel); // Debug log
         }
 
         if (this.isDead) return;
@@ -711,94 +654,43 @@ class Player extends AnimatedObject {
         }
     }
 
-    die() {
-        if (this.isDead) return;
-        
+    die() {        
         this.isDead = true;
-        this.lives = 0;
-        this.health = 0;
+        this.velocity = new Vec(0, 0);
+        this.stopMovement("left");
+        this.stopMovement("right");
+        this.isJumping = false;
+        this.isCrouching = false;
+        this.isOnLadder = false;        
+
+        game.deathCount++;
+
+        const partidaEndTime = Date.now();
+        const duracion_part = Math.floor((partidaEndTime - this.partidaStartTime) / 1000);
+
+        const id_jugador = parseInt(localStorage.getItem('playerId'));
+        const id_partida = parseInt(localStorage.getItem('id_partida'));
         
-        // Enviar estadísticas al servidor
-        const gameStats = {
-            level: currentLevel,
-            time: Math.floor(gameTime / 1000), // Convertir a segundos
-            health: this.health,
-            score: score,
-            enemiesKilled: enemiesKilled,
-            powerupsUsed: powerupsUsed
-        };
-        
-        console.log('Enviando estadísticas:', gameStats); // Debug log
-        
-        // Crear nueva partida
-        fetch('/api/newgame', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                id_jugador: localStorage.getItem('playerId')
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.succes) {
-                const id_partida = data.id_partida;
-                
-                // Actualizar estadísticas principales
-                return fetch(`/api/newgame/${id_partida}`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        nivel_maximo_alcanzado: gameStats.level,
-                        duracion: gameStats.time,
-                        vida: gameStats.health,
-                        experiencia_ganada: gameStats.score
-                    })
-                });
-            }
-            throw new Error('Error al crear partida');
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.succes) {
-                // Enviar estadísticas detalladas
-                return fetch('/api/substats', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        id_partida: data.id_partida,
-                        id_jugador: localStorage.getItem('playerId'),
-                        enemigos_eliminados: gameStats.enemiesKilled,
-                        powerups_usados: gameStats.powerupsUsed
-                    })
-                });
-            }
-            throw new Error('Error al actualizar estadísticas');
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.succes) {
-                console.log('Estadísticas guardadas correctamente');
-            } else {
-                throw new Error('Error al guardar estadísticas detalladas');
-            }
-        })
-        .catch(error => {
-            console.error('Error al guardar estadísticas:', error);
-        });
-        
+        if (id_jugador && id_partida) {
+            Save_data({
+                id_partida,
+                id_jugador,
+                nivel : game.levelNumber,
+                duracion : duracion_part,
+                vida : this.lives,
+                experiencia : this.gems,
+                enemigos : enemiesKilled,
+                powerups: powerupsUsed
+            });
+        }
+
         // Mostrar pantalla de game over
         const gameOverScreen = document.createElement('div');
         gameOverScreen.id = 'gameOverScreen';
         gameOverScreen.innerHTML = `
             <h2>Game Over</h2>
-            <p>Puntuación: ${score}</p>
-            <p>Nivel alcanzado: ${currentLevel}</p>
+            <p>Puntuación: ${this.gems}</p>
+            <p>Nivel alcanzado: ${game.levelNumber}</p>
             <button onclick="restartGame()">Reintentar</button>
         `;
         document.body.appendChild(gameOverScreen);
@@ -1756,11 +1648,9 @@ class Game {
         // Generate a completely new random level 1 layout
         let newLevel1Plan;
         if (typeof LevelGenerator !== 'undefined') {
-            // Use LevelGenerator to create a fresh random layout for level 1
             const generator = new LevelGenerator(28, 60, 1);
             newLevel1Plan = generator.generate();
         } else {
-            // Fallback to existing level 1 if LevelGenerator is not available
             newLevel1Plan = GAME_LEVELS[0];
         }
         
@@ -1769,17 +1659,40 @@ class Game {
         
         // Reset to level 1
         this.currentLevel = 1;
-        currentLevel = 1; // Actualizar la variable global
+        currentLevel = 1;
+        
+        // Crear nueva partida
+        const id_jugador = localStorage.getItem('playerId');
+        if (id_jugador) {
+            fetch('/api/newgame', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    id_jugador: id_jugador
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    localStorage.setItem('id_partida', data.id_partida);
+                }
+            })
+            .catch(error => {
+                console.error('Error al crear nueva partida:', error);
+            });
+        }
         
         // Actualizar el nivel en el HTML
         const levelElement = document.getElementById('level');
         if (levelElement) {
             levelElement.textContent = currentLevel;
-            console.log('Nivel actualizado en UI durante reinicio:', currentLevel);
         }
         
         this.level = newLevel;
         this.player = newLevel.player;
+        this.player.partidaStartTime = Date.now();
         this.actors = [...newLevel.actors];
         
         // Reset lava system (deactivated for level 1)
@@ -2709,7 +2622,7 @@ class Shop {
 
 function main() {
     // Inicializar variables globales
-    gameTime = 0;
+    //gameTime = 0;
     enemiesKilled = 0;
     powerupsUsed = 0;
     currentLevel = 1;
