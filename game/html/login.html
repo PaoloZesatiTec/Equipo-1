@@ -142,6 +142,11 @@
     </style>
 </head>
 <body>
+    <div class="cloud cloud1"></div>
+    <div class="cloud cloud2"></div>
+    <div class="cloud cloud3"></div>
+    <div class="cloud cloud4"></div>
+
     <div class="login-flex-container">
         <div class="attack-animation">
             <img id="mage-attack" src="../assets/figure/Mage/Attack/attack1.png" alt="Mage Attack Animation">
@@ -177,6 +182,19 @@
         }, 150);
     </script>
     <script src="../js/Server_functions.js"></script>
+    <script src="../js/sound_manager.js"></script>
+    <script>
+        // Iniciar la música inmediatamente
+        soundManager.playMusic('level2Music');
 
+        // Asegurar que la música comience con la primera interacción del usuario
+        document.addEventListener('click', () => {
+            soundManager.playMusic('level2Music');
+        }, { once: true });
+
+        document.addEventListener('keydown', () => {
+            soundManager.playMusic('level2Music');
+        }, { once: true });
+    </script>
 </body>
 </html>

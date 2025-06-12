@@ -135,6 +135,18 @@
         <script src="../js/platformer.js"></script>
         <script src="../js/menu.js"></script> 
         <script>
+            // Iniciar la música inmediatamente
+            soundManager.playMusic('level2Music');
+
+            // Asegurar que la música comience con la primera interacción del usuario
+            document.addEventListener('click', () => {
+                soundManager.playMusic('level2Music');
+            }, { once: true });
+
+            document.addEventListener('keydown', () => {
+                soundManager.playMusic('level2Music');
+            }, { once: true });
+
             // Verificar si el usuario está autenticado
             document.addEventListener('DOMContentLoaded', () => {
                 const playerId = localStorage.getItem('playerId');

@@ -111,6 +111,26 @@
     </style>
 </head>
 <body>
+    <div class="cloud cloud1"></div>
+    <div class="cloud cloud2"></div>
+    <div class="cloud cloud3"></div>
+    <div class="cloud cloud4"></div>
+
+    <script src="../js/sound_manager.js"></script>
+    <script>
+        // Iniciar la música inmediatamente
+        soundManager.playMusic('level2Music');
+
+        // Asegurar que la música comience con la primera interacción del usuario
+        document.addEventListener('click', () => {
+            soundManager.playMusic('level2Music');
+        }, { once: true });
+
+        document.addEventListener('keydown', () => {
+            soundManager.playMusic('level2Music');
+        }, { once: true });
+    </script>
+
     <div class="register-container">
         <img src="../assets/logo.svg" alt="Logo Mage Tower" class="register-logo">
         <div class="register-title">Crea tu cuenta</div>
