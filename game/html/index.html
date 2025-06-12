@@ -72,7 +72,13 @@
                 </div>
             </div>
 
-            <aside class="right-panel">
+            <aside class="right-panel" style="
+                display: flex;
+                flex-direction: column;
+                height: 100%;
+                min-height: 300px;
+                position: relative;
+            ">
                 <section id="welcome-message">
                     <h2 class="panel-title">¡Bienvenido!</h2>
                     <p id="user-greeting" style="text-align: center; color: #ffd700; font-size: 1.2em; margin: 10px 0;"></p>
@@ -86,6 +92,32 @@
                         </div>
                     </div>
                 </section>
+                <div style="
+                    position: fixed;
+                    bottom: 1rem;
+                    right: 1rem;
+                    z-index: 1000;
+                    background: rgba(0, 0, 0, 0.8);
+                    padding: 0.5rem;
+                    border-radius: 8px;
+                    border: 2px solid #ffd700;
+                    box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+                ">
+                    <button id="logoutButton" style="
+                        background: linear-gradient(90deg, #ff2d00 0%, #ff9900 50%, #fff700 100%);
+                        color: #fff;
+                        border: none;
+                        border-radius: 5px;
+                        padding: 0.8rem 1.5rem;
+                        font-family: 'Press Start 2P', cursive;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        font-size: clamp(0.7rem, 2vw, 0.8rem);
+                        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+                        white-space: nowrap;
+                        min-width: 150px;
+                    ">Cerrar Sesión</button>
+                </div>
             </aside>
         </main>
 
@@ -131,18 +163,24 @@
                 playerInfo.textContent = `Jugador: ${playerName}`;
                 menu.insertBefore(playerInfo, menu.firstChild);
 
-                // Agregar botón de cerrar sesión
-                const logoutLink = document.createElement('a');
-                logoutLink.href = '#';
-                logoutLink.textContent = 'Cerrar Sesión';
-                logoutLink.style.color = '#ff2d00';
-                logoutLink.addEventListener('click', (e) => {
-                    e.preventDefault();
+                // Configurar el botón de cerrar sesión
+                const logoutButton = document.getElementById('logoutButton');
+                logoutButton.addEventListener('click', () => {
                     localStorage.removeItem('playerId');
                     localStorage.removeItem('playerName');
                     window.location.href = 'login.html';
                 });
-                menu.appendChild(logoutLink);
+
+                // Añadir efecto hover al botón
+                logoutButton.addEventListener('mouseover', () => {
+                    logoutButton.style.transform = 'scale(1.05)';
+                    logoutButton.style.boxShadow = '0 0 15px rgba(255, 215, 0, 0.5)';
+                });
+
+                logoutButton.addEventListener('mouseout', () => {
+                    logoutButton.style.transform = 'scale(1)';
+                    logoutButton.style.boxShadow = 'none';
+                });
             });
         </script>
     </body>

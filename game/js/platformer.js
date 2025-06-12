@@ -408,9 +408,14 @@ class Player extends AnimatedObject {
             }
         }
 
-        // Reset isJumping if player is on ground and has no upward velocity
+        // Reset isJumping if player is on ground and has downward or zero velocity
         if (this.isJumping && isGrounded && this.velocity.y >= 0) {
             this.isJumping = false;
+        }
+        
+        // Additional safety: prevent jumping if already falling/in air with significant downward velocity
+        if (this.velocity.y > 0.01) { // If falling with significant speed
+            this.isJumping = true; // Mark as jumping to prevent air jumps
         }
 
         // Simplified ladder system: activate when touching ladder AND pressing W or S
@@ -558,15 +563,12 @@ class Player extends AnimatedObject {
     // Method to check if player is on the ground
     isOnGround(level) {
         // Check if there's a wall or ladder directly below the player
-        // Use a larger offset to account for floating point precision issues
-        const testPosition = this.position.plus(new Vec(0, 0.05)); // Increased offset for better ground detection
+        // Use a small offset to test just below the player's feet
+        const testPosition = this.position.plus(new Vec(0, 0.1)); // Test slightly below player
         const isOnWall = level.contact(testPosition, this.size, 'wall');
         const isOnLadder = level.contact(testPosition, this.size, 'ladder');
         
-        // Also check if we're very close to the ground (within 0.05 units)
-        const isVeryCloseToGround = Math.abs(this.position.y - Math.floor(this.position.y)) < 0.05;
-        
-        return isOnWall || isOnLadder || isVeryCloseToGround;
+        return isOnWall || isOnLadder;
     }
 
     // Method to check if only the bottom part of the player is touching a ladder
