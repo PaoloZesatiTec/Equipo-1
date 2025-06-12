@@ -307,14 +307,14 @@ app.post("/api/newgame", async(req, res)=>{
         const [ result ] = await connection.execute(insertQuery, [ id_jugador ]);
 
         res.status(201).json({
-            succes : true,
+            success : true,
             message : 'Partida iniciada correctamente',
             id_partida : result.insertId
         })
     }catch(error){
         console.error('Error al iniciar la partida: ', error);
         res.status(500).json({
-            succes : false,
+            success : false,
             message : 'Error interno en el servidor',
             error : error.message
         });
