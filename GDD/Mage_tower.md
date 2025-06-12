@@ -1,43 +1,42 @@
-# **Mago Obscuro**
+# **Torre del Mago: Rescata a la Princesa**
 
 ## _Documento de Diseño del Juego_
 
 ---
 
-##### **Aviso de derechos de autor / información del autor / cosas legales aburridas que a nadie le gustan_
+##### **Aviso de Derechos de Autor / Información del Autor**
 
-Paolo Zesati
-Efren
-Juan Pablo Narchi
+Paolo Zesati  
+Efren  
+Juan Pablo Narchi  
 
 ##
-## _Índice_
+## _Tabla de Contenidos_
 
 ---
 
-1. [Índice](#índice)
-2. [Diseño del Juego](#diseño-del-juego)
+1. [Tabla de Contenidos](#tabla-de-contenidos)
+2. [Diseño del Juego](#diseno-del-juego)
     1. [Resumen](#resumen)
     2. [Jugabilidad](#jugabilidad)
-    3. [Mentalidad](#mentalidad)
-3. [Técnico](#técnico)
+    3. [Experiencia del Jugador](#experiencia-del-jugador)
+3. [Técnico](#tecnico)
     1. [Pantallas](#pantallas)
     2. [Controles](#controles)
-    3. [Mecánicas](#mecánicas)
-4. [Diseño de Niveles](#diseño-de-niveles)
-    1. [Temas](#temas)
+    3. [Mecánicas Principales](#mecanicas-principales)
+4. [Diseño de Niveles](#diseno-de-niveles)
+    1. [Temas de Niveles](#temas-de-niveles)
     2. [Flujo del Juego](#flujo-del-juego)
 5. [Desarrollo](#desarrollo)
-    1. [Clases Abstractas](#clases-abstractas--componentes)
-    2. [Clases Derivadas](#clases-derivadas--composiciones-de-componentes)
-6. [Gráficos](#gráficos)
-    1. [Atributos de Estilo](#atributos-de-estilo)
-    2. [Gráficos Necesarios](#gráficos-necesarios)
-7. [Sonidos/Música](#sonidosmúsica)
-    1. [Atributos de Estilo](#atributos-de-estilo-1)
-    2. [Sonidos Necesarios](#sonidos-necesarios)
-    3. [Música Necesaria](#música-necesaria)
-8. [Calendario](#calendario)
+    1. [Arquitectura](#arquitectura)
+    2. [Integración de Base de Datos](#integracion-de-base-de-datos)
+6. [Gráficos](#graficos)
+    1. [Estilo Visual](#estilo-visual)
+    2. [Recursos de Sprites](#recursos-de-sprites)
+7. [Sistema de Audio](#sistema-de-audio)
+    1. [Música](#musica)
+    2. [Efectos de Sonido](#efectos-de-sonido)
+8. [Interfaz de Usuario](#interfaz-de-usuario)
 
 # _Diseño del Juego_
 
@@ -45,49 +44,60 @@ Juan Pablo Narchi
 
 ## **Resumen**
 
-Este es un juego de plataformas arcade 2D tipo roguelike inspirado en el original *Donkey Kong*. El jugador controla a un personaje común que debe escalar plataformas para rescatar a una princesa del malvado Mago Oscuro. El juego cuenta con tres niveles, cada uno con enemigos y obstáculos únicos, culminando en una batalla final contra el jefe.
+Torre del Mago es un juego de plataformas de acción 2D donde los jugadores controlan a un mago hábil en una misión para rescatar a una princesa de una torre malvada. El juego presenta 4 niveles distintos con generación procedural, un sistema de combate integral con magia de bolas de fuego, gemas y corazones coleccionables, un sistema de tienda para mejoras, e integración completa con base de datos MySQL para el seguimiento de progresión del jugador.
 
-Cada partida otorga al jugador experiencia basada en su progreso, que puede gastarse en el menú principal para mejorar **vidas (de 2 a 3)** o **velocidad de movimiento**. Los jugadores deben saltar sobre barriles rodantes, derrotar enemigos usando una bola de fuego (con tiempo de espera), y escalar escaleras para perseguir al mago a través de los niveles.
+Los jugadores navegan a través de niveles generados aleatoriamente llenos de enemigos (enemigos básicos, minotauros y generadores de barriles), recolectan gemas como moneda, restauran salud con corazones recolectables, y mejoran sus habilidades a través de un sistema de tienda accesible al morir. El juego culmina en alcanzar a la princesa al final del nivel 4.
 
 ---
 
 ## **Jugabilidad**
 
-- **Objetivo:** Escalar cada nivel para alcanzar al Mago Oscuro mientras esquivas barriles y derrotas enemigos. Alcanza al mago tres veces para entrar a la sala del jefe final y derrotarlo con 3 golpes de bola de fuego.
-- **Jugador:** El jugador tendrá la habilidad de bola de fuego, necesita saltar sobre los barriles y evitar o derrotar enemigos. La partida del jugador terminará cuando reciba un golpe.
-- **Mecánica de Bola de Fuego:** El jugador puede lanzar una bola de fuego cada 10 segundos, la bola rebotará y destruirá barriles o derrotará enemigos, pero no podrá destruir hechizos.
-- **Descripción de niveles:**
-  - **Nivel 1:** Este primer nivel no tendrá enemigos, este nivel es para que el jugador entienda las mecánicas mientras solo tiene que evitar los barriles.
-  - **Nivel 2:** El segundo nivel tendrá la velocidad de los barriles aumentada, añadiendo un enemigo: Los lobos, su movimiento será entre dos barriles, forzando al jugador en este nivel a gestionar su bola de fuego, y evitar o matar a los lobos.
-  - **Nivel 3:** El tercer nivel será el último antes de la cámara del jefe final, en este tendrás magos de bajo nivel, que lanzan hechizos que matan al contacto, los hechizos se moverán entre cada barril arriba, los magos estarán al final de la línea, así que no podrás matarlos hasta que llegues a ellos, así que el desafío en este nivel es cronometrar tus saltos para poder saltar entre dos barriles y evitar el hechizo.
-  - **Cámara del Jefe Final:** Este es el último desafío antes de completar el juego, derrotar al jefe final, un mago de alto nivel que tendrá 3 ataques diferentes, que no se pueden destruir:
-      - **Ataque 1:** El primero lanzará hechizos grandes, que caerán del techo, dejando solo un espacio para que el jugador pase entre ellos.
-      - **Ataque 2:** El segundo ataque, estará inspirado en las usuales batallas contra Bowser, donde el mago lanzará hechizos, que girarán alrededor del mago, y irán en orden ascendente.
-      - **Ataque 3:** El tercer ataque será un aturdimiento del mago, que inmovilizará al jugador por 2 segundos.
-  - La forma de derrotar al jefe final será golpeándolo con la bola de fuego 3 veces.
-- **Obstáculos:** Barriles rodantes invocados por el Mago Oscuro.
-- **Herramientas:** Escaleras para ascender, bolas de fuego para atacar, salto para evitar barriles.
-- **Mejoras de Poder:** Las mejoras de poder se dividirán en dos: en juego (Solo estarán activas por un tiempo en la partida, o solo para esa partida) y permanentes (la mejora será permanente, disponible para todas las partidas después de obtenerla).
-  - **En juego:**
-      - **Ralentización del tiempo:** Una mejora que puedes encontrar en el nivel, que hará que la velocidad de los barriles y enemigos sea más lenta, dándote más oportunidad para maniobrar y evitar obstáculos o enemigos.
-      - **Reinicio de enfriamiento de fuego:** El tiempo de cuenta regresiva para la próxima bola de fuego será cero.
-  - **Permanentes:**
-      - **Vida extra:** La mejora que se puede desbloquear que te hará resistir un golpe más antes de morir, el límite de esta mejora será tener dos vidas extra.
-      - **Poder de fuego mejorado:** Esta mejora reducirá el tiempo de enfriamiento en 0.5 segundos antes de que el usuario pueda lanzar otra bola de fuego, el límite de esta mejora es que el enfriamiento llegue a 5s para mantener cierta dificultad.
+### **Objetivo Principal**
+Navegar a través de 4 niveles desafiantes para alcanzar y rescatar a la princesa, mientras recolectas gemas, gestionas la salud y mejoras habilidades.
 
-- 
-Si el jugador muere, regresa al **Menú Principal**. Se pierde el progreso, pero se mantiene la experiencia para las mejoras.
+### **Personaje del Jugador: El Mago**
+- **Sistema de Salud**: Comienza con 2 vidas, mejorable hasta 6 vidas máximo mediante compras en la tienda
+- **Combate**: Habilidad de lanzar bolas de fuego con sistema de tiempo de espera (10 segundos por defecto, reducible a 7 segundos con mejoras)
+- **Movimiento**: Movimiento horizontal, salto y escalado de escaleras
+- **Invulnerabilidad**: Período de invulnerabilidad de 2 segundos después de recibir daño
+
+### **Progresión de Niveles**
+- **4 Niveles Únicos**: Cada uno con temas distintivos, enemigos y estilos visuales
+- **Generación Procedural**: Los niveles se generan aleatoriamente en cada partida para valor de rejugabilidad
+- **Dificultad Progresiva**: Cada nivel introduce nuevos desafíos y tipos de enemigos
+- **Sistema de Portales**: Toca portales para avanzar al siguiente nivel
+
+### **Sistema de Combate**
+- **Magia de Bolas de Fuego**: Ataque principal con temporizador de tiempo de espera
+- **Tipos de Enemigos**:
+  - **Enemigos Básicos**: Enemigos simples terrestres
+  - **Minotauros**: Enemigos más fuertes y agresivos
+  - **Generadores de Barriles**: Generan proyectiles de barriles rodantes
+  - **Barriles Rodantes**: Peligros proyectiles que caen desde arriba
+
+### **Recolección y Progresión**
+- **Gemas**: Moneda principal para compras en la tienda
+- **Corazones**: Objetos de restauración de salud (solo cuando falten vidas)
+- **Sistema de Tienda**: Accesible después de morir, ofrece tres tipos de mejoras:
+  - **Mejoras de Vida**: Aumentar salud máxima (Nivel 1: 3 vidas, Nivel 2: 4 vidas, Nivel 3: 6 vidas)
+  - **Bola de Fuego Rápida**: Reduce tiempo de espera de 10s a 7s
+  - **Continuar**: Regresar al Nivel 1 con mejoras actuales
+
+### **Mecánicas Especiales**
+- **Sistema de Escaleras**: Subir y bajar usando teclas W/S
+- **Peligro de Lava**: El Nivel 4 presenta lava que sube y mata instantáneamente
+- **Sistema de Pausa**: P para pausar, Q para salir al menú cuando está pausado
+- **Muerte y Reaparición**: Al morir, acceso al sistema de tienda antes de continuar
 
 ---
 
-## **Mentalidad**
+## **Experiencia del Jugador**
 
-Los jugadores deberían sentir:
-- **Desafiados** — los reinicios tipo roguelike aumentan la tensión y recompensan la precisión.
-- **Determinados** — alcanzar al mago significa progreso.
-- **Empoderados** — las mejoras permiten a los jugadores mejorar e intentar de nuevo.
-
-Provocamos esto a través de la creciente dificultad de los niveles, obstáculos basados en tiempo, y recompensando el progreso con mejoras permanentes de estadísticas.
+Los jugadores deberían sentirse:
+- **Desafiados** — Dificultad progresiva y riesgo de muerte permanente
+- **Recompensados** — Recolección de gemas y mejoras significativas
+- **Comprometidos** — Generación aleatoria de niveles asegura rejugabilidad
+- **Empoderados** — Sistema de mejoras permite progresión y estrategia
 
 ---
 
@@ -97,34 +107,68 @@ Provocamos esto a través de la creciente dificultad de los niveles, obstáculos
 
 ### **Pantallas**
 
-1. **Menú Principal**
-   - Mejorar Vidas
-   - Mejorar Velocidad
+1. **Sistema de Inicio de Sesión/Registro**
+   - Integración con base de datos MySQL
+   - Autenticación de usuarios
+   - Seguimiento de estadísticas del jugador
+
+2. **Menú Principal**
    - Iniciar Juego
-2. **Pantallas de Nivel (1–3)**
-3. **Sala del Jefe Final**
-4. **Game Over / Reintentar**
-5. **Créditos Finales**
+   - Ver Estadísticas
+   - Cerrar Sesión
+
+3. **Niveles del Juego (1-4)**
+   - Diseños generados proceduralmente
+   - Jugabilidad en tiempo real
+   - HUD con vidas, gemas y visualización de nivel
+
+4. **Sistema de Tienda**
+   - Tres categorías de mejoras
+   - Compras basadas en gemas
+   - Mecánicas de continuar/reintentar
+
+5. **Pantalla de Victoria**
+   - Finalización del rescate de la princesa
+   - Visualización de estadísticas
 
 ---
 
 ### **Controles**
 
-- `a` / `d` — Moverse
-- `w` / `s` — Subir/Bajar escalera
+- `A` / `D` — Moverse izquierda/derecha
+- `W` / `S` — Subir/bajar escaleras
 - `Espacio` — Saltar
-- `F` — Lanzar Bola de Fuego (10s de enfriamiento)
-- `Enter` — Confirmar / Interactuar
+- `X` — Lanzar Bola de Fuego
+- `P` — Pausar juego
+- `Q` — Salir al menú (cuando está pausado)
+- **Navegación de la Tienda**:
+  - `W` / `S` — Navegar artículos de la tienda
+  - `Espacio` — Comprar/Continuar
 
 ---
 
-### **Mecánicas**
+### **Mecánicas Principales**
 
-- **Sistema de Bola de Fuego:** Temporizador simple de enfriamiento usando reloj interno.
-- **Generador de Barriles:** Los barriles se generarán en la parte superior del nivel y caerán.
-- **Comportamiento de Enemigos:** El comportamiento del enemigo será como se describe en cada nivel.
-- **Reinicio Tipo Roguelike:** Se activa al morir, reinicia todo el progreso excepto la EXP.
-- **Sistema de EXP:** Rastrea el progreso y permite mejoras entre partidas.
+### **Sistema de Física**
+- **Gravedad**: Física de caída realista
+- **Detección de Colisiones**: Colisión precisa basada en hitbox
+- **Detección de Suelo**: Previene exploits de salto en el aire
+- **Física de Escaleras**: Estado de movimiento especial para escalado
+
+### **Sistema de Combate**
+- **Proyectiles de Bolas de Fuego**: Proyectiles basados en física con tiempo de espera
+- **Sistema de Daño**: Reducción de salud con marcos de invulnerabilidad
+- **IA de Enemigos**: Patrones de patrulla e interacción con el jugador
+
+### **Generación de Niveles**
+- **Diseños Procedurales**: Colocación aleatoria de plataformas y enemigos
+- **Recursos Temáticos**: Elementos visuales y de jugabilidad específicos del nivel
+- **Colocación de Corazones**: Distribución inteligente de objetos de salud (30-70% de altura del nivel)
+
+### **Integración de Base de Datos**
+- **Cuentas de Jugadores**: Sistema seguro de inicio de sesión/registro
+- **Seguimiento de Estadísticas**: Muertes, niveles alcanzados, tiempo de juego, gemas recolectadas
+- **Gestión de Sesiones**: Datos persistentes del usuario entre sesiones
 
 ---
 
@@ -132,30 +176,44 @@ Provocamos esto a través de la creciente dificultad de los niveles, obstáculos
 
 ---
 
-### **Temas**
+### **Temas de Niveles**
 
-- **Nivel 1: Bosque**
-  - Ambiente: Áspero, tenso
-  - Objetivos: hacer que el jugador entienda las mecánicas de la bola de fuego y el salto.
-  - Obstáculos: Barriles y escaleras
-- **Nivel 2: Lobos y Orcos en Palacio Embrujado**
-  - Ambiente: Áspero, tenso
-  - Objetivos: Introducir al jugador al lobo, el primero de dos enemigos
-  - Obstáculos: Lobos, barriles y escaleras
-- **Nivel 3: Torres de Mago en un Volcán**
-  - Ambiente: Mágico, caótico
-  - Objetivos: Enseñar al jugador a no apresurarse en el nivel, ya que los saltos entre barriles serán más difíciles
-  - Obstáculos: Mago, barriles y escaleras escalonadas
+### **Nivel 1: Bosque/Naturaleza**
+- **Tema Visual**: Bloques de césped verde, ambientes naturales
+- **Fondo**: Paisaje de bosque (`../assets/Map1.jpg`)
+- **Enemigos**: Enemigos básicos, generación moderada de barriles
+- **Música**: `level_1_music.mp3`
+
+### **Nivel 2: Reino del Cielo/Nubes**
+- **Tema Visual**: Bloques de nubes azul claro
+- **Fondo**: Ambiente de cielo (`../assets/stages/Map-2/map-2.png`)
+- **Enemigos**: Dificultad aumentada, más minotauros
+- **Música**: `level_2_music.mp3`
+
+### **Nivel 3: Volcánico/Oscuro**
+- **Tema Visual**: Bloques de obsidiana de lava oscura
+- **Fondo**: Ambiente volcánico (`../assets/stages/Map-3/map_3.png`)
+- **Enemigos**: Alta densidad de enemigos, patrones desafiantes
+- **Música**: `level_3_music.mp3`
+
+### **Nivel 4: Área del Jefe Final**
+- **Tema Visual**: Bloques de lava fundida con estética peligrosa
+- **Fondo**: Ambiente del jefe final (`../assets/stages/Map-Final Boss/final_level.png`)
+- **Peligro Especial**: Sistema de lava que sube (muerte instantánea)
+- **Finalización**: El encuentro con la princesa termina el juego
+- **Música**: `level_4_music.mp3`
 
 ### **Flujo del Juego**
 
-1. Menú principal: Gastar EXP, iniciar partida
-2. Nivel 1: Esquivar barriles, escalar escaleras, derrotar orcos
-3. Alcanzar al Mago → Se teletransporta
-4. Nivel 2: Repetir con lobos, barriles más rápidos
-5. Nivel 3: Magos, verticalidad añadida
-6. Sala Final: Batalla contra el mago — golpear con bola de fuego 3 veces
-7. Victoria → Princesa rescatada → Pantalla final
+1. **Sistema de Inicio de Sesión**: Autenticación del jugador y carga de estadísticas
+2. **Menú Principal**: Mostrar estadísticas del jugador, iniciar jugabilidad
+3. **Nivel 1**: Introducción tipo tutorial con enemigos básicos
+4. **Transición de Portal**: Finalización de nivel con música de transición
+5. **Nivel 2**: Dificultad aumentada y nuevos patrones de enemigos
+6. **Nivel 3**: Desafíos avanzados y diseños complejos
+7. **Nivel 4**: Desafío final con peligro de lava y rescate de la princesa
+8. **Sistema de Tienda**: Accesible al morir para mejoras y continuación
+9. **Victoria**: Finalización del rescate de la princesa con actualización de estadísticas
 
 ---
 
@@ -163,35 +221,39 @@ Provocamos esto a través de la creciente dificultad de los niveles, obstáculos
 
 ---
 
-### **Clases Abstractas / Componentes**
+### **Arquitectura**
 
-- `EntidadBase`
-  - `Jugador`
-  - `Enemigo`
-  - `Proyectil`
-- `EnemigoBase`
-  - `Orco`
-  - `Lobo`
-  - `Mago`
-- `ObjetoBase`
-  - `Barril`
-  - `Escalera`
-  - `MejoraDePoder`
-- `EstadoJuegoBase`
-  - `MenúPrincipal`
-  - `Nivel`
-  - `GameOver`
-  - `JefeFinal`
+### **Clases Principales**
+- **`Player`**: Personaje principal con salud, movimiento y combate
+- **`Enemy`**: Clase base de enemigo con IA y colisión
+- **`Minotaur`**: Enemigo avanzado con comportamiento mejorado
+- **`BarrelSpawner`**: Crea proyectiles de barriles
+- **`Barrel`**: Obstáculos proyectiles rodantes
+- **`Heart`**: Recolectables de restauración de salud
+- **`Gem`**: Coleccionables de moneda
+- **`Portal`**: Objetos de transición de nivel
+- **`Princess`**: Personaje del objetivo final
 
-### **Clases Derivadas / Comportamientos**
+### **Clases del Sistema**
+- **`Game`**: Gestión principal del estado del juego
+- **`Level`**: Generación y gestión de niveles
+- **`Shop`**: Sistema de mejoras y compras
+- **`SoundManager`**: Gestión del sistema de audio
+- **`LevelGenerator`**: Creación procedural de niveles
+- **`Lava`**: Sistema de peligro del Nivel 4
 
-- `ProyectilBolaFuego` — 10s de enfriamiento
-- `SistemaEXP` — Rastrea la distancia recorrida y otorga XP
-- `GeneradorBarriles` — El mago envía barriles periódicamente
-- `ComportamientoEnemigo`
-  - `IAOrco`: Caminar izquierda/derecha
-  - `IALobo`: Caminar izquierda/derecha muy rápido
-  - `IAMago`: Lanza hechizos
+### **Integración de Base de Datos**
+
+### **Esquema de Base de Datos MySQL**
+- **Autenticación de Usuarios**: Inicio de sesión/registro seguro
+- **Estadísticas del Jugador**: Muertes, niveles, tiempo de juego, gemas
+- **Gestión de Sesiones**: Datos persistentes entre sesiones
+- **Análisis del Juego**: Seguimiento de rendimiento y progresión
+
+### **Arquitectura del Servidor**
+- **Backend Node.js**: Servidor Express con integración MySQL
+- **API RESTful**: Endpoints para autenticación y gestión de datos
+- **Actualizaciones en Tiempo Real**: Seguimiento de estadísticas en vivo durante la jugabilidad
 
 ---
 
@@ -199,136 +261,107 @@ Provocamos esto a través de la creciente dificultad de los niveles, obstáculos
 
 ---
 
-### **Atributos de Estilo**
+### **Estilo Visual**
 
-- Arte pixelado con estética retro
-- Paleta de colores limitada para cada nivel
-- Contornos gruesos con contrastes audaces
-- Retroalimentación visual:
-  - Destello al recibir daño
-  - Brillo en objetos interactuables
-  - Círculo de enfriamiento para bola de fuego
+- **Estética de Arte Pixelado**: Gráficos de alta calidad basados en sprites
+- **Personajes Animados**: Sistema de animación basado en marcos
+- **Fondos Dinámicos**: Ambientes temáticos específicos del nivel
+- **Retroalimentación Visual**: 
+  - Efectos de parpadeo de daño
+  - Indicadores visuales de invulnerabilidad
+  - Animaciones de sprites suaves
 
----
+### **Recursos de Sprites**
 
-### **Gráficos Necesarios**
+### **Sprites de Personajes**
+- **Personaje Mago**: Conjunto completo de animaciones (inactivo, caminar, saltar, atacar, herido, escalar)
+- **Enemigos**: Sprites animados para todos los tipos de enemigos
+- **Princesa**: Personaje de finalización animado
 
-- **Jugador**
-  - Inactivo, Caminar, Saltar, Lanzar
-- **Enemigos**
-  - Orco, Lobo, Mago (Inactivo, Caminar, Atacar)
-- **Jefe Mago**
-  - Inactivo, Lanzar, Teletransportar, Derrota
-- **Objetos**
-  - Barril (rodando)
-  - Escalera (estática)
-  - Bola de fuego (animada)
-  - Mejoras de poder (orbe brillante)
-- **Interfaz**
-  - Barra de XP, indicador de enfriamiento de bola de fuego, salud
+### **Recursos Ambientales**
+- **Bloques Específicos del Nivel**: Estilos visuales temáticos para cada nivel
+- **Fondos**: Fondos de nivel de alta calidad
+- **Objetos Interactivos**: Escaleras, portales, coleccionables
 
-### **Sprites Disponibles**
-
-Aquí están los sprites actualmente disponibles para el juego:
-
-# Sprites del Juego
-
-## Fondos de Niveles
-
-### Fondo del Nivel 1 (Bosque)
-<img src="Sprites/sprite_1.png" alt="Fondo del Nivel 1" width="400"/>
-
-### Fondo del Nivel 2 (Palacio Embrujado)
-<img src="Sprites/sprite_10.webp" alt="Fondo del Nivel 2" width="400"/>
-
-### Fondo del Nivel 3 (Torre del Mago)
-<img src="Sprites/sprite_2.png" alt="Fondo del Nivel 3" width="400"/>
-
-### Fondo del Jefe Final
-<img src="Sprites/sprite_11.jpg" alt="Fondo del Jefe Final" width="400"/>
-
-## Personajes Jugables
-
-### Personaje Principal - Estilo 1
-<img src="Sprites/sprite_4.png" alt="Personaje Principal 1" width="400"/>
-
-### Personaje Principal - Estilo 2
-<img src="Sprites/sprite_5.png" alt="Personaje Principal 2" width="400"/>
-
-### Personaje Principal - Estilo 3
-<img src="Sprites/sprite_6.png" alt="Personaje Principal 3" width="400"/>
-
-## Enemigos y Obstáculos
-
-### Barriles (Obstáculos)
-<img src="Sprites/sprite_3.png" alt="Barriles" width="400"/>
-
-### Villanos de Niveles 1-3
-<img src="Sprites/sprite_9.avif" alt="Villanos" width="400"/>
-
-### Jefe Final
-<img src="Sprites/sprite_8.png" alt="Jefe Final" width="400"/>
+### **Elementos de UI**
+- **Componentes de HUD**: Contadores de vidas, gemas, niveles
+- **Interfaz de Tienda**: UI de selección de mejoras y compras
 
 ---
 
-## _Sonidos/Música_
+## _Sistema de Audio_
 
 ---
 
-### **Atributos de Estilo**
+### **Música**
 
-- Música tipo chiptune
-  - En bucle, ritmo rápido durante los niveles
-  - Tema oscuro y tenso para el jefe
-  - Optimista para el menú principal y la victoria
-- Efectos de Sonido
-  - Salto (estilo retro boing)
-  - Lanzamiento de bola de fuego (woosh/pop)
-  - Barril rodando (retumbar)
-  - Golpe a enemigo (sonido de impacto)
-  - Recoger mejora (campana)
+### **Música de Fondo (En Bucle)**
+- **`level_1_music.mp3`**: Tema del bosque
+- **`level_2_music.mp3`**: Tema del reino del cielo  
+- **`level_3_music.mp3`**: Tema volcánico
+- **`level_4_music.mp3`**: Tema del nivel final
+- **`shop_music.mp3`**: Tema del sistema de tienda
 
----
+### **Música de Transición**
+- **`level-win-6416.mp3`**: Transiciones de finalización de nivel
 
-### **Sonidos Necesarios**
+### **Efectos de Sonido**
 
-- Salto
-- Lanzamiento de Bola de Fuego
-- Golpe a Enemigo
-- Teletransporte del Mago
-- Recoger Regeneración de Salud
-- Navegación del Menú
+- **`jump_sound.mp3`**: Retroalimentación de acción de salto
+- **`cast_fire_spell.mp3`**: Sonido de lanzamiento de bolas de fuego
+- **`taking_damage.mp3`**: Sonido de daño recibido
+- **`dying_music.mp3`**: Sonido de secuencia de muerte
 
----
-
-### **Música Necesaria**
-
-1. Tema del Menú Principal (retro, esperanzador)
-2. Tema del Nivel 1 (bosque tenso)
-3. Tema del Nivel 2 (tempo más rápido)
-4. Tema del Nivel 3 (caótico/mágico)
-5. Tema del Jefe Final
-6. Tema de Victoria
+### **Características de Audio**
+- **Control de Volumen Inteligente**: Volumen separado para música/efectos (30%/15%)
+- **Manejo de Reproducción Automática del Navegador**: Cumplimiento con requisito de interacción del usuario
+- **Cambio de Música Dinámico**: Transiciones sin problemas entre niveles y tienda
+- **Gestión de Estado de Audio**: Detención/inicio adecuado de pistas de audio
 
 ---
 
-## _Calendario_
+## _Interfaz de Usuario_
 
 ---
 
-1. **Semana 1–2:** 
-   - Mecánicas base: movimiento, salto, escaleras, bola de fuego
-2. **Semana 3:**
-   - Generación de barriles, sistema de enfriamiento, reinicio tipo roguelike
-3. **Semana 4:**
-   - IA de enemigos (Orco/Lobo/Mago), cambio de niveles
-4. **Semana 5:**
-   - Lógica de batalla contra jefe, salud, daño
-5. **Semana 6:**
-   - Menú principal, sistema de EXP, mejoras
-6. **Semana 7:**
-   - Gráficos, animaciones, integración de sonido
-7. **Semana 8:**
-   - Pulido, corrección de errores, balance
+### **Elementos de HUD**
+- **Visualización de Vidas**: Visualización de salud actual/máxima
+- **Contador de Gemas**: Visualización de moneda en tiempo real
+- **Indicador de Nivel**: Progresión del nivel actual
+- **Contador de Muertes**: Seguimiento de estadísticas del jugador
 
-_(ejemplo)_
+### **Interfaz del Sistema de Tienda**
+- **Diseño de Tres Objetos**: Mejora de Vida, Bola de Fuego Rápida, Continuar
+- **Indicadores Visuales**: Asequibilidad y estado de compra
+- **Navegación**: Sistema de selección basado en teclado
+- **Retroalimentación de Compra**: Confirmación visual/auditiva inmediata
+
+### **Sistemas de Menú**
+- **Interfaz de Inicio de Sesión**: Formularios de autenticación limpios
+- **Menú Principal**: Visualización de estadísticas e inicio del juego
+- **Menú de Pausa**: Gestión del estado del juego con instrucciones claras
+- **Pantalla de Victoria**: Celebración de finalización y estadísticas
+
+### **Características Técnicas**
+- **Diseño Responsivo**: Se adapta a diferentes tamaños de pantalla
+- **Integración de Base de Datos**: Actualizaciones de estadísticas en tiempo real
+- **Pulido Visual**: Diseño de UI profesional con temática consistente
+
+---
+
+## _Estado de Implementación_
+
+Este Documento de Diseño del Juego refleja el **estado implementado actual** de Torre del Mago, incluyendo:
+
+✅ **Sistema completo de progresión de 4 niveles**  
+✅ **Sistema de combate completo con magia de bolas de fuego**  
+✅ **Sistema integral de tienda y mejoras**  
+✅ **Sistema de audio completo con música y efectos**  
+✅ **Integración con base de datos MySQL**  
+✅ **Generación procedural de niveles**  
+✅ **Sistema profesional de animación de sprites**  
+✅ **Física robusta y detección de colisiones**  
+✅ **IA avanzada de enemigos y comportamiento**  
+✅ **Sistema completo de UI/UX**
+
+El juego está completo en características y representa una experiencia de plataformero 2D pulida y profesional.
