@@ -21,7 +21,7 @@ async function ConnectDB() {
     return await mysql.createConnection({
         host: "localhost",
         user: "root",
-        password: '',
+        password: 'admin',
         database: 'mage_db',
     });
 }
@@ -183,7 +183,7 @@ let nextId = 1
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(gamePath, 'html', 'index.html'));
-  });
+});
 
 //--------------------------------------------------------------------------------------------------
 // Login
@@ -260,7 +260,7 @@ app.get("/api/gamestats", async (req, res) => {
     let connection = null;
     try {
         const id_jugador = req.query.id_jugador;
-
+        
         if (!id_jugador) {
             return res.status(400).json({
                 success: false,
@@ -761,7 +761,10 @@ app.get("/api/admin/stats", async (req, res) => {
             SELECT 
                 (SELECT COUNT(*) FROM jugador) as total_users,
                 (SELECT COUNT(*) FROM Partida) as total_games,
-                (SELECT AVG(nivel_maximo_alcanzado) FROM Partida) as average_level
+                (SELECT AVG(nivel_maximo_alcanzado) FROM Partida) as average_level,
+                (SELECT AVG(experiencia_ganada) FROM Partida) as average_score,
+                (SELECT COALESCE(SUM(enemigos_eliminados), 0) FROM Estadistica_partida) as total_enemies_killed,
+                (SELECT COALESCE(SUM(powerups_usados), 0) FROM Estadistica_partida) as total_powerups_used
         `;
         
         const [stats] = await connection.execute(statsQuery);
@@ -843,24 +846,30 @@ app.get('/api/admin/users/:userId/stats', async (req, res) => {
         // Obtener estadísticas generales del usuario
         const statsQuery = `
             SELECT 
-                COUNT(DISTINCT id_partida) as total_games,
-                MAX(nivel_maximo_alcanzado) as max_level,
-                COALESCE(MAX(experiencia_ganada), 0) as max_score,
-                COALESCE(AVG(nivel_maximo_alcanzado), 0) as average_level
-            FROM Partida
-            WHERE id_jugador = ?
+                COUNT(DISTINCT p.id_partida) as total_games,
+                MAX(p.nivel_maximo_alcanzado) as max_level,
+                COALESCE(MAX(p.experiencia_ganada), 0) as max_score,
+                COALESCE(AVG(p.nivel_maximo_alcanzado), 0) as average_level,
+                COALESCE(SUM(ep.enemigos_eliminados), 0) as total_enemies_killed,
+                COALESCE(SUM(ep.powerups_usados), 0) as total_powerups_used
+            FROM Partida p
+            LEFT JOIN Estadistica_partida ep ON p.id_partida = ep.id_partida
+            WHERE p.id_jugador = ?
         `;
         
         // Obtener historial de partidas
         const gamesQuery = `
             SELECT 
-                id_partida,
-                nivel_maximo_alcanzado,
-                experiencia_ganada as puntuacion,
-                fecha_fin
-            FROM Partida
-            WHERE id_jugador = ?
-            ORDER BY fecha_fin DESC
+                p.id_partida,
+                p.nivel_maximo_alcanzado,
+                p.experiencia_ganada as puntuacion,
+                p.fecha_fin,
+                COALESCE(ep.enemigos_eliminados, 0) as enemigos_eliminados,
+                COALESCE(ep.powerups_usados, 0) as powerups_usados
+            FROM Partida p
+            LEFT JOIN Estadistica_partida ep ON p.id_partida = ep.id_partida
+            WHERE p.id_jugador = ?
+            ORDER BY p.fecha_fin DESC
             LIMIT 10
         `;
         
