@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración - Mage Tower</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cloud {
+            position: fixed;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .cloud1 {
+            top: 10%;
+            left: 10%;
+            animation: float 20s infinite linear;
+        }
+
+        .cloud2 {
+            top: 20%;
+            right: 10%;
+            animation: float 25s infinite linear reverse;
+        }
+
+        .cloud3 {
+            bottom: 20%;
+            left: 20%;
+            animation: float 30s infinite linear;
+        }
+
+        .cloud4 {
+            bottom: 10%;
+            right: 20%;
+            animation: float 35s infinite linear reverse;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateX(-100%);
+            }
+            100% {
+                transform: translateX(100vw);
+            }
+        }
+
+        main {
+            flex: 1;
+            padding: 0.5rem;
+            overflow: hidden;
+            position: relative;
+            z-index: 1;
+            height: calc(100vh - 60px); /* Ajustar según la altura del header */
+        }
+
+        .admin-container {
+            position: relative;
+            z-index: 2;
+            max-width: 1400px;
+            width: 95%;
+            height: 100%;
+            margin: 0 auto;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.85);
+            border: 4px solid #ffd700;
+            border-radius: 15px;
+            color: #fff;
+            box-sizing: border-box;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.2);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            padding-bottom: 2rem;
+        }
+
+        .admin-header {
+            text-align: center;
+            margin-bottom: 0.5rem;
+            color: #ffd700;
+            text-shadow: 0 0 15px #ffd700;
+            font-size: clamp(1.2rem, 2vw, 1.5rem);
+            position: relative;
+            padding-bottom: 0.5rem;
+        }
+
+        .admin-header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #ffd700, transparent);
+        }
+
+        .admin-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .admin-card {
+            background: rgba(255, 215, 0, 0.05);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 2px solid #ffd700;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: visible;
+            display: flex;
+            flex-direction: column;
+            max-width: 100%;
+            min-height: 300px;
+        }
+
+        .admin-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, transparent, rgba(255, 215, 0, 0.1), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.6s ease;
+        }
+
+        .admin-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(255, 215, 0, 0.2);
+        }
+
+        .admin-card:hover::before {
+            transform: translateX(100%);
+        }
+
+        .admin-title {
+            color: #ffd700;
+            font-size: clamp(0.8rem, 1.5vw, 1rem);
+            margin-bottom: 0.3rem;
+            text-align: center;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+            position: relative;
+            padding-bottom: 0.3rem;
+        }
+
+        .admin-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #ffd700, transparent);
+        }
+
+        .admin-content {
+            font-size: clamp(0.7rem, 1.5vw, 0.8rem);
+            text-align: center;
+            color: #fff;
+            line-height: 1.4;
+            flex: 1;
+            overflow: auto;
+            display: flex;
+            flex-direction: column;
+            max-height: 400px;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding: 0.5rem;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+        }
+
+        .pagination button {
+            background: linear-gradient(90deg, #ff2d00 0%, #ff9900 50%, #fff700 100%);
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 0.5rem 1rem;
+            font-family: 'Press Start 2P', cursive;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: clamp(0.6rem, 1.5vw, 0.7rem);
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+        }
+
+        .pagination span {
+            color: #ffd700;
+            font-size: clamp(0.7rem, 1.5vw, 0.8rem);
+        }
+
+        .admin-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 0.3rem;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            overflow: hidden;
+            font-size: clamp(0.6rem, 1.5vw, 0.7rem);
+            flex: 1;
+        }
+
+        .admin-table th,
+        .admin-table td {
+            padding: 0.3rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+        }
+
+        .admin-table th {
+            background: rgba(255, 215, 0, 0.1);
+            color: #ffd700;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .admin-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .admin-table tr:hover td {
+            background: rgba(255, 215, 0, 0.05);
+        }
+
+        .admin-button {
+            display: inline-block;
+            padding: 0.3rem 0.5rem;
+            margin: 0.2rem;
+            background: linear-gradient(90deg, #ff2d00 0%, #ff9900 50%, #fff700 100%);
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-family: 'Press Start 2P', cursive;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: clamp(0.6rem, 1.5vw, 0.7rem);
+            white-space: nowrap;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .admin-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 0.3rem;
+            margin: 0.3rem 0;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #ffd700;
+            border-radius: 4px;
+            color: #fff;
+            font-family: 'Press Start 2P', cursive;
+            font-size: clamp(0.6rem, 1.5vw, 0.7rem);
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+
+        .search-box:focus {
+            outline: none;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+            margin: 2rem 0;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            border: 2px solid #ffd700;
+            min-height: 400px;
+            overflow: visible;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin: 1rem 0;
+            width: 100%;
+        }
+
+        .stats-item {
+            background: rgba(255, 215, 0, 0.05);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 2px solid #ffd700;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stats-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(255, 215, 0, 0.2);
+            background: rgba(255, 215, 0, 0.1);
+        }
+
+        .stats-item h3 {
+            color: #ffd700;
+            font-size: clamp(0.8rem, 1.5vw, 1rem);
+            margin-bottom: 0.5rem;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .stats-item p {
+            color: #fff;
+            font-size: clamp(1.2rem, 2vw, 1.5rem);
+            font-weight: bold;
+            margin: 0;
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+        }
+
+        .back-button {
+            display: block;
+            width: min(200px, 90%);
+            margin: 0.5rem auto;
+            padding: 0.5rem;
+            background: linear-gradient(90deg, #ff2d00 0%, #ff9900 50%, #fff700 100%);
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-family: 'Press Start 2P', cursive;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: clamp(0.7rem, 1.5vw, 0.8rem);
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .back-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+
+        @media (max-width: 1200px) {
+            .admin-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .chart-container {
+                height: 300px;
+                min-height: 300px;
+                margin: 1.5rem 0;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .admin-container {
+                padding: 0.5rem;
+            }
+
+            .admin-card {
+                padding: 0.3rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-container {
+                height: 250px;
+                min-height: 250px;
+                margin: 1rem 0;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .admin-container {
+                width: 100%;
+                margin: 0;
+                border-radius: 0;
+            }
+
+            .admin-table th,
+            .admin-table td {
+                padding: 0.5rem;
+            }
+
+            .admin-button {
+                padding: 0.4rem;
+                font-size: 0.6rem;
+            }
+        }
+
+        /* Estilos para el modal de estadísticas */
+        .stats-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .stats-modal-content {
+            background: rgba(0, 0, 0, 0.9);
+            margin: 2% auto;
+            padding: 1rem;
+            border: 4px solid #ffd700;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 800px;
+            position: relative;
+            color: #fff;
+            max-height: 96vh;
+            overflow-y: auto;
+        }
+
+        .close-modal {
+            position: absolute;
+            right: 1rem;
+            top: 1rem;
+            font-size: 2rem;
+            color: #ffd700;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .close-modal:hover {
+            transform: scale(1.2);
+        }
+
+        .stats-history {
+            margin-top: 2rem;
+        }
+
+        .stats-history h3 {
+            color: #ffd700;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .stats-modal-content {
+                margin: 10% auto;
+                padding: 1rem;
+            }
+        }
+
+        /* Estilos para el panel de login */
+        .login-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .admin-panel {
+            display: none;
+            position: relative;
+            z-index: 1;
+        }
+
+        .admin-container {
+            display: none;
+        }
+
+        .admin-container.active {
+            display: flex;
+        }
+
+        .login-form {
+            background: rgba(0, 0, 0, 0.95);
+            padding: 2rem;
+            border: 4px solid #ffd700;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .login-title {
+            color: #ffd700;
+            font-size: clamp(1.2rem, 3vw, 1.5rem);
+            margin-bottom: 1.5rem;
+            text-shadow: 0 0 10px #ffd700;
+        }
+
+        .login-input {
+            width: 100%;
+            padding: 0.8rem;
+            margin: 0.5rem 0;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #ffd700;
+            border-radius: 5px;
+            color: #fff;
+            font-family: 'Press Start 2P', cursive;
+            font-size: clamp(0.7rem, 2vw, 0.9rem);
+            box-sizing: border-box;
+        }
+
+        .login-input:focus {
+            outline: none;
+            box-shadow: 0 0 10px #ffd700;
+        }
+
+        .login-button {
+            width: 100%;
+            padding: 1rem;
+            margin-top: 1rem;
+            background: linear-gradient(90deg, #ff2d00 0%, #ff9900 50%, #fff700 100%);
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-family: 'Press Start 2P', cursive;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: clamp(0.7rem, 2vw, 0.9rem);
+        }
+
+        .login-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+
+        .error-message {
+            color: #ff4444;
+            margin-top: 1rem;
+            font-size: clamp(0.6rem, 2vw, 0.8rem);
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="cloud cloud1"></div>
+    <div class="cloud cloud2"></div>
+    <div class="cloud cloud3"></div>
+    <div class="cloud cloud4"></div>
+
+    <header>
+        <nav id="menu">
+            <div id="dropdownMenu">
+                <a href="/">Inicio</a>
+                <a href="/help">Ayuda</a>
+                <a href="/creditos">Creditos</a>
+                <a href="/estadisticas">Estadísticas</a>
+                <a href="/info">Acerca de</a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <div class="admin-container">
+            <h1 class="admin-header">Panel de Administración</h1>
+            
+            <div class="admin-grid">
+                <!-- Sección de Usuarios -->
+                <div class="admin-card">
+                    <h2 class="admin-title">Gestión de Usuarios</h2>
+                    <input type="text" class="search-box" id="userSearch" placeholder="Buscar usuario...">
+                    <div class="admin-content">
+                        <table class="admin-table" id="usersTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nombre</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Los usuarios se cargarán dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination">
+                        <button id="prevPage" onclick="changePage(-1)">Anterior</button>
+                        <span id="pageInfo">Página 1 de 1</span>
+                        <button id="nextPage" onclick="changePage(1)">Siguiente</button>
+                    </div>
+                </div>
+
+                <!-- Sección de Partidas Recientes -->
+                <div class="admin-card">
+                    <h2 class="admin-title">Partidas Recientes</h2>
+                    <div class="admin-content">
+                        <table class="admin-table" id="recentGamesTable">
+                            <thead>
+                                <tr>
+                                    <th>ID Partida</th>
+                                    <th>Jugador</th>
+                                    <th>Nivel</th>
+                                    <th>Fecha</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Las partidas se cargarán dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Sección de Estadísticas Generales -->
+                <div class="admin-card" style="grid-column: 1 / -1; min-height: 600px; margin-bottom: 2rem;">
+                    <h2 class="admin-title">Estadísticas Generales</h2>
+                    <div class="stats-grid">
+                        <div class="stats-item">
+                            <h3>Total Usuarios</h3>
+                            <p id="totalUsers">0</p>
+                        </div>
+                        <div class="stats-item">
+                            <h3>Total Partidas</h3>
+                            <p id="totalGames">0</p>
+                        </div>
+                        <div class="stats-item">
+                            <h3>Nivel Promedio</h3>
+                            <p id="averageLevel">0</p>
+                        </div>
+                        <div class="stats-item">
+                            <h3>Puntuación Media</h3>
+                            <p id="averageScore">0</p>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="statsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+
+        </div>
+    </main>
+
+    <!-- Panel de Login -->
+    <div id="loginPanel" class="login-container">
+        <div class="login-form">
+            <h2 class="login-title">Panel de Administración</h2>
+            <input type="text" id="username" class="login-input" placeholder="Usuario">
+            <input type="password" id="password" class="login-input" placeholder="Contraseña">
+            <button class="login-button" onclick="login()">Iniciar Sesión</button>
+            <p id="errorMessage" class="error-message"></p>
+        </div>
+    </div>
+
+    <!-- Modal de Estadísticas -->
+    <div id="statsModal" class="stats-modal">
+        <div class="stats-modal-content">
+            <span class="close-modal" onclick="closeStatsModal()">&times;</span>
+            <h2 class="admin-title">Estadísticas del Jugador</h2>
+            <div id="playerStats" class="stats-grid">
+                <!-- Las estadísticas se cargarán dinámicamente -->
+            </div>
+            <div class="stats-history">
+                <h3>Historial de Partidas</h3>
+                <div class="admin-content">
+                    <table class="admin-table" id="playerGamesTable">
+                        <thead>
+                            <tr>
+                                <th>ID Partida</th>
+                                <th>Nivel Máximo</th>
+                                <th>Puntuación</th>
+                                <th>Fecha</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Las partidas se cargarán dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('Página cargada');
+            // Verificar si ya hay una sesión de admin
+            const isAdmin = localStorage.getItem('isAdmin');
+            if (isAdmin === 'true') {
+                showAdminPanel();
+            }
+        });
+
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorMessage = document.getElementById('errorMessage');
+
+            if (!username || !password) {
+                errorMessage.textContent = 'Por favor, completa todos los campos';
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ nombre: username, password_jugador: password })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    localStorage.setItem('isAdmin', 'true');
+                    showAdminPanel();
+                } else {
+                    errorMessage.textContent = data.message || 'Credenciales inválidas';
+                    errorMessage.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error en login:', error);
+                errorMessage.textContent = 'Error al intentar iniciar sesión';
+                errorMessage.style.display = 'block';
+            }
+        }
+
+        function showAdminPanel() {
+            document.getElementById('loginPanel').style.display = 'none';
+            document.querySelector('.admin-container').style.display = 'flex';
+            loadAdminData();
+        }
+
+        async function loadAdminData() {
+            try {
+                await loadUsers();
+                await loadGeneralStats();
+                await loadRecentGames();
+                document.getElementById('userSearch').addEventListener('input', async (e) => {
+                    await searchUsers(e.target.value);
+                });
+            } catch (error) {
+                console.error('Error al cargar datos:', error);
+            }
+        }
+
+        // Función para cerrar sesión
+        function logout() {
+            localStorage.removeItem('isAdmin');
+            document.getElementById('loginPanel').style.display = 'flex';
+            document.querySelector('.admin-container').style.display = 'none';
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+
+        // Añadir botón de logout al header
+        document.querySelector('.admin-header').insertAdjacentHTML('afterend', 
+            '<div style="position: absolute; right: 1rem; top: 1rem; display: flex; gap: 1rem;">' +
+            '<button class="admin-button" onclick="window.location.href=\'/\'">Volver al Juego</button>' +
+            '<button class="admin-button" onclick="logout()">Cerrar Sesión</button>' +
+            '</div>'
+        );
+
+        let currentPage = 1;
+        let totalPages = 1;
+        const usersPerPage = 10;
+
+        async function loadUsers(page = 1) {
+            try {
+                const response = await fetch(`/api/admin/users?page=${page}&limit=${usersPerPage}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const tbody = document.querySelector('#usersTable tbody');
+                    tbody.innerHTML = '';
+                    
+                    data.users.forEach(user => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${user.id_jugador}</td>
+                            <td>${user.nombre}</td>
+                            <td>
+                                <button class="admin-button" onclick="viewUserStats(${user.id_jugador})">Ver Stats</button>
+                                <button class="admin-button" onclick="deleteUser(${user.id_jugador})">Eliminar</button>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+
+                    // Actualizar paginación
+                    totalPages = Math.ceil(data.total / usersPerPage);
+                    currentPage = page;
+                    updatePagination();
+                }
+            } catch (error) {
+                console.error('Error al cargar usuarios:', error);
+            }
+        }
+
+        function updatePagination() {
+            const pageInfo = document.getElementById('pageInfo');
+            const prevButton = document.getElementById('prevPage');
+            const nextButton = document.getElementById('nextPage');
+
+            pageInfo.textContent = `Página ${currentPage} de ${totalPages}`;
+            prevButton.disabled = currentPage === 1;
+            nextButton.disabled = currentPage === totalPages;
+        }
+
+        function changePage(delta) {
+            const newPage = currentPage + delta;
+            if (newPage >= 1 && newPage <= totalPages) {
+                loadUsers(newPage);
+            }
+        }
+
+        async function searchUsers(query) {
+            try {
+                const response = await fetch(`/api/admin/users/search?q=${encodeURIComponent(query)}&page=${currentPage}&limit=${usersPerPage}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const tbody = document.querySelector('#usersTable tbody');
+                    tbody.innerHTML = '';
+                    
+                    data.users.forEach(user => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${user.id_jugador}</td>
+                            <td>${user.nombre}</td>
+                            <td>
+                                <button class="admin-button" onclick="viewUserStats(${user.id_jugador})">Ver Stats</button>
+                                <button class="admin-button" onclick="deleteUser(${user.id_jugador})">Eliminar</button>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+
+                    // Actualizar paginación para la búsqueda
+                    totalPages = Math.ceil(data.total / usersPerPage);
+                    updatePagination();
+                }
+            } catch (error) {
+                console.error('Error al buscar usuarios:', error);
+            }
+        }
+
+        // Modificar el evento de búsqueda para mantener la paginación
+        document.getElementById('userSearch').addEventListener('input', async (e) => {
+            currentPage = 1; // Resetear a la primera página al buscar
+            await searchUsers(e.target.value);
+        });
+
+        async function loadGeneralStats() {
+            try {
+                const response = await fetch('/api/admin/stats');
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Actualizar estadísticas generales
+                    document.getElementById('totalUsers').textContent = data.stats.total_users || '0';
+                    document.getElementById('totalGames').textContent = data.stats.total_games || '0';
+                    document.getElementById('averageLevel').textContent = data.stats.average_level || '0';
+                    document.getElementById('averageScore').textContent = data.stats.average_score || '0';
+
+                    // Gráfico de estadísticas generales
+                    const statsCtx = document.getElementById('statsChart').getContext('2d');
+                    new Chart(statsCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['Usuarios', 'Partidas', 'Nivel Promedio', 'Puntuación Media'],
+                            datasets: [{
+                                label: 'Estadísticas Generales',
+                                data: [
+                                    data.stats.total_users || 0,
+                                    data.stats.total_games || 0,
+                                    data.stats.average_level || 0,
+                                    data.stats.average_score || 0
+                                ],
+                                backgroundColor: [
+                                    'rgba(255, 99, 132, 0.5)',
+                                    'rgba(54, 162, 235, 0.5)',
+                                    'rgba(255, 206, 86, 0.5)',
+                                    'rgba(75, 192, 192, 0.5)'
+                                ],
+                                borderColor: [
+                                    'rgba(255, 99, 132, 1)',
+                                    'rgba(54, 162, 235, 1)',
+                                    'rgba(255, 206, 86, 1)',
+                                    'rgba(75, 192, 192, 1)'
+                                ],
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    labels: {
+                                        color: '#fff'
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        color: '#fff'
+                                    },
+                                    grid: {
+                                        color: 'rgba(255, 255, 255, 0.1)'
+                                    }
+                                },
+                                x: {
+                                    ticks: {
+                                        color: '#fff'
+                                    },
+                                    grid: {
+                                        color: 'rgba(255, 255, 255, 0.1)'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error al cargar estadísticas:', error);
+            }
+        }
+
+        // Asegurarse de que el gráfico se cargue cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', () => {
+            loadGeneralStats();
+        });
+
+        async function loadRecentGames() {
+            try {
+                const response = await fetch('/api/admin/recent-games');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const tbody = document.querySelector('#recentGamesTable tbody');
+                    tbody.innerHTML = '';
+                    
+                    data.games.forEach(game => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${game.id_partida}</td>
+                            <td>${game.nombre_jugador}</td>
+                            <td>${game.nivel_maximo_alcanzado}</td>
+                            <td>${new Date(game.fecha_fin).toLocaleDateString()}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            } catch (error) {
+                console.error('Error al cargar partidas recientes:', error);
+            }
+        }
+
+        async function viewUserStats(userId) {
+            try {
+                const response = await fetch(`/api/admin/users/${userId}/stats`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const statsGrid = document.getElementById('playerStats');
+                    statsGrid.innerHTML = `
+                        <div class="stats-item">
+                            <h3>Total Partidas</h3>
+                            <p>${data.stats.total_games}</p>
+                        </div>
+                        <div class="stats-item">
+                            <h3>Nivel Máximo</h3>
+                            <p>${data.stats.max_level}</p>
+                        </div>
+                        <div class="stats-item">
+                            <h3>Puntuación Máxima</h3>
+                            <p>${data.stats.max_score}</p>
+                        </div>
+                        <div class="stats-item">
+                            <h3>Promedio de Nivel</h3>
+                            <p>${data.stats.average_level}</p>
+                        </div>
+                    `;
+
+                    const tbody = document.querySelector('#playerGamesTable tbody');
+                    tbody.innerHTML = '';
+                    
+                    data.games.forEach(game => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${game.id_partida}</td>
+                            <td>${game.nivel_maximo_alcanzado}</td>
+                            <td>${game.puntuacion}</td>
+                            <td>${new Date(game.fecha_fin).toLocaleDateString()}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+
+                    document.getElementById('statsModal').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error al cargar estadísticas:', error);
+                alert('Error al cargar las estadísticas del usuario');
+            }
+        }
+
+        function closeStatsModal() {
+            const modal = document.getElementById('statsModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // Cerrar el modal al hacer clic fuera de él
+        window.onclick = function(event) {
+            const modal = document.getElementById('statsModal');
+            if (event.target === modal) {
+                closeStatsModal();
+            }
+        }
+
+        async function deleteUser(userId) {
+            if (confirm('¿Estás seguro de que deseas eliminar este usuario?')) {
+                try {
+                    const response = await fetch(`/api/admin/users/${userId}`, {
+                        method: 'DELETE'
+                    });
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        alert('Usuario eliminado correctamente');
+                        await loadUsers();
+                        await loadGeneralStats();
+                    } else {
+                        alert('Error al eliminar usuario: ' + data.message);
+                    }
+                } catch (error) {
+                    console.error('Error al eliminar usuario:', error);
+                    alert('Error al eliminar usuario');
+                }
+            }
+        }
+    </script>
+</body>
+</html> 
